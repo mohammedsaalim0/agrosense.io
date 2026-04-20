@@ -83,34 +83,45 @@ def api_scan(request):
     filename = request.GET.get('filename', '').lower()
     date_str = request.GET.get('date', '')
     
-    # Simulate Plant Detection via keyword checking
-    plant_keywords = ['leaf', 'plant', 'rice', 'wheat', 'maize', 'cotton', 'crop', 'tree', 'field', 'nature', 'green', 'agriculture']
-    is_plant = any(kw in filename for kw in plant_keywords)
+    # Supported image extensions
+    image_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic']
+    is_image = any(filename.endswith(ext) for ext in image_extensions)
     
-    if not is_plant:
+    # Simulate Plant Detection via keyword checking
+    plant_keywords = ['leaf', 'plant', 'rice', 'wheat', 'maize', 'cotton', 'crop', 'tree', 'field', 'nature', 'green', 'agriculture', 'img_', 'dsc_']
+    is_plant_keyword = any(kw in filename for kw in plant_keywords)
+    
+    if not is_image and not is_plant_keyword:
         return JsonResponse({
             'status': 'error',
-            'message': 'AI Vision: Non-plant object detected. Please upload a clear photo of a crop or plant leaf for analysis.'
+            'message': 'AI Vision: Non-plant object detected or unsupported format. Please upload a clear photo of a crop or plant leaf.'
         }, status=400)
 
     # Deterministic Seed based on file and date
     random.seed(f"{filename}{date_str}")
     
-    # Deterministic Scan Result (Genuinely mapped to keywords)
+    # Identification Logic
     detected_plant = 'Rice (Oryza sativa)'
-    if 'wheat' in filename: detected_plant = 'Wheat (Triticum aestivum)'
-    elif 'maize' in filename: detected_plant = 'Maize (Zea mays)'
-    elif 'cotton' in filename: detected_plant = 'Cotton (Gossypium)'
-    elif 'leaf' in filename: detected_plant = 'Generic Leaf Analysis'
+    if 'wheat' in filename: 
+        detected_plant = 'Wheat (Triticum aestivum)'
+    elif 'maize' in filename: 
+        detected_plant = 'Maize (Zea mays)'
+    elif 'cotton' in filename: 
+        detected_plant = 'Cotton (Gossypium)'
+    elif 'leaf' in filename or 'plant' in filename:
+        detected_plant = random.choice(['Tomato (Solanum lycopersicum)', 'Potato (Solanum tuberosum)', 'Chili (Capsicum annuum)'])
+    else:
+        # Fallback for generic phone uploads like IMG_1234.jpg
+        detected_plant = random.choice(['Rice (Oryza sativa)', 'Wheat (Triticum aestivum)', 'Maize (Zea mays)', 'Soybean (Glycine max)'])
 
     results = {
         'status': 'success',
         'plant': detected_plant,
-        'health': 'Healthy',
+        'health': random.choice(['Healthy', 'Minor Stress', 'Thriving']),
         'growth': random.randint(50, 95),
         'health_radar': [random.randint(60, 100) for _ in range(5)],
-        'disease_risk': random.randint(2, 15),
-        'chlorophyll': [random.randint(20, 98) for _ in range(7)]
+        'disease_risk': random.randint(1, 12),
+        'chlorophyll': [random.randint(40, 98) for _ in range(7)]
     }
     random.seed(None)
     return JsonResponse(results)

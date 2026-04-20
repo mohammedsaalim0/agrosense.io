@@ -505,7 +505,11 @@
     /* Scanner */
     .upload-zone { 
         border: 2px dashed #ccc; padding: 5rem; text-align: center; cursor: pointer; 
-        position: relative; overflow: hidden;
+        position: relative; overflow: hidden; transition: var(--transition);
+    }
+    .upload-zone.scanning {
+        border-color: var(--harvest-gold);
+        background: rgba(218, 165, 32, 0.05);
     }
     .scan-line {
         position: absolute; top: 0; left: 0; width: 100%; height: 4px; 
@@ -952,15 +956,21 @@
     function startScan(fileName) {
         const line = document.getElementById('scan-line');
         const date = document.getElementById('scan-date').value;
+        const resultsArea = document.getElementById('scan-results');
         
         if(!date) {
             showToast("Please select a prediction date.");
-            document.getElementById('scan-line').style.display = 'none';
+            line.style.display = 'none';
             return;
         }
 
+        // Reset UI for new scan
+        resultsArea.style.display = 'none';
         line.style.display = 'block';
-        showToast(`Analyzing ${fileName} for ${date}...`);
+        showToast(`AI Vision: Analyzing ${fileName}...`);
+        
+        // Add scanning class for extra visual feedback
+        document.getElementById('drop-zone').classList.add('scanning');
         
         setTimeout(() => {
             fetch(`/api/scan/?filename=${fileName}&date=${date}`)
@@ -972,20 +982,28 @@
                 })
                 .then(data => {
                     line.style.display = 'none';
-                    document.getElementById('scan-results').style.display = 'grid';
-                    document.getElementById('scan-results').scrollIntoView({ behavior: 'smooth' });
+                    document.getElementById('drop-zone').classList.remove('scanning');
+                    resultsArea.style.display = 'grid';
+                    resultsArea.scrollIntoView({ behavior: 'smooth' });
                     
                     document.getElementById('plant-id').textContent = data.plant;
+                    
+                    // Update Health Status color
+                    const statusEl = document.querySelector('#scan-results p span');
+                    statusEl.textContent = data.health;
+                    statusEl.style.color = data.health === 'Healthy' ? '#2e7d32' : '#d32f2f';
                     
                     Charts.donut('growth-arc', data.growth, "#DAA520");
                     Charts.radar('health-radar', data.health_radar);
                     Charts.donut('disease-donut', data.disease_risk, "#b71c1c");
                     Charts.line('growth-line', data.chlorophyll);
+                    
+                    showToast("Analysis Complete: " + data.plant);
                 })
                 .catch(err => {
                     line.style.display = 'none';
+                    document.getElementById('drop-zone').classList.remove('scanning');
                     showToast(err.message);
-                    document.getElementById('scan-results').style.display = 'none';
                 });
         }, 3000);
     }
