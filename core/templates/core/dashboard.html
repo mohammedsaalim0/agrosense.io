@@ -650,13 +650,25 @@
 
     .dev-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 3rem;
-        position: relative;
-        z-index: 2;
         max-width: 1000px;
         margin: 0 auto;
+        position: relative;
+        z-index: 2;
     }
+
+    @media (max-width: 768px) {
+        .dev-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            padding: 0 1rem;
+        }
+        .dev-card {
+            padding: 2rem !important;
+        }
+    }
+
     .dev-card {
         text-align: center;
         background: rgba(255, 255, 255, 0.1) !important;
