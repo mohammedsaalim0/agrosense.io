@@ -1,0 +1,419 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroSense — Smart Crop Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --soil-brown: #3E2723;
+            --moss-green: #4E6E5D;
+            --harvest-gold: #DAA520;
+            --wheat: #F5DEB3;
+            --off-white: #FAF9F6;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(-45deg, #FAF9F6, #F5DEB3, #E8F5E9, #FAF9F6);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--soil-brown);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .ambient-particles {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            background: var(--moss-green);
+            border-radius: 50%;
+            opacity: 0.1;
+            filter: blur(5px);
+            animation: floatParticle 20s infinite linear;
+        }
+        @keyframes floatParticle {
+            0% { transform: translate(0, 0) scale(1); opacity: 0; }
+            20% { opacity: 0.15; }
+            80% { opacity: 0.15; }
+            100% { transform: translate(100vw, -100vh) scale(1.5); opacity: 0; }
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(62, 39, 35, 0.98);
+            backdrop-filter: blur(15px);
+            padding: 1.2rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10000;
+            border-bottom: 1px solid var(--glass-border);
+            box-sizing: border-box;
+        }
+
+        .status-tracker-container { position: relative; margin-right: 1.5rem; }
+        .status-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; position: relative; display: flex; align-items: center; color: var(--harvest-gold); }
+        .status-btn .badge { 
+            position: absolute; top: -5px; right: -12px; background: #b71c1c; color: white; 
+            font-size: 0.65rem; padding: 2px 6px; border-radius: 12px; font-weight: bold; border: 2px solid var(--soil-brown);
+        }
+        .status-dropdown {
+            position: absolute; top: 130%; right: 0; width: 280px; display: none;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: 15px;
+            padding: 1.5rem; text-align: left; z-index: 10001;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+        .status-dropdown h4 { margin-bottom: 1rem; color: var(--soil-brown); border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        .status-item { padding: 0.8rem 0; border-bottom: 1px solid #eee; }
+        .status-item:last-child { border-bottom: none; }
+        .status-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; text-transform: uppercase; margin-top: 4px; display: inline-block; }
+        .status-tag.pending { background: #fff3e0; color: #e65100; }
+        .status-tag.approved { background: #e8f5e9; color: #1b5e20; }
+        .cancel-app-btn { background: none; border: none; color: #b71c1c; font-size: 0.7rem; cursor: pointer; text-decoration: underline; margin-top: 5px; display: block; padding: 0; }
+        .cancel-app-btn:hover { color: #d32f2f; }
+
+        .logo {
+            color: var(--harvest-gold);
+            font-size: 1.8rem;
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .nav-links a {
+            color: var(--off-white);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        .nav-links a:hover {
+            color: var(--harvest-gold);
+            opacity: 1;
+        }
+
+        main {
+            padding-top: 80px;
+        }
+
+        .section {
+            padding: 100px 5%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Hero Styling */
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('{% static "core/images/hero_bg.png" %}') center/cover;
+            color: white;
+            text-align: center;
+            height: 100vh;
+        }
+
+        .hero h1 {
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            color: var(--wheat);
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: var(--harvest-gold);
+            color: var(--soil-brown);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(218, 165, 32, 0.3);
+        }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: var(--soil-brown);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            margin-top: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Boot-up Animation */
+        #boot-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--soil-brown);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--harvest-gold);
+            transition: opacity 1s ease, visibility 1s;
+        }
+
+        .boot-logo-container {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 2rem;
+        }
+
+        .seed-svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--harvest-gold);
+        }
+
+        .boot-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            letter-spacing: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; transform: scale(0.98); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.5; transform: scale(0.98); }
+        }
+
+        .hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* Responsive Overrides */
+        @media (max-width: 992px) {
+            .nav-links {
+                position: fixed; top: 80px; right: -100%; width: 100%; height: calc(100vh - 80px);
+                background: rgba(62, 39, 35, 0.98); backdrop-filter: blur(20px);
+                flex-direction: column; padding: 2rem; gap: 1.5rem; transition: var(--transition);
+                z-index: 999;
+            }
+            .nav-links.active { right: 0; }
+            .mobile-toggle { display: block !important; }
+            .hero h1 { font-size: 3rem; }
+            .section { padding: 80px 5%; }
+        }
+
+        .mobile-toggle {
+            display: none; background: none; border: none; color: white;
+            font-size: 2rem; cursor: pointer;
+        }
+
+        .logout-btn, .login-btn { padding: 0.5rem 1.5rem; color: var(--soil-brown); background: var(--harvest-gold); cursor: pointer; }
+
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="ambient-particles" id="ambient-particles"></div>
+    
+    <div id="boot-screen">
+        <div class="boot-logo-container">
+            <svg class="seed-svg" viewBox="0 0 24 24">
+                <path d="M12,2C12,2 4,10 4,16C4,20.42 7.58,24 12,24C16.42,24 20,20.42 20,16C20,10 12,2 12,2M12,22C8.69,22 6,19.31 6,16C6,13.69 7.77,10.59 10,8.35V16H14V8.35C16.23,10.59 18,13.69 18,16C18,19.31 15.31,22 12,22Z" />
+                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+            </svg>
+        </div>
+        <div class="boot-text">AGROSENSE</div>
+    </div>
+
+    <nav>
+        <a href="{% url 'dashboard' %}" class="logo">AGROSENSE</a>
+        <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
+        <div class="nav-links" id="nav-links">
+            <a href="{% url 'dashboard' %}#advisor">Crop Advisor</a>
+            <a href="{% url 'dashboard' %}#intelligence">Market Intel</a>
+            <a href="{% url 'dashboard' %}#schemes">Support Schemes</a>
+            <a href="{% url 'dashboard' %}#sell">Sell Crop</a>
+            <a href="{% url 'dashboard' %}#scanner">Plant Scanner</a>
+            {% if user.is_authenticated %}
+                <div class="status-tracker-container">
+                    <button class="status-btn" onclick="toggleStatusDropdown()">
+                        📋 <span class="badge">{{ applications.count|default:0 }}</span>
+                    </button>
+                    <div id="status-dropdown" class="status-dropdown">
+                        <h4>Application Status</h4>
+                        <div class="status-list">
+                            {% for app in applications %}
+                            <div class="status-item" id="app-{{ app.id }}">
+                                <p style="font-size: 0.9rem; margin-bottom: 2px;"><strong>{{ app.scheme_name }}</strong></p>
+                                <span class="status-tag {{ app.status|lower }}">{{ app.get_status_display }}</span>
+                                <button class="cancel-app-btn" onclick="cancelApplication('{{ app.scheme_name }}', {{ app.id }})">Cancel Application</button>
+                            </div>
+                            {% empty %}
+                            <p id="no-apps-msg" style="font-size: 0.8rem; color: #666;">No active applications.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary logout-btn">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-primary login-btn">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // Create ambient particles
+        function initParticles() {
+            const container = document.getElementById('ambient-particles');
+            for(let i=0; i<20; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.width = Math.random() * 50 + 20 + 'px';
+                p.style.height = p.style.width;
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.top = Math.random() * 100 + 'vh';
+                p.style.animationDelay = Math.random() * 20 + 's';
+                p.style.animationDuration = Math.random() * 10 + 20 + 's';
+                container.appendChild(p);
+            }
+        }
+        initParticles();
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const bootScreen = document.getElementById('boot-screen');
+                bootScreen.classList.add('hidden');
+            }, 2500); // Cinematic delay
+        });
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        function toggleMobileMenu() {
+            const nav = document.getElementById('nav-links');
+            nav.classList.toggle('active');
+        }
+
+        // Close menu on link click
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('nav-links').classList.remove('active');
+            });
+        });
+
+        function toggleStatusDropdown() {
+            const dropdown = document.getElementById('status-dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.status-tracker-container')) {
+                const dropdown = document.getElementById('status-dropdown');
+                if (dropdown) dropdown.style.display = 'none';
+            }
+        }
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

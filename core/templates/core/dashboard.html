@@ -1,0 +1,1164 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Personalized Welcome Overlay -->
+<div id="welcome-overlay" class="welcome-overlay">
+    <div class="welcome-content">
+        <h1 id="welcome-text">Namaste, {{ request.user.first_name|default:request.user.username }}</h1>
+        <p>Initializing your digital farm ecosystem...</p>
+        <div class="welcome-loader"></div>
+    </div>
+</div>
+
+<!-- Hero Section -->
+<section class="section hero" id="home">
+    <div class="hero-grid">
+        <div class="hero-content">
+            <h1>Cultivating Intelligence</h1>
+            <p>AgroSense empowers farmers with AI-driven insights, market intelligence, and smart crop management tools designed for the modern harvester.</p>
+            <a href="#advisor" class="btn btn-primary">Get Started</a>
+        </div>
+        <div id="tree-3d-container" class="hero-3d"></div>
+    </div>
+</section>
+
+<!-- Crop Advisor -->
+<section class="section" id="advisor">
+    <div class="section-header">
+        <h2>Crop Advisor</h2>
+        <p>Input your soil and climate data to discover the best crops for your land.</p>
+    </div>
+    <div class="advisor-container">
+        <form id="advisor-form" class="glass-card">
+            <div class="form-group">
+                <label>State / Region</label>
+                <select name="state" required>
+                    <option value="">Select State</option>
+                    <option value="punjab">Punjab</option>
+                    <option value="maharashtra">Maharashtra</option>
+                    <option value="karnataka">Karnataka</option>
+                    <option value="up">Uttar Pradesh</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Soil Type</label>
+                <select name="soil" required>
+                    <option value="">Select Soil</option>
+                    <option value="alluvial">Alluvial</option>
+                    <option value="black">Black Soil</option>
+                    <option value="red">Red Soil</option>
+                    <option value="laterite">Laterite</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Season</label>
+                <select name="season" required>
+                    <option value="">Select Season</option>
+                    <option value="kharif">Kharif</option>
+                    <option value="rabi">Rabi</option>
+                    <option value="zaid">Zaid</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Analyze Soil</button>
+        </form>
+
+        <div id="advisor-results" class="results-grid">
+            <!-- Results will be injected here -->
+        </div>
+    </div>
+</section>
+
+<!-- Market Intelligence -->
+<section class="section" id="intelligence" style="background: #efeee8;">
+    <div class="section-header">
+        <h2>Market Intelligence</h2>
+        <p>Real-time price trends and demand forecasting for your produce.</p>
+    </div>
+    <div class="market-container">
+        <div class="search-bar glass-card">
+            <input type="text" id="market-search" placeholder="Search crop (e.g. Wheat, Rice, Cotton)...">
+            <button onclick="updateMarketData()" class="btn btn-primary">Search</button>
+        </div>
+        
+        <div class="market-grid" id="market-grid" style="display: none;">
+            <div class="market-card price-trend glass-card animated-border">
+                <div class="data-ping"></div>
+                <h3>12-Month Price Trend</h3>
+                <div id="price-chart-container" class="chart-container"></div>
+            </div>
+            <div class="market-card stats glass-card animated-border">
+                <h3>Performance Metrics</h3>
+                <div id="performance-metrics">
+                    <div class="metric">
+                        <span>Demand Index</span>
+                        <div class="progress-bg"><div class="progress-bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="metric">
+                        <span>Supply Volume</span>
+                        <div class="progress-bg"><div class="progress-bar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="metric">
+                        <span>Profitability</span>
+                        <div class="progress-bg"><div class="progress-bar" style="width: 0%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="market-card donut-chart glass-card animated-border">
+                <h3>Supply / Demand</h3>
+                <div id="market-donut-container" class="chart-container"></div>
+            </div>
+            <div class="market-card radar-chart glass-card animated-border">
+                <h3>Market Stability</h3>
+                <div id="market-radar-container" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Best Seller & Buyer Search -->
+<section class="section search-market-section" id="market-search-section">
+    <div class="section-header">
+        <h2>Find Best Sellers & Buyers</h2>
+        <p>Enter crop and location to discover top-rated market participants near you.</p>
+    </div>
+    <div class="search-market-container glass-card">
+        <div class="search-form-inline">
+            <input type="text" id="search-crop" placeholder="Crop Name (e.g. Wheat)">
+            <input type="text" id="search-location" placeholder="Location (e.g. Punjab)">
+            <button onclick="searchMarket()" class="btn btn-primary">Find Experts</button>
+        </div>
+        
+        <div id="search-results" class="market-search-results" style="display: none;">
+            <div class="market-pair">
+                <div class="result-card seller-highlight">
+                    <span class="badge">TOP SELLER</span>
+                    <div class="avatar">👨‍🌾</div>
+                    <h3 id="top-seller-name">Rajesh Singh</h3>
+                    <p id="top-seller-desc">Specialized in High-Yield Basmati</p>
+                    <div class="stats">
+                        <span>Rating: ★★★★★</span>
+                        <span id="top-seller-loc">📍 Ludhiana</span>
+                    </div>
+                    <button class="btn btn-primary">Contact Seller</button>
+                </div>
+                <div class="result-card buyer-highlight">
+                    <span class="badge">TOP BUYER</span>
+                    <div class="avatar">🏬</div>
+                    <h3 id="top-buyer-name">AgriCorp Solutions</h3>
+                    <p id="top-buyer-desc">Bulk Procurement & Export</p>
+                    <div class="stats">
+                        <span>Rating: ★★★★☆</span>
+                        <span id="top-buyer-loc">📍 Amritsar</span>
+                    </div>
+                    <button class="btn btn-primary">Contact Buyer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Support Schemes -->
+<section class="section" id="schemes">
+    <div class="section-header">
+        <h2>Support Schemes</h2>
+        <p>Explore government subsidies, low-interest loans, and crop insurance programs.</p>
+    </div>
+    <div class="schemes-grid">
+        {% if schemes %}
+            {% for scheme in schemes %}
+            <div class="scheme-card glass-card">
+                <span class="scheme-type">{{ scheme.get_scheme_type_display }}</span>
+                <h3>{{ scheme.title }}</h3>
+                <p class="provider">By {{ scheme.provider }}</p>
+                <p class="amount">{{ scheme.amount }}</p>
+                <p class="desc">{{ scheme.description }}</p>
+                <button onclick="applyForScheme('{{ scheme.title }}')" class="btn btn-primary">Apply Now</button>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Fallback static cards if no DB data -->
+            <div class="scheme-card glass-card">
+                <span class="scheme-type">Subsidy</span>
+                <h3>PM-Kisan Samman</h3>
+                <p class="provider">Central Govt</p>
+                <p class="amount">₹6,000 / Year</p>
+                <p class="desc">Direct income support for small and marginal farmers across the country.</p>
+                <button onclick="showToast('Application submitted')" class="btn btn-primary">Apply Now</button>
+            </div>
+            <div class="scheme-card glass-card">
+                <span class="scheme-type">Insurance</span>
+                <h3>PM Fasal Bima</h3>
+                <p class="provider">MoA&FW</p>
+                <p class="amount">Low Premium</p>
+                <p class="desc">Comprehensive insurance cover against failure of the crop due to natural calamities.</p>
+                <button onclick="applyForScheme('PM Fasal Bima')" class="btn btn-primary">Apply Now</button>
+            </div>
+            <!-- More static cards would go here -->
+        {% endif %}
+    </div>
+</section>
+
+<!-- Sell Your Crop -->
+<section class="section" id="sell" style="background: #f7f6f2;">
+    <div class="section-header">
+        <h2>Sell Your Crop</h2>
+        <p>List your produce and get AI-powered price suggestions based on current MSP.</p>
+    </div>
+    <div class="sell-container">
+        <div class="listing-form glass-card" id="listing-form">
+            <h3>Create New Listing</h3>
+            <div class="form-group">
+                <label>Crop Type</label>
+                <select id="listing-crop" name="crop" onchange="updateMSP()">
+                    <option value="">Select Crop</option>
+                    <option value="wheat">Wheat (MSP: ₹2275)</option>
+                    <option value="paddy">Paddy (MSP: ₹2183)</option>
+                    <option value="maize">Maize (MSP: ₹2090)</option>
+                    <option value="cotton">Cotton (MSP: ₹6620)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Quantity (Quintals)</label>
+                <input type="number" id="listing-qty" name="quantity" placeholder="e.g. 50">
+            </div>
+            <div class="ai-price-box">
+                <p>AI Suggested Price</p>
+                <h4 id="suggested-price">₹ --</h4>
+                <small>Based on current market demand + 5% premium</small>
+                <input type="hidden" id="hidden-price" name="price">
+            </div>
+            <button onclick="submitListing()" class="btn btn-primary" style="width: 100%;">Post Listing</button>
+        </div>
+
+        <div class="active-listings">
+            <h3>Recent Marketplace Bids</h3>
+            <div class="bid-list" id="bid-list">
+                {% for listing in listings %}
+                <div class="bid-card glass-card" id="listing-{{ listing.id }}">
+                    <div class="bid-info">
+                        <strong>{{ listing.crop_name }}</strong>
+                        <p>{{ listing.quantity }} • {{ listing.location }}</p>
+                        <small>Seller: {{ listing.seller_name }}</small>
+                    </div>
+                    <div class="bid-action">
+                        <span class="price">₹{{ listing.price }}/Q</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="showToast('Bid placed!')" class="btn btn-primary">Bid</button>
+                            <button onclick="removeListing({{ listing.id }})" class="btn" style="background: #b71c1c; color: white; padding: 0.5rem 1rem;">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Plant Scanner -->
+<section class="section" id="scanner">
+    <div class="section-header">
+        <h2>Plant Scanner</h2>
+        <p>Upload a photo of your crop to analyze its health and identify diseases.</p>
+    </div>
+    <div class="scanner-container">
+        <div class="upload-zone glass-card" id="drop-zone">
+            <div class="scanner-ui">
+                <div class="scan-line" id="scan-line" style="display: none;"></div>
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7m4 0h5m-2.5-2.5v5M9 11l3 3L22 4" />
+                </svg>
+                <p>Click or drag crop photo here</p>
+                <div class="form-group" style="margin-top: 1rem; width: 250px; margin-left: auto; margin-right: auto;">
+                    <label style="color: white;">Prediction Date</label>
+                    <input type="date" id="scan-date" style="padding: 0.5rem; border-radius: 8px; width: 100%;">
+                </div>
+                <input type="file" id="file-input" hidden accept="image/*">
+                <button onclick="document.getElementById('file-input').click()" class="btn btn-primary">Select Image</button>
+            </div>
+        </div>
+
+        <div id="scan-results" class="scan-results-grid" style="display: none;">
+            <div class="scan-header glass-card">
+                <div class="scan-image-preview">
+                    <img id="scanned-image" src="" alt="Crop Preview" style="width: 100px; height: 100px; border-radius: 10px; object-fit: cover;">
+                </div>
+                <div>
+                    <h3>Plant Identification: <span id="plant-id">Rice (Oryza sativa)</span></h3>
+                    <p>Status: <span style="color: #2e7d32; font-weight: bold;">Healthy</span></p>
+                </div>
+            </div>
+            <div class="scan-card glass-card">
+                <h4>Growth Maturity</h4>
+                <div id="growth-arc" class="chart-container"></div>
+            </div>
+            <div class="scan-card glass-card">
+                <h4>Health Radar</h4>
+                <div id="health-radar" class="chart-container"></div>
+            </div>
+            <div class="scan-card glass-card">
+                <h4>Disease Risk</h4>
+                <div id="disease-donut" class="chart-container"></div>
+            </div>
+            <div class="scan-card glass-card">
+                <h4>Chlorophyll Trend</h4>
+                <div id="growth-line" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Developers Section -->
+<section class="section developers-section" id="developers">
+    <video autoplay muted loop playsinline class="desert-video">
+        <source src="https://player.vimeo.com/external/494252666.sd.mp4?s=3498a962a04874457e0556218e7e174a87383a1f&profile_id=165&oauth2_token_id=57447761" type="video/mp4">
+    </video>
+    <div class="desert-overlay"></div>
+    <div class="desert-bg">
+        <div class="dune dune-1"></div>
+        <div class="dune dune-2"></div>
+        <div class="sand-particles" id="sand-particles"></div>
+    </div>
+    
+    <div class="section-header" style="color: white; position: relative; z-index: 2;">
+        <h2 style="color: #FFE082;">Meet the Architects</h2>
+        <p style="color: #FFF8E1;">The visionaries behind the AgroSense intelligence engine.</p>
+    </div>
+
+    <div class="dev-grid">
+        <!-- Saalim -->
+        <div class="dev-card glass-card">
+            <div class="dev-img-container">
+                <a href="https://mohammedsaalim0.github.io/MYPORTFOLIO.IO/" target="_blank">
+                    <img src="{% static 'core/images/saalim.jpg' %}" alt="Saalim" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=Saalim'">
+                </a>
+                <div class="dev-glow"></div>
+            </div>
+            <div class="dev-info">
+                <h3>Saalim</h3>
+                <p class="role">Frontend + Backend Developer</p>
+                <p class="bio">Lead architect of the AgroSense UX and immersive 3D interactions.</p>
+                <div class="dev-socials">
+                    <span>GitHub</span> • <span>LinkedIn</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mansoor -->
+        <div class="dev-card glass-card">
+            <div class="dev-img-container">
+                <img src="{% static 'core/images/mansoor.jpg' %}" alt="Mansoor" onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=Mansoor'">
+                <div class="dev-glow"></div>
+            </div>
+            <div class="dev-info">
+                <h3>Mansoor</h3>
+                <p class="role">Backend Developer + DBS Designer</p>
+                <p class="bio">Mastermind of the data persistence layers and complex market logic.</p>
+                <div class="dev-socials">
+                    <span>GitHub</span> • <span>LinkedIn</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Welcome Overlay */
+    .welcome-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: var(--soil-brown);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        text-align: center;
+    }
+    .welcome-content h1 { font-size: 4rem; font-family: 'Playfair Display', serif; margin-bottom: 1rem; animation: pulse 2s infinite; }
+    .welcome-loader { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: var(--harvest-gold); border-radius: 50%; margin: 2rem auto; animation: spin 1s infinite linear; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
+
+    .section-header { text-align: center; margin-bottom: 4rem; }
+    .section-header h2 { font-size: 3rem; color: var(--soil-brown); margin-bottom: 1rem; }
+    .section-header p { font-size: 1.1rem; color: var(--moss-green); max-width: 600px; margin: 0 auto; }
+
+    .hero {
+        min-height: 90vh;
+        padding-top: 0;
+        margin-top: -20px;
+        display: flex;
+        align-items: center;
+        z-index: 1;
+    }
+    .hero-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        align-items: center;
+        gap: 2rem;
+        text-align: left;
+        width: 100%;
+        padding-top: 2rem;
+    }
+
+    .hero-3d {
+        height: 600px;
+        position: relative;
+        perspective: 1000px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .hero-3d canvas {
+        filter: drop-shadow(0 0 20px rgba(218, 165, 32, 0.2));
+    }
+
+    .glass-card {
+        background: white;
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 15px 35px rgba(62, 39, 35, 0.05);
+        transition: var(--transition);
+        position: relative;
+        z-index: 10;
+    }
+
+    .glass-card:hover { transform: translateY(-5px); box-shadow: 0 20px 45px rgba(62, 39, 35, 0.1); }
+
+    /* Advisor */
+    .advisor-container { display: grid; grid-template-columns: 350px 1fr; gap: 3rem; }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+    .form-group select, .form-group input { 
+        width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid #ddd; 
+        font-family: inherit; font-size: 1rem; background: #fff;
+    }
+
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; }
+    .crop-card { padding: 1.5rem; }
+    .crop-card h4 { margin-bottom: 1rem; font-size: 1.4rem; color: var(--moss-green); }
+    .crop-meta { display: flex; justify-content: space-between; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .crop-meta span { background: var(--wheat); padding: 4px 12px; border-radius: 20px; color: var(--soil-brown); font-weight: bold; }
+
+    /* Search Market */
+    .search-form-inline { display: flex; gap: 1rem; margin-bottom: 3rem; }
+    .search-form-inline input { flex: 1; padding: 1.2rem; border-radius: 12px; border: 1px solid #ddd; }
+    .market-search-results { animation: fadeIn 0.5s ease; }
+    .market-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .result-card { text-align: center; padding: 3rem; border-radius: 20px; position: relative; overflow: hidden; background: rgba(255,255,255,0.8); backdrop-filter: blur(15px); }
+    .badge { position: absolute; top: 0; left: 0; background: var(--harvest-gold); color: var(--soil-brown); padding: 5px 20px; font-weight: bold; font-size: 0.7rem; border-radius: 0 0 15px 0; }
+    .avatar { font-size: 3.5rem; margin-bottom: 1.5rem; }
+    .stats { display: flex; justify-content: center; gap: 2rem; margin: 1.5rem 0; font-weight: 600; font-size: 0.9rem; }
+    .seller-highlight { border: 2px solid var(--moss-green); }
+    .buyer-highlight { border: 2px solid var(--harvest-gold); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    .chart-container { 
+        height: 250px; 
+        width: 100%; 
+        position: relative; 
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .metric { margin-bottom: 1.5rem; }
+    .metric span { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+    .progress-bg { background: #eee; height: 10px; border-radius: 5px; overflow: hidden; }
+    .progress-bar { background: var(--moss-green); height: 100%; border-radius: 5px; transition: width 1s ease; }
+
+    /* Schemes */
+    .schemes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; }
+    .scheme-card { position: relative; }
+    .scheme-type { 
+        position: absolute; top: 20px; right: 20px; font-size: 0.7rem; font-weight: 700; 
+        text-transform: uppercase; letter-spacing: 1px; color: var(--harvest-gold);
+    }
+    .scheme-card h3 { margin-bottom: 0.5rem; }
+    .provider { color: var(--moss-green); font-weight: 600; margin-bottom: 1rem; }
+    .amount { font-size: 1.5rem; font-weight: 800; color: var(--soil-brown); margin-bottom: 1rem; }
+    .desc { font-size: 0.9rem; color: #666; margin-bottom: 2rem; }
+
+    /* Sell */
+    .sell-container { display: grid; grid-template-columns: 400px 1fr; gap: 3rem; }
+    .ai-price-box { background: var(--soil-brown); color: white; padding: 1.5rem; border-radius: 15px; margin-bottom: 1.5rem; }
+    .ai-price-box h4 { font-size: 2rem; color: var(--harvest-gold); margin: 0.5rem 0; }
+    .bid-list { display: flex; flex-direction: column; gap: 1rem; }
+    .bid-card { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; }
+    .bid-card .price { font-size: 1.2rem; font-weight: 800; color: var(--moss-green); margin-right: 1.5rem; }
+
+    /* Scanner */
+    .upload-zone { 
+        border: 2px dashed #ccc; padding: 5rem; text-align: center; cursor: pointer; 
+        position: relative; overflow: hidden;
+    }
+    .scan-line {
+        position: absolute; top: 0; left: 0; width: 100%; height: 4px; 
+        background: var(--harvest-gold); box-shadow: 0 0 15px var(--harvest-gold);
+        animation: scanMove 2s infinite linear;
+    }
+    @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
+    .scan-results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-top: 3rem; }
+    .scan-header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Best Sellers */
+    .best-sellers-section { padding: 80px 5%; background: #fdfcf9; }
+    .best-sellers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2rem; }
+    .seller-card { text-align: center; padding: 2rem; }
+    .seller-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--wheat); margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--soil-brown); }
+    .seller-rating { color: #f1c40f; margin: 0.5rem 0; }
+    .seller-location { font-size: 0.8rem; color: var(--moss-green); font-weight: 700; }
+
+    .chart-container { height: 200px; width: 100%; position: relative; }
+
+    @media (max-width: 1024px) {
+        .advisor-container, .market-grid, .sell-container { grid-template-columns: 1fr; }
+        .hero h1 { font-size: 3rem; }
+    }
+
+    /* Market Intel Enhancements */
+    .animated-border {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(218, 165, 32, 0.2) !important;
+    }
+    .animated-border::before {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%; width: 200%; height: 200%;
+        background: conic-gradient(transparent, var(--harvest-gold), transparent 30%);
+        animation: rotateBorder 6s linear infinite;
+        opacity: 0;
+        transition: opacity 0.5s;
+    }
+    .animated-border:hover::before { opacity: 0.3; }
+    @keyframes rotateBorder { to { transform: rotate(360deg); } }
+
+    .data-ping {
+        position: absolute;
+        top: 10px; right: 10px; width: 8px; height: 8px;
+        background: var(--harvest-gold);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--harvest-gold);
+        animation: ping 2s infinite;
+    }
+    @keyframes ping { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+
+    .market-card:hover {
+        transform: translateY(-10px) rotateX(2deg) rotateY(2deg);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+    }
+    /* Developers Section & Sahara Animation */
+    .developers-section {
+        position: relative;
+        background: #000;
+        padding: 120px 5%;
+        overflow: hidden;
+        min-height: 80vh;
+    }
+    .desert-video {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        opacity: 0.8;
+    }
+    .desert-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(to bottom, rgba(62, 39, 35, 0.8), rgba(230, 81, 0, 0.4), rgba(0,0,0,0.8));
+        z-index: 1;
+    }
+    .desert-bg {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 1;
+    }
+    .dune {
+        position: absolute;
+        bottom: -50px;
+        width: 150%;
+        height: 300px;
+        background: #FFB300;
+        clip-path: ellipse(60% 40% at 50% 100%);
+        opacity: 0.8;
+    }
+    .dune-1 { left: -25%; animation: wave 20s infinite alternate ease-in-out; }
+    .dune-2 { right: -25%; background: #FFA000; height: 250px; animation: wave 25s infinite alternate-reverse ease-in-out; opacity: 0.6; }
+    
+    @keyframes wave {
+        from { transform: translateX(-50px) scaleY(1); }
+        to { transform: translateX(50px) scaleY(1.1); }
+    }
+
+    .sand-particles {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none;
+    }
+    .sand-grain {
+        position: absolute;
+        background: rgba(255, 224, 130, 0.4);
+        border-radius: 50%;
+        animation: sandDrift linear infinite;
+    }
+    @keyframes sandDrift {
+        from { transform: translate(-10vw, 110vh) rotate(0deg); }
+        to { transform: translate(110vw, -10vh) rotate(360deg); }
+    }
+
+    .dev-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 3rem;
+        position: relative;
+        z-index: 2;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    .dev-card {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(25px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: white;
+        padding: 3rem !important;
+    }
+    .dev-img-container {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        margin: 0 auto 2rem;
+    }
+    .dev-img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid var(--harvest-gold);
+        position: relative;
+        z-index: 2;
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dev-img-container img:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 30px var(--harvest-gold);
+    }
+    .dev-card:hover .dev-glow {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.3);
+    }
+    .dev-glow {
+        position: absolute;
+        top: 50%; left: 50%; width: 120%; height: 120%;
+        background: radial-gradient(circle, var(--harvest-gold) 0%, transparent 70%);
+        transform: translate(-50%, -50%);
+        opacity: 0.4;
+        animation: pulse 3s infinite;
+    }
+    .dev-info h3 { font-size: 2rem; margin-bottom: 0.5rem; color: #FFE082; }
+    .dev-info .role { font-weight: 700; color: var(--harvest-gold); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 1rem; }
+    .dev-info .bio { font-size: 0.95rem; color: #FFF8E1; opacity: 0.9; line-height: 1.6; }
+    .dev-socials { margin-top: 1.5rem; font-size: 0.8rem; color: var(--harvest-gold); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // SVG Charting Engine
+    const Charts = {
+        line(containerId, data, color = "#4E6E5D") {
+            const container = document.getElementById(containerId);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const padding = 20;
+            const max = Math.max(...data) * 1.2;
+            const step = (width - padding * 2) / (data.length - 1);
+            let points = data.map((d, i) => `${padding + i * step},${height - padding - (d / max) * (height - padding * 2)}`).join(' ');
+            
+            container.innerHTML = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}">
+                    <defs>
+                        <filter id="glow-${containerId}" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
+                    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow-${containerId})">
+                        <animate attributeName="stroke-dasharray" from="0,1000" to="1000,0" dur="2s" />
+                    </polyline>
+                    ${data.map((d, i) => `<circle cx="${padding + i * step}" cy="${height - padding - (d / max) * (height - padding * 2)}" r="6" fill="${color}" />`).join('')}
+                </svg>
+            `;
+        },
+        
+        bar(containerId, data, labels, color = "#DAA520") {
+            const container = document.getElementById(containerId);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const padding = 30;
+            const barWidth = (width - padding * 2) / data.length - 15;
+            const max = Math.max(...data) * 1.1;
+
+            container.innerHTML = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}">
+                    <defs>
+                        <linearGradient id="barGrad-${containerId}" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="${color}" />
+                            <stop offset="100%" stop-color="${color}33" />
+                        </linearGradient>
+                    </defs>
+                    ${data.map((d, i) => {
+                        const h = (d / max) * (height - padding * 2);
+                        return `
+                            <rect x="${padding + i * (barWidth + 15)}" y="${height - padding - h}" width="${barWidth}" height="${h}" fill="url(#barGrad-${containerId})" rx="8">
+                                <animate attributeName="height" from="0" to="${h}" dur="1s" />
+                                <animate attributeName="y" from="${height - padding}" to="${height - padding - h}" dur="1s" />
+                            </rect>
+                        `;
+                    }).join('')}
+                </svg>
+            `;
+        },
+
+        donut(containerId, percent, color = "#4E6E5D") {
+            const container = document.getElementById(containerId);
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            const center = size / 2;
+            const radius = size * 0.4;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (percent / 100) * circumference;
+
+            container.innerHTML = `
+                <svg width="${size}" height="${size}" style="display:block; margin:auto;">
+                    <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="#eee" stroke-width="15" />
+                    <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="${color}" stroke-width="15" 
+                        stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}" stroke-linecap="round" transform="rotate(-90 ${center} ${center})">
+                        <animate attributeName="stroke-dashoffset" from="${circumference}" to="${offset}" dur="1.5s" fill="freeze" />
+                    </circle>
+                    <text x="${center}" y="${center + 10}" text-anchor="middle" font-family="Playfair Display" font-weight="bold" font-size="24" fill="#3E2723">${percent}%</text>
+                </svg>
+            `;
+        },
+
+        radar(containerId, levels, color = "#DAA520") {
+            const container = document.getElementById(containerId);
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            const center = size / 2;
+            const radius = size * 0.4;
+            const points = [];
+            
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                const r = radius * (levels[i] / 100);
+                points.push(`${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`);
+            }
+
+            container.innerHTML = `
+                <svg width="${size}" height="${size}" style="display:block; margin:auto;">
+                    ${[0.2, 0.4, 0.6, 0.8, 1].map(scale => {
+                        const r = radius * scale;
+                        const poly = [];
+                        for(let i=0; i<5; i++) {
+                            const a = (Math.PI*2/5)*i - Math.PI/2;
+                            poly.push(`${center + r*Math.cos(a)},${center + r*Math.sin(a)}`);
+                        }
+                        return `<polygon points="${poly.join(' ')}" fill="none" stroke="#ddd" />`;
+                    }).join('')}
+                    <polygon points="${points.join(' ')}" fill="${color}33" stroke="${color}" stroke-width="2">
+                        <animate attributeName="opacity" from="0" to="1" dur="1s" />
+                    </polygon>
+                </svg>
+            `;
+        }
+    };
+
+    // Advisor Logic
+    document.getElementById('advisor-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        showToast('Analyzing soil data...');
+        
+        const results = document.getElementById('advisor-results');
+        results.innerHTML = '<div style="grid-column: 1/-1; text-align: center;">Processing soil profile...</div>';
+        
+        const formData = new FormData(this);
+        const params = new URLSearchParams(formData).toString();
+
+        fetch(`/api/recommend/?${params}`)
+            .then(res => res.json())
+            .then(data => {
+                results.innerHTML = '';
+                data.crops.forEach((crop, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'crop-card glass-card';
+                    card.innerHTML = `
+                        <h4>${crop.name}</h4>
+                        <div class="crop-meta">
+                            <span>Suitability: ${crop.score}%</span>
+                            <span>Est. Yield: ${crop.yield}t/h</span>
+                        </div>
+                        <div id="crop-chart-${i}" class="chart-container" style="height: 100px;"></div>
+                    `;
+                    results.appendChild(card);
+                    
+                    setTimeout(() => {
+                        const chartData = Array.from({length: 6}, () => Math.floor(Math.random() * 50) + 50);
+                        Charts.line(`crop-chart-${i}`, chartData, i % 2 === 0 ? "#4E6E5D" : "#DAA520");
+                    }, 100);
+                });
+            });
+    });
+
+    // Market Intel Logic
+    function updateMarketData() {
+        const crop = document.getElementById('market-search').value;
+        if(!crop) {
+            showToast("Please enter a crop name to search.");
+            return;
+        }
+        
+        showToast(`Fetching intelligence for ${crop}...`);
+        document.getElementById('market-grid').style.display = 'grid';
+
+        fetch(`/api/market/?crop=${crop}`)
+            .then(res => res.json())
+            .then(data => {
+                Charts.bar('price-chart-container', data.trends, []);
+                Charts.donut('market-donut-container', data.metrics.demand);
+                Charts.radar('market-radar-container', data.stability);
+                
+                // Update progress bars with animation
+                const bars = document.querySelectorAll('.progress-bar');
+                setTimeout(() => bars[0].style.width = data.metrics.demand + '%', 100);
+                setTimeout(() => bars[1].style.width = data.metrics.supply + '%', 300);
+                setTimeout(() => bars[2].style.width = data.metrics.profit + '%', 500);
+            });
+    }
+
+    // MSP Logic
+    function updateMSP() {
+        const crop = document.getElementById('listing-crop').value;
+        const priceTag = document.getElementById('suggested-price');
+        const hiddenPrice = document.getElementById('hidden-price');
+        const msps = { 'wheat': 2275, 'paddy': 2183, 'maize': 2090, 'cotton': 6620 };
+        
+        if(msps[crop]) {
+            const suggested = Math.floor(msps[crop] * 1.05);
+            priceTag.textContent = `₹${suggested}`;
+            hiddenPrice.value = suggested;
+        } else {
+            priceTag.textContent = `₹ --`;
+            hiddenPrice.value = "";
+        }
+    }
+
+    function submitListing() {
+        const crop = document.getElementById('listing-crop').value;
+        const qty = document.getElementById('listing-qty').value;
+        const price = document.getElementById('hidden-price').value;
+
+        if(!crop || !qty || !price) {
+            showToast("Please fill all listing details.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('crop', crop);
+        formData.append('quantity', qty);
+        formData.append('price', price);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('/api/create-listing/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                showToast("Listing posted to marketplace!");
+                const bidList = document.getElementById('bid-list');
+                const card = document.createElement('div');
+                card.className = 'bid-card glass-card';
+                card.id = `listing-${data.listing.id}`;
+                card.innerHTML = `
+                    <div class="bid-info">
+                        <strong>${data.listing.crop_name}</strong>
+                        <p>${data.listing.quantity} • Your Location</p>
+                        <small>Seller: ${data.listing.seller_name}</small>
+                    </div>
+                    <div class="bid-action">
+                        <span class="price">₹${data.listing.price}/Q</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="showToast('Bid placed!')" class="btn btn-primary">Bid</button>
+                            <button onclick="removeListing(${data.listing.id})" class="btn" style="background: #b71c1c; color: white; padding: 0.5rem 1rem;">Remove</button>
+                        </div>
+                    </div>
+                `;
+                bidList.prepend(card);
+            }
+        });
+    }
+
+    // Scanner Logic
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById('scanned-image').src = event.target.result;
+            startScan(file.name);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function startScan(fileName) {
+        const line = document.getElementById('scan-line');
+        const date = document.getElementById('scan-date').value;
+        
+        if(!date) {
+            showToast("Please select a prediction date.");
+            document.getElementById('scan-line').style.display = 'none';
+            return;
+        }
+
+        line.style.display = 'block';
+        showToast(`Analyzing ${fileName} for ${date}...`);
+        
+        setTimeout(() => {
+            fetch(`/api/scan/?filename=${fileName}&date=${date}`)
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.message); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    line.style.display = 'none';
+                    document.getElementById('scan-results').style.display = 'grid';
+                    document.getElementById('scan-results').scrollIntoView({ behavior: 'smooth' });
+                    
+                    document.getElementById('plant-id').textContent = data.plant;
+                    
+                    Charts.donut('growth-arc', data.growth, "#DAA520");
+                    Charts.radar('health-radar', data.health_radar);
+                    Charts.donut('disease-donut', data.disease_risk, "#b71c1c");
+                    Charts.line('growth-line', data.chlorophyll);
+                })
+                .catch(err => {
+                    line.style.display = 'none';
+                    showToast(err.message);
+                    document.getElementById('scan-results').style.display = 'none';
+                });
+        }, 3000);
+    }
+
+    function searchMarket() {
+        const crop = document.getElementById('search-crop').value;
+        const loc = document.getElementById('search-location').value;
+
+        if(!crop || !loc) {
+            showToast("Please enter both crop and location.");
+            return;
+        }
+
+        showToast(`Searching for top ${crop} specialists in ${loc}...`);
+        
+        setTimeout(() => {
+            document.getElementById('search-results').style.display = 'block';
+            document.getElementById('search-results').scrollIntoView({ behavior: 'smooth' });
+            
+            const sellers = [
+                { name: "Rajesh Singh", desc: "Specialized in Premium Grain" },
+                { name: "Sukhwinder Gill", desc: "Organic Farming Pioneer" },
+                { name: "Amit Verma", desc: "Quality Seed Distributor" },
+                { name: "Vikram Rathore", desc: "Sustainable Crop Expert" },
+                { name: "Gurpreet Brar", desc: "Pesticide-Free Specialist" },
+                { name: "Deepak Choudhary", desc: "Advanced Irrigation Merchant" }
+            ];
+            const buyers = [
+                { name: "AgriCorp Global", desc: "Bulk Export Specialist" },
+                { name: "Harvest India Ltd", desc: "Government Authorized Procurement" },
+                { name: "NatureFresh Exports", desc: "Organic Chain Supply" },
+                { name: "Kisan Solutions", desc: "Fair Trade Certified" },
+                { name: "FarmToTable Co.", desc: "Direct Retail Supply" },
+                { name: "GreenGrain Partners", desc: "Industrial Scale Buyer" }
+            ];
+            
+            const seller = sellers[Math.floor(Math.random() * sellers.length)];
+            const buyer = buyers[Math.floor(Math.random() * buyers.length)];
+            
+            document.getElementById('top-seller-name').textContent = seller.name;
+            document.getElementById('top-seller-desc').textContent = seller.desc;
+            document.getElementById('top-buyer-name').textContent = buyer.name;
+            document.getElementById('top-buyer-desc').textContent = buyer.desc;
+            document.getElementById('top-seller-loc').textContent = `📍 ${loc}`;
+            document.getElementById('top-buyer-loc').textContent = `📍 ${loc} Area`;
+            
+            showToast("Best matches found!");
+        }, 1500);
+    }
+
+    function applyForScheme(schemeName) {
+        const formData = new FormData();
+        formData.append('scheme_name', schemeName);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('/api/apply-scheme/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => {
+            if(!res.ok) throw new Error('Failed to record application');
+            return res.json();
+        })
+        .then(data => {
+            if(data.status === 'success') {
+                showToast(`Application recorded for ${schemeName}!`);
+                
+                // Update badge
+                const badge = document.querySelector('.status-btn .badge');
+                if(badge) {
+                    badge.textContent = parseInt(badge.textContent || 0) + 1;
+                }
+                
+                // Dynamically add to the dropdown list
+                const statusList = document.querySelector('.status-list');
+                if(statusList) {
+                    const emptyMsg = document.getElementById('no-apps-msg');
+                    if(emptyMsg) {
+                        emptyMsg.remove();
+                    }
+                    
+                    const newItem = document.createElement('div');
+                    newItem.className = 'status-item';
+                    newItem.innerHTML = `
+                        <p style="font-size: 0.9rem; margin-bottom: 2px;"><strong>${schemeName}</strong></p>
+                        <span class="status-tag pending">Pending Review</span>
+                        <button class="cancel-app-btn" onclick="cancelApplication('${schemeName}')">Cancel Application</button>
+                    `;
+                    statusList.prepend(newItem);
+                    
+                    // Show dropdown for feedback
+                    document.getElementById('status-dropdown').style.display = 'block';
+                }
+            } else if(data.status === 'exists') {
+                showToast(data.message, "warning");
+            }
+        })
+        .catch(err => {
+            showToast("System Error: Could not record application.");
+            console.error(err);
+        });
+    }
+
+    function removeListing(listingId) {
+        if(!confirm("Are you sure you want to remove this listing?")) return;
+
+        const formData = new FormData();
+        formData.append('listing_id', listingId);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('/api/remove-listing/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                showToast("Listing removed from marketplace.");
+                const item = document.getElementById(`listing-${listingId}`);
+                if(item) item.remove();
+            }
+        });
+    }
+
+    function cancelApplication(schemeName, appId = null) {
+        if(!confirm(`Are you sure you want to cancel your application for ${schemeName}?`)) return;
+
+        const formData = new FormData();
+        formData.append('scheme_name', schemeName);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch('/api/cancel-application/', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                showToast(`Application for ${schemeName} cancelled.`);
+                
+                // Remove from UI
+                const item = appId ? document.getElementById(`app-${appId}`) : Array.from(document.querySelectorAll('.status-item')).find(el => el.textContent.includes(schemeName));
+                if(item) {
+                    item.remove();
+                }
+
+                // Update badge
+                const badge = document.querySelector('.status-btn .badge');
+                if(badge) {
+                    const current = parseInt(badge.textContent || 0);
+                    badge.textContent = Math.max(0, current - 1);
+                }
+
+                // Check if empty
+                const statusList = document.querySelector('.status-list');
+                if(statusList && statusList.children.length === 0) {
+                    statusList.innerHTML = '<p id="no-apps-msg" style="font-size: 0.8rem; color: #666;">No active applications.</p>';
+                }
+            }
+        });
+    }
+
+    // Create sand particles
+    function initSand() {
+        const container = document.getElementById('sand-particles');
+        if(!container) return;
+        for(let i=0; i<40; i++) {
+            const s = document.createElement('div');
+            s.className = 'sand-grain';
+            s.style.width = Math.random() * 3 + 1 + 'px';
+            s.style.height = s.style.width;
+            s.style.left = Math.random() * 100 + 'vw';
+            s.style.animationDuration = Math.random() * 5 + 5 + 's';
+            s.style.animationDelay = Math.random() * 5 + 's';
+            container.appendChild(s);
+        }
+    }
+
+    // Initial Charts
+    window.onload = () => {
+        initSand();
+        // Welcome animation
+        setTimeout(() => {
+            const overlay = document.getElementById('welcome-overlay');
+            if(overlay) {
+                overlay.style.transition = 'opacity 1s ease, visibility 1s';
+                overlay.style.opacity = '0';
+                overlay.style.visibility = 'hidden';
+                setTimeout(() => {
+                    overlay.style.display = 'none'; // Completely remove after fade
+                }, 1000);
+                showToast("Welcome back to AgroSense!");
+            }
+        }, 3000);
+        
+        // Only update if search has value (prevents auto-show)
+        if(document.getElementById('market-search').value) {
+            updateMarketData();
+        }
+    };
+</script>
+<script src="{% static 'core/js/tree_3d.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<section class="section login-section">
+    <div class="login-bg-animations">
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+        <div class="floating-orb orb-3"></div>
+    </div>
+    
+    <div class="login-card glass-card">
+        <div class="login-header">
+            <h2>Welcome Back</h2>
+            <p>Access your AgroSense digital harvester</p>
+        </div>
+        
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Sign In</button>
+        </form>
+
+        <div class="social-login" style="margin-top: 2rem; text-align: center;">
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">Or login with</p>
+            <div class="social-buttons" style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="showToast('Google login is simulated.')" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" width="20" alt="Google">
+                </button>
+                <button onclick="showToast('GitHub login is simulated.')" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/25/25231.png" width="20" alt="GitHub">
+                </button>
+                <button onclick="showToast('LinkedIn login is simulated.')" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="20" alt="LinkedIn">
+                </button>
+            </div>
+        </div>
+        
+        <div class="login-footer">
+            <p>Don't have an account? <a href="{% url 'register' %}">Sign Up</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-section {
+        position: relative;
+        background: var(--off-white);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .login-bg-animations {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+    }
+
+    .floating-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.2;
+        animation: float 20s infinite linear;
+    }
+
+    .orb-1 { width: 400px; height: 400px; background: var(--moss-green); top: -100px; left: -100px; }
+    .orb-2 { width: 500px; height: 500px; background: var(--harvest-gold); bottom: -200px; right: -100px; animation-delay: -5s; }
+    .orb-3 { width: 300px; height: 300px; background: var(--soil-brown); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.1; }
+
+    @keyframes float {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        33% { transform: translate(100px, 50px) rotate(120deg); }
+        66% { transform: translate(-50px, 100px) rotate(240deg); }
+        100% { transform: translate(0, 0) rotate(360deg); }
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 450px;
+        z-index: 1;
+        position: relative;
+        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid var(--glass-border);
+        padding: 3.5rem;
+        animation: slideUp 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .login-header { text-align: center; margin-bottom: 2.5rem; }
+    .login-header h2 { font-size: 2.5rem; color: var(--soil-brown); margin-bottom: 0.5rem; }
+    .login-header p { color: var(--moss-green); }
+
+    .login-footer { text-align: center; margin-top: 2rem; font-size: 0.9rem; }
+    .login-footer a { color: var(--moss-green); font-weight: 700; text-decoration: none; }
+</style>
+{% endblock %}
