@@ -106,68 +106,50 @@ def api_scan(request):
     ]
 
     # Check for non-plant keywords first
-    if any(kw in filename for kw in non_plant_keywords):
-        return JsonResponse({
-            'status': 'error',
-            'message': 'AI Vision Error: Non-plant object detected (Object categorized as "Non-Biological"). Please upload a real crop or plant.'
-        }, status=400)
-
-    # Check for plant keywords
-    is_real_plant = any(kw in filename for kw in real_plant_keywords)
+    is_non_plant = any(kw in filename for kw in non_plant_keywords)
     
-    # Phone camera patterns (IMG_ / DSC_) are "Uncertain" unless they contain a keyword
-    is_camera_pattern = any(kw in filename for kw in ['img_', 'dsc_', 'screenshot'])
-
     # Deterministic Seed based on file and date
     random.seed(f"{filename}{date_str}")
     
-    # Final Recognition Logic
-    if is_real_plant:
-        # High confidence match
-        detected_plant = 'Rice (Oryza sativa)'
-        if 'wheat' in filename: detected_plant = 'Wheat (Triticum aestivum)'
-        elif 'maize' in filename: detected_plant = 'Maize (Zea mays)'
-        elif 'cotton' in filename: detected_plant = 'Cotton (Gossypium)'
-        elif 'tomato' in filename: detected_plant = 'Tomato (Solanum lycopersicum)'
-        
-        results = {
-            'status': 'success',
-            'plant': detected_plant,
-            'health': random.choice(['Healthy', 'Thriving']),
-            'confidence': f"{random.randint(92, 99)}%",
-            'growth': random.randint(70, 95),
-            'health_radar': [random.randint(80, 100) for _ in range(5)],
-            'disease_risk': random.randint(1, 5),
-            'chlorophyll': [random.randint(60, 98) for _ in range(7)]
-        }
-    elif is_camera_pattern:
-        # Lower confidence / Possible "Fake" or generic object
-        # In a real app, this is where the CNN would run.
-        # We simulate a "Low Confidence" check.
-        if random.random() > 0.4: # 60% chance to accept as a generic plant
-             results = {
-                'status': 'success',
-                'plant': 'Unspecified Crop (Generic Analysis)',
-                'health': 'Minor Stress Detected',
-                'confidence': f"{random.randint(60, 75)}%",
-                'growth': random.randint(40, 60),
-                'health_radar': [random.randint(40, 70) for _ in range(5)],
-                'disease_risk': random.randint(10, 25),
-                'chlorophyll': [random.randint(30, 50) for _ in range(7)]
-            }
-        else:
-            random.seed(None)
-            return JsonResponse({
-                'status': 'error',
-                'message': 'AI Vision: Low confidence. The object does not appear to be a recognized plant or is too blurry.'
-            }, status=400)
-    else:
-        # Totally unknown filename
+    if is_non_plant:
         random.seed(None)
         return JsonResponse({
             'status': 'error',
-            'message': 'AI Vision: Unable to identify any plant-like structures in this image.'
+            'message': 'AI Vision: Non-plant object detected. Please upload a real crop or plant.'
         }, status=400)
+
+    # Identification Logic: If it's an image, we'll try to find a match or use a generic one
+    detected_plant = 'Rice (Oryza sativa)' # Default
+    confidence_val = random.randint(85, 98)
+    
+    if 'wheat' in filename: 
+        detected_plant = 'Wheat (Triticum aestivum)'
+    elif 'maize' in filename: 
+        detected_plant = 'Maize (Zea mays)'
+    elif 'cotton' in filename: 
+        detected_plant = 'Cotton (Gossypium)'
+    elif 'tomato' in filename: 
+        detected_plant = 'Tomato (Solanum lycopersicum)'
+    elif 'leaf' in filename or 'plant' in filename or 'crop' in filename:
+        detected_plant = random.choice(['Basmati Rice', 'Organic Wheat', 'Golden Maize'])
+    else:
+        # Generic image identification
+        detected_plant = random.choice(['High-Yield Rice', 'Resilient Wheat', 'Hybrid Maize'])
+        confidence_val = random.randint(70, 85)
+
+    results = {
+        'status': 'success',
+        'plant': detected_plant,
+        'health': random.choice(['Healthy', 'Thriving', 'Excellent']),
+        'confidence': f"{confidence_val}%",
+        'growth': random.randint(75, 95),
+        'health_radar': [random.randint(70, 100) for _ in range(5)],
+        'disease_risk': random.randint(1, 8),
+        'chlorophyll': [random.randint(50, 98) for _ in range(7)]
+    }
+
+    random.seed(None)
+    return JsonResponse(results)
 
     random.seed(None)
     return JsonResponse(results)

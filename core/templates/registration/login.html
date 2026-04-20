@@ -14,19 +14,19 @@
             <p>Access your AgroSense digital harvester</p>
         </div>
 
-        <form method="post" class="login-form">
+        <form method="post" class="login-form" id="login-form">
             {% csrf_token %}
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Enter your username" autocomplete="username" required>
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username" placeholder="Enter your username" autocomplete="username" required>
             </div>
             <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
             </div>
             <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
-                <input type="checkbox" name="remember_me" id="remember_me" style="width: auto;">
-                <label for="remember_me" style="margin: 0; font-size: 0.85rem; color: #666;">Remember Me</label>
+                <input type="checkbox" name="remember" id="remember" style="width: auto;">
+                <label for="remember" style="margin: 0; font-size: 0.85rem; color: #666;">Remember Me</label>
             </div>
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">Sign In</button>
         </form>
