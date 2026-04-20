@@ -242,9 +242,22 @@
 
         .boot-text {
             font-family: 'Playfair Display', serif;
-            font-size: 2rem;
+            font-size: 2.5rem;
             letter-spacing: 5px;
             animation: pulse 2s infinite;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        @media (max-width: 480px) {
+            .boot-text {
+                font-size: 1.8rem;
+                letter-spacing: 2px;
+            }
+            .boot-logo-container {
+                width: 100px;
+                height: 100px;
+            }
         }
 
         @keyframes pulse {
@@ -261,15 +274,23 @@
         /* Responsive Overrides */
         @media (max-width: 992px) {
             .nav-links {
-                position: fixed; top: 80px; right: -100%; width: 100%; height: calc(100vh - 80px);
+                position: fixed; top: 70px; right: -100%; width: 100%; height: calc(100vh - 70px);
                 background: rgba(62, 39, 35, 0.98); backdrop-filter: blur(20px);
                 flex-direction: column; padding: 2rem; gap: 1.5rem; transition: var(--transition);
                 z-index: 999;
             }
             .nav-links.active { right: 0; }
             .mobile-toggle { display: block !important; }
-            .hero h1 { font-size: 3rem; }
-            .section { padding: 80px 5%; }
+            .hero h1 { font-size: 2.8rem; }
+            .section { padding: 60px 5%; }
+            nav { padding: 0.8rem 5%; height: 70px; }
+            main { padding-top: 70px; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 2.2rem; }
+            .btn { padding: 0.8rem 1.8rem; font-size: 0.9rem; }
+            .logo { font-size: 1.5rem; }
         }
 
         .mobile-toggle {

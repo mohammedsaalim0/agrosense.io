@@ -380,6 +380,11 @@
     }
     .welcome-content h1 { font-size: 4rem; font-family: 'Playfair Display', serif; margin-bottom: 1rem; animation: pulse 2s infinite; }
     .welcome-loader { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: var(--harvest-gold); border-radius: 50%; margin: 2rem auto; animation: spin 1s infinite linear; }
+
+    @media (max-width: 480px) {
+        .welcome-content h1 { font-size: 2.2rem; }
+        .welcome-content p { font-size: 0.9rem; padding: 0 20px; }
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } }
 
@@ -523,7 +528,29 @@
 
     @media (max-width: 1024px) {
         .advisor-container, .market-grid, .sell-container { grid-template-columns: 1fr; }
-        .hero h1 { font-size: 3rem; }
+        .hero h1 { font-size: 2.8rem; }
+        .hero-grid { grid-template-columns: 1fr; text-align: center; }
+        .hero-3d { height: 400px; }
+        .section-header h2 { font-size: 2.2rem; }
+        .section-header { margin-bottom: 2rem; }
+    }
+
+    @media (max-width: 768px) {
+        .search-form-inline { flex-direction: column; }
+        .market-pair { grid-template-columns: 1fr; }
+        .scan-results-grid { grid-template-columns: 1fr; }
+        .upload-zone { padding: 2rem; }
+        .bid-card { flex-direction: column; text-align: center; gap: 1rem; }
+        .bid-card .price { margin-right: 0; }
+        .dev-grid { grid-template-columns: 1fr; }
+        .dev-card { padding: 2rem 1.5rem !important; }
+    }
+
+    @media (max-width: 480px) {
+        .hero h1 { font-size: 2.2rem; }
+        .glass-card { padding: 1.5rem; }
+        .advisor-container { gap: 1.5rem; }
+        .section { padding: 40px 5%; }
     }
 
     /* Market Intel Enhancements */

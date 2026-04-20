@@ -91,6 +91,12 @@
     .orb-2 { width: 500px; height: 500px; background: var(--harvest-gold); bottom: -200px; right: -100px; animation-delay: -5s; }
     .orb-3 { width: 300px; height: 300px; background: var(--soil-brown); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.1; }
 
+    @media (max-width: 480px) {
+        .orb-1 { width: 250px; height: 250px; }
+        .orb-2 { width: 300px; height: 300px; }
+        .orb-3 { width: 150px; height: 150px; }
+    }
+
     @keyframes float {
         0% { transform: translate(0, 0) rotate(0deg); }
         33% { transform: translate(100px, 50px) rotate(120deg); }
@@ -118,6 +124,23 @@
     .login-header { text-align: center; margin-bottom: 2.5rem; }
     .login-header h2 { font-size: 2.5rem; color: var(--soil-brown); margin-bottom: 0.5rem; }
     .login-header p { color: var(--moss-green); }
+
+    @media (max-width: 480px) {
+        .login-card {
+            padding: 2rem 1.5rem;
+            margin: 0 1rem;
+        }
+        .login-header h2 {
+            font-size: 2rem;
+        }
+        .login-header p {
+            font-size: 0.9rem;
+        }
+        .form-row {
+            flex-direction: column;
+            gap: 0 !important;
+        }
+    }
 
     .form-group input { 
         width: 100%; padding: 0.8rem; border-radius: 10px; border: 1px solid #ddd; 
