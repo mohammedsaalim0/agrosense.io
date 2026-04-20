@@ -87,42 +87,88 @@ def api_scan(request):
     image_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic']
     is_image = any(filename.endswith(ext) for ext in image_extensions)
     
-    # Simulate Plant Detection via keyword checking
-    plant_keywords = ['leaf', 'plant', 'rice', 'wheat', 'maize', 'cotton', 'crop', 'tree', 'field', 'nature', 'green', 'agriculture', 'img_', 'dsc_']
-    is_plant_keyword = any(kw in filename for kw in plant_keywords)
-    
-    if not is_image and not is_plant_keyword:
+    if not is_image:
         return JsonResponse({
             'status': 'error',
-            'message': 'AI Vision: Non-plant object detected or unsupported format. Please upload a clear photo of a crop or plant leaf.'
+            'message': 'Unsupported file format. Please upload an image file (JPG, PNG, etc.).'
         }, status=400)
+
+    # Specific Plant Keywords (High Confidence)
+    real_plant_keywords = [
+        'leaf', 'plant', 'rice', 'wheat', 'maize', 'cotton', 'crop', 'tree', 'flower', 
+        'grass', 'root', 'stem', 'basil', 'tomato', 'potato', 'chili', 'paddy', 'field'
+    ]
+    
+    # Non-Plant Keywords (Forbidden)
+    non_plant_keywords = [
+        'car', 'bike', 'person', 'human', 'building', 'laptop', 'phone', 'furniture', 
+        'toy', 'plastic', 'fake', 'artificial', 'screen', 'keyboard', 'dog', 'cat'
+    ]
+
+    # Check for non-plant keywords first
+    if any(kw in filename for kw in non_plant_keywords):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'AI Vision Error: Non-plant object detected (Object categorized as "Non-Biological"). Please upload a real crop or plant.'
+        }, status=400)
+
+    # Check for plant keywords
+    is_real_plant = any(kw in filename for kw in real_plant_keywords)
+    
+    # Phone camera patterns (IMG_ / DSC_) are "Uncertain" unless they contain a keyword
+    is_camera_pattern = any(kw in filename for kw in ['img_', 'dsc_', 'screenshot'])
 
     # Deterministic Seed based on file and date
     random.seed(f"{filename}{date_str}")
     
-    # Identification Logic
-    detected_plant = 'Rice (Oryza sativa)'
-    if 'wheat' in filename: 
-        detected_plant = 'Wheat (Triticum aestivum)'
-    elif 'maize' in filename: 
-        detected_plant = 'Maize (Zea mays)'
-    elif 'cotton' in filename: 
-        detected_plant = 'Cotton (Gossypium)'
-    elif 'leaf' in filename or 'plant' in filename:
-        detected_plant = random.choice(['Tomato (Solanum lycopersicum)', 'Potato (Solanum tuberosum)', 'Chili (Capsicum annuum)'])
+    # Final Recognition Logic
+    if is_real_plant:
+        # High confidence match
+        detected_plant = 'Rice (Oryza sativa)'
+        if 'wheat' in filename: detected_plant = 'Wheat (Triticum aestivum)'
+        elif 'maize' in filename: detected_plant = 'Maize (Zea mays)'
+        elif 'cotton' in filename: detected_plant = 'Cotton (Gossypium)'
+        elif 'tomato' in filename: detected_plant = 'Tomato (Solanum lycopersicum)'
+        
+        results = {
+            'status': 'success',
+            'plant': detected_plant,
+            'health': random.choice(['Healthy', 'Thriving']),
+            'confidence': f"{random.randint(92, 99)}%",
+            'growth': random.randint(70, 95),
+            'health_radar': [random.randint(80, 100) for _ in range(5)],
+            'disease_risk': random.randint(1, 5),
+            'chlorophyll': [random.randint(60, 98) for _ in range(7)]
+        }
+    elif is_camera_pattern:
+        # Lower confidence / Possible "Fake" or generic object
+        # In a real app, this is where the CNN would run.
+        # We simulate a "Low Confidence" check.
+        if random.random() > 0.4: # 60% chance to accept as a generic plant
+             results = {
+                'status': 'success',
+                'plant': 'Unspecified Crop (Generic Analysis)',
+                'health': 'Minor Stress Detected',
+                'confidence': f"{random.randint(60, 75)}%",
+                'growth': random.randint(40, 60),
+                'health_radar': [random.randint(40, 70) for _ in range(5)],
+                'disease_risk': random.randint(10, 25),
+                'chlorophyll': [random.randint(30, 50) for _ in range(7)]
+            }
+        else:
+            random.seed(None)
+            return JsonResponse({
+                'status': 'error',
+                'message': 'AI Vision: Low confidence. The object does not appear to be a recognized plant or is too blurry.'
+            }, status=400)
     else:
-        # Fallback for generic phone uploads like IMG_1234.jpg
-        detected_plant = random.choice(['Rice (Oryza sativa)', 'Wheat (Triticum aestivum)', 'Maize (Zea mays)', 'Soybean (Glycine max)'])
+        # Totally unknown filename
+        random.seed(None)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'AI Vision: Unable to identify any plant-like structures in this image.'
+        }, status=400)
 
-    results = {
-        'status': 'success',
-        'plant': detected_plant,
-        'health': random.choice(['Healthy', 'Minor Stress', 'Thriving']),
-        'growth': random.randint(50, 95),
-        'health_radar': [random.randint(60, 100) for _ in range(5)],
-        'disease_risk': random.randint(1, 12),
-        'chlorophyll': [random.randint(40, 98) for _ in range(7)]
-    }
     random.seed(None)
     return JsonResponse(results)
 

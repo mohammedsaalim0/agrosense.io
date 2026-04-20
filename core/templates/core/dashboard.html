@@ -285,7 +285,7 @@
                 </div>
                 <div>
                     <h3>Plant Identification: <span id="plant-id">Rice (Oryza sativa)</span></h3>
-                    <p>Status: <span style="color: #2e7d32; font-weight: bold;">Healthy</span></p>
+                    <p>Status: <span id="plant-status" style="color: #2e7d32; font-weight: bold;">Healthy</span> | Confidence: <span id="plant-confidence" style="color: var(--harvest-gold); font-weight: bold;">--%</span></p>
                 </div>
             </div>
             <div class="scan-card glass-card">
@@ -1000,10 +1000,13 @@
                     
                     document.getElementById('plant-id').textContent = data.plant;
                     
-                    // Update Health Status color
-                    const statusEl = document.querySelector('#scan-results p span');
+                    // Update Health Status and Confidence
+                    const statusEl = document.getElementById('plant-status');
+                    const confidenceEl = document.getElementById('plant-confidence');
+                    
                     statusEl.textContent = data.health;
-                    statusEl.style.color = data.health === 'Healthy' ? '#2e7d32' : '#d32f2f';
+                    statusEl.style.color = (data.health === 'Healthy' || data.health === 'Thriving') ? '#2e7d32' : '#d32f2f';
+                    confidenceEl.textContent = data.confidence || "N/A";
                     
                     Charts.donut('growth-arc', data.growth, "#DAA520");
                     Charts.radar('health-radar', data.health_radar);
