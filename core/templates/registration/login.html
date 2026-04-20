@@ -7,13 +7,13 @@
         <div class="floating-orb orb-2"></div>
         <div class="floating-orb orb-3"></div>
     </div>
-    
+
     <div class="login-card glass-card">
         <div class="login-header">
             <h2>Welcome Back</h2>
             <p>Access your AgroSense digital harvester</p>
         </div>
-        
+
         <form method="post" class="login-form">
             {% csrf_token %}
             <div class="form-group">
@@ -30,18 +30,21 @@
         <div class="social-login" style="margin-top: 2rem; text-align: center;">
             <p style="font-size: 0.8rem; color: #666; margin-bottom: 1rem;">Or login with</p>
             <div class="social-buttons" style="display: flex; gap: 1rem; justify-content: center;">
-                <button onclick="showToast('Google login is simulated.')" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <button onclick="showToast('Google login is simulated.')"
+                    style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" width="20" alt="Google">
                 </button>
-                <button onclick="showToast('GitHub login is simulated.')" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <button onclick="showToast('GitHub login is simulated.')"
+                    style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <img src="https://cdn-icons-png.flaticon.com/512/25/25231.png" width="20" alt="GitHub">
                 </button>
-                <button onclick="showToast('LinkedIn login is simulated.')" style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <button onclick="showToast('LinkedIn login is simulated.')"
+                    style="background: white; border: 1px solid #ddd; padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="20" alt="LinkedIn">
                 </button>
             </div>
         </div>
-        
+
         <div class="login-footer">
             <p>Don't have an account? <a href="{% url 'register' %}">Sign Up</a></p>
         </div>
@@ -77,15 +80,49 @@
         animation: float 20s infinite linear;
     }
 
-    .orb-1 { width: 400px; height: 400px; background: var(--moss-green); top: -100px; left: -100px; }
-    .orb-2 { width: 500px; height: 500px; background: var(--harvest-gold); bottom: -200px; right: -100px; animation-delay: -5s; }
-    .orb-3 { width: 300px; height: 300px; background: var(--soil-brown); top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.1; }
+    .orb-1 {
+        width: 400px;
+        height: 400px;
+        background: var(--moss-green);
+        top: -100px;
+        left: -100px;
+    }
+
+    .orb-2 {
+        width: 500px;
+        height: 500px;
+        background: var(--harvest-gold);
+        bottom: -200px;
+        right: -100px;
+        animation-delay: -5s;
+    }
+
+    .orb-3 {
+        width: 300px;
+        height: 300px;
+        background: var(--soil-brown);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.1;
+    }
 
     @keyframes float {
-        0% { transform: translate(0, 0) rotate(0deg); }
-        33% { transform: translate(100px, 50px) rotate(120deg); }
-        66% { transform: translate(-50px, 100px) rotate(240deg); }
-        100% { transform: translate(0, 0) rotate(360deg); }
+        0% {
+            transform: translate(0, 0) rotate(0deg);
+        }
+
+        33% {
+            transform: translate(100px, 50px) rotate(120deg);
+        }
+
+        66% {
+            transform: translate(-50px, 100px) rotate(240deg);
+        }
+
+        100% {
+            transform: translate(0, 0) rotate(360deg);
+        }
     }
 
     .login-card {
@@ -101,15 +138,42 @@
     }
 
     @keyframes slideUp {
-        from { transform: translateY(50px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+        from {
+            transform: translateY(50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
-    .login-header { text-align: center; margin-bottom: 2.5rem; }
-    .login-header h2 { font-size: 2.5rem; color: var(--soil-brown); margin-bottom: 0.5rem; }
-    .login-header p { color: var(--moss-green); }
+    .login-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
 
-    .login-footer { text-align: center; margin-top: 2rem; font-size: 0.9rem; }
-    .login-footer a { color: var(--moss-green); font-weight: 700; text-decoration: none; }
+    .login-header h2 {
+        font-size: 2.5rem;
+        color: var(--soil-brown);
+        margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+        color: var(--moss-green);
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: 2rem;
+        font-size: 0.9rem;
+    }
+
+    .login-footer a {
+        color: var(--moss-green);
+        font-weight: 700;
+        text-decoration: none;
+    }
 </style>
 {% endblock %}
