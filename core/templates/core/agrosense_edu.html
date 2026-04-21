@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroSense Edu - Certification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Great+Vibes&display=swap" rel="stylesheet">
+    <style>
+        /* Certificate Base Styles */
+        .cert-container {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #0a2f1f 0%, #1c5a3a 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            /* 4:3 Aspect Ratio roughly */
+            aspect-ratio: 1.414 / 1; 
+        }
+
+        /* Gold Foil Border */
+        .cert-border {
+            position: absolute;
+            inset: 12px;
+            border: 2px solid transparent;
+            background: linear-gradient(135deg, #0a2f1f, #1c5a3a) padding-box, 
+                        linear-gradient(45deg, #d4af37, #f9e076, #aa771c, #f9e076) border-box;
+            border-radius: 8px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Inner Thin Border */
+        .cert-inner-border {
+            position: absolute;
+            inset: 22px;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Watermark */
+        .cert-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            opacity: 0.04;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%23ffffff"><path d="M495.9 166.6c-3.2-8.5-12.7-12.8-21.2-9.6-8.5 3.2-12.8 12.7-9.6 21.2 5.1 13.5 6.9 28.5 4.3 43.6-5.8 33.4-28.7 60.1-60.9 69.1l-14 3.9v-76.8l77.4-44.7c7.8-4.5 10.5-14.5 6-22.3-4.5-7.8-14.5-10.5-22.3-6l-61.1 35.3v-49.8c0-9.1-7.4-16.5-16.5-16.5s-16.5 7.4-16.5 16.5v49.8l-61.1-35.3c-7.8-4.5-17.8-1.8-22.3 6-4.5 7.8-1.8 17.8 6 22.3l77.4 44.7v76.8l-14-3.9c-32.2-9-55.1-35.7-60.9-69.1-2.6-15.1-.8-30.1 4.3-43.6 3.2-8.5-1.1-18-9.6-21.2-8.5-3.2-18 1.1-21.2 9.6-6.6 17.5-9 37.1-5.6 57.1 7.6 43.5 37.6 78.4 79.5 91.5l25.8 8v163.6c0 9.1 7.4 16.5 16.5 16.5 9.1 0 16.5-7.4 16.5-16.5V360l25.8-8c41.9-13.1 71.9-48 79.5-91.5 3.4-20 1-39.6-5.6-57.1zm-324.4-47c-4.5-7.8-14.5-10.5-22.3-6l-77.4 44.7V81.5c0-9.1-7.4-16.5-16.5-16.5s-16.5 7.4-16.5 16.5v76.8l-77.4-44.7c-7.8-4.5-17.8-1.8-22.3 6-4.5 7.8-1.8 17.8 6 22.3l61.1 35.3v49.8c0 9.1 7.4 16.5 16.5 16.5s16.5-7.4 16.5-16.5v-49.8l61.1-35.3c7.8-4.5 10.5-14.5 6-22.3zm-116.5 90c-4.5-7.8-14.5-10.5-22.3-6l-11.8 6.8c-7.8 4.5-10.5 14.5-6 22.3 4.5 7.8 14.5 10.5 22.3 6l11.8-6.8c7.8-4.5 10.5-14.5 6-22.3zm364.5-5.2c-7.8-4.5-17.8-1.8-22.3 6l-11.8 20.4c-4.5 7.8-1.8 17.8 6 22.3 7.8 4.5 17.8 1.8 22.3-6l11.8-20.4c4.5-7.8 1.8-17.8-6-22.3z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            z-index: 1;
+        }
+
+        /* Shiny animation overlay */
+        .cert-shine {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-20deg);
+            animation: shine 6s infinite;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
+        }
+
+        .cert-content {
+            position: relative;
+            z-index: 15;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .name-text {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(2rem, 5vw, 4.5rem);
+            color: #f9e076;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            line-height: 1.2;
+            margin: 10px 0;
+            border-bottom: 2px solid rgba(212, 175, 55, 0.5);
+            display: inline-block;
+            padding: 0 2rem;
+        }
+
+        .animate-fade-in {
+            animation: fadeInScale 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .glow-effect {
+            box-shadow: 0 0 40px rgba(74, 222, 128, 0.2);
+            transition: all 0.5s ease;
+        }
+        
+        .glow-effect:hover {
+            box-shadow: 0 0 60px rgba(212, 175, 55, 0.4);
+            transform: translateY(-5px);
+        }
+        
+        /* YouTube Overlay to prevent simple seeking without iframe API tracking */
+        .yt-wrapper {
+            position: relative;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .yt-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans antialiased text-gray-800 pb-12">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-green-100 mb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center shadow-lg">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                </div>
+                <h1 class="text-2xl font-bold text-green-900 tracking-tight">AgroSense Edu</h1>
+            </div>
+            <nav>
+                <a href="/" class="text-sm font-medium text-gray-500 hover:text-green-700 transition-colors">Back to Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col xl:flex-row gap-8 items-start">
+        
+        <!-- Left Side: Video Player -->
+        <div class="w-full xl:w-[45%] flex flex-col gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                <div class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full mb-3 uppercase tracking-wider">Masterclass</div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Sustainable Agriculture & Soil Health</h2>
+                <p class="text-sm text-gray-500 mb-6 border-b border-gray-100 pb-4">
+                    Watch the entire video to unlock your verified AgroSense certification. Progress is tracked automatically based on real watch time.
+                </p>
+                
+                <!-- YouTube Player -->
+                <div class="yt-wrapper bg-gray-900 rounded-xl relative group">
+                    <div id="player"></div>
+                    <!-- Loading Overlay -->
+                    <div id="player-loading" class="absolute inset-0 flex items-center justify-center bg-gray-900 text-white z-10 transition-opacity duration-300">
+                        <div class="animate-spin rounded-full h-10 w-10 border-4 border-green-500 border-t-transparent"></div>
+                    </div>
+                </div>
+                
+                <!-- Progress Tracking -->
+                <div class="mt-8">
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <span class="block text-sm font-bold text-gray-700" id="progress-text">Course Progress</span>
+                            <span class="block text-xs text-gray-400 mt-1">Please watch the entire video without skipping</span>
+                        </div>
+                        <span class="text-xl font-bold text-green-600" id="progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-4 shadow-inner relative overflow-hidden">
+                        <div id="progress-bar" class="bg-gradient-to-r from-green-400 to-green-600 h-full rounded-full transition-all duration-[1000ms] ease-linear w-0 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                    </div>
+                </div>
+                
+                <!-- Status Alert -->
+                <div id="completion-alert" class="mt-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3 hidden transition-all duration-500">
+                    <div class="text-green-500 mt-0.5">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-green-800">Course Completed!</h4>
+                        <p class="text-xs text-green-600 mt-1">You have successfully finished the masterclass. You can now generate your certificate.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Certificate Generator -->
+        <div class="w-full xl:w-[55%] flex flex-col gap-6">
+            
+            <!-- Generation Form -->
+            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100" id="form-section">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    Claim Your Certificate
+                </h3>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="user-name" placeholder="Enter your full name for the certificate" class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-green-500 focus:bg-white focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    <button id="generate-btn" class="bg-gray-300 text-gray-500 font-bold py-3 px-6 rounded-xl cursor-not-allowed transition-all whitespace-nowrap" disabled>
+                        Complete Course First
+                    </button>
+                </div>
+            </div>
+
+            <!-- Certificate Preview & Download -->
+            <div id="certificate-wrapper" class="hidden flex-col gap-6">
+                <!-- The actual certificate to be downloaded -->
+                <div id="certificate-render-target" class="cert-container rounded-xl glow-effect animate-fade-in shadow-2xl">
+                    <div class="cert-border"></div>
+                    <div class="cert-inner-border"></div>
+                    <div class="cert-shine"></div>
+                    <div class="cert-watermark"></div>
+                    
+                    <div class="cert-content">
+                        <!-- Top header -->
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 p-1 shadow-lg flex items-center justify-center">
+                                <div class="w-full h-full rounded-full border-2 border-white border-dashed flex items-center justify-center bg-[#0a2f1f]">
+                                    <svg class="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+                                </div>
+                            </div>
+                            <h2 class="text-[#d4af37] tracking-[0.2em] text-sm font-bold uppercase mt-2">AgroSense Edu</h2>
+                        </div>
+
+                        <!-- Main Title -->
+                        <div class="text-center my-4">
+                            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2" style="font-family: 'Playfair Display', serif;">Certificate of Completion</h1>
+                            <p class="text-gray-300 italic text-sm md:text-base">This is to proudly certify that</p>
+                        </div>
+
+                        <!-- Recipient Name -->
+                        <div class="text-center w-full">
+                            <span id="cert-name" class="name-text">Alex Johnson</span>
+                        </div>
+
+                        <!-- Course Details -->
+                        <div class="text-center mt-4 px-8 max-w-[80%] mx-auto">
+                            <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                                has successfully completed the <span class="text-[#f9e076] font-semibold">Sustainable Agriculture & Soil Health</span> masterclass, demonstrating dedication to advancing modern agricultural practices.
+                            </p>
+                        </div>
+
+                        <!-- Footer (Signatures & Meta) -->
+                        <div class="w-full flex justify-between items-end px-8 lg:px-12 mt-6">
+                            <div class="flex flex-col items-center w-32">
+                                <div class="border-b border-[rgba(212,175,55,0.4)] w-full pb-2 mb-2 text-center">
+                                    <span class="font-['Great_Vibes'] text-2xl text-white opacity-90">Dr. S. Omondi</span>
+                                </div>
+                                <span class="text-[10px] text-gray-400 uppercase tracking-widest">Director</span>
+                            </div>
+
+                            <div class="flex flex-col items-center">
+                                <div class="w-12 h-12 mb-2 opacity-80">
+                                    <!-- Premium Seal SVG -->
+                                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="50" cy="50" r="45" stroke="#d4af37" stroke-width="2" stroke-dasharray="4 4"/>
+                                        <circle cx="50" cy="50" r="38" stroke="#d4af37" stroke-width="1"/>
+                                        <path d="M50 20L56 38H75L60 50L65 68L50 56L35 68L40 50L25 38H44L50 20Z" fill="#d4af37" fill-opacity="0.3" stroke="#d4af37" stroke-width="1"/>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col items-center w-32">
+                                <div class="border-b border-[rgba(212,175,55,0.4)] w-full pb-2 mb-2 text-center">
+                                    <span id="cert-date" class="text-white font-serif italic opacity-90 text-sm">October 24, 2023</span>
+                                </div>
+                                <span class="text-[10px] text-gray-400 uppercase tracking-widest">Date Issued</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Certificate ID -->
+                        <div class="absolute bottom-4 left-0 w-full text-center">
+                            <span id="cert-id" class="text-[9px] text-gray-500 tracking-[0.3em] font-sans">ID: AGS-20231024-X89B</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-2">
+                    <button id="download-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] hover:shadow-[0_6px_20px_rgba(22,163,74,0.23)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download PDF/PNG
+                    </button>
+                    <button id="share-btn" class="sm:w-auto w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-8 rounded-xl shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Load YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    
+    <script>
+        // --- YouTube Tracker Logic ---
+        
+        // We track progress by recording which seconds have been watched.
+        // This prevents cheating by seeking to the end.
+        let player;
+        let watchedSeconds = new Set();
+        let videoDuration = 0;
+        let progressInterval;
+        let isCourseCompleted = false;
+        const COMPLETION_THRESHOLD = 0.95; // 95% watched is considered complete
+        const VIDEO_ID = '8_Q24e-gD5Y'; // Real agricultural video about soil health
+        
+        // UI Elements
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const userNameInput = document.getElementById('user-name');
+        const generateBtn = document.getElementById('generate-btn');
+        const completionAlert = document.getElementById('completion-alert');
+        const certWrapper = document.getElementById('certificate-wrapper');
+        const loadingOverlay = document.getElementById('player-loading');
+
+        // Check local storage for previous completion
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedState = localStorage.getItem('agrosense_course_completed');
+            if (savedState === 'true') {
+                isCourseCompleted = true;
+                updateUIForCompletion();
+            }
+        });
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                videoId: VIDEO_ID,
+                playerVars: {
+                    'playsinline': 1,
+                    'modestbranding': 1,
+                    'rel': 0
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            loadingOverlay.classList.add('opacity-0');
+            setTimeout(() => loadingOverlay.classList.add('hidden'), 300);
+            videoDuration = player.getDuration();
+            
+            // If we have saved progress, load it (mock implementation for simple persistence)
+            const savedProgress = localStorage.getItem('agrosense_watched_seconds');
+            if(savedProgress) {
+                try {
+                    const arr = JSON.parse(savedProgress);
+                    arr.forEach(sec => watchedSeconds.add(sec));
+                    updateProgressUI();
+                } catch(e){}
+            }
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                // Ensure duration is set
+                if(!videoDuration) videoDuration = player.getDuration();
+                
+                // Start polling
+                if (!progressInterval) {
+                    progressInterval = setInterval(trackProgress, 1000);
+                }
+            } else {
+                // Stop polling if paused, ended, or buffering
+                clearInterval(progressInterval);
+                progressInterval = null;
+                
+                // Save progress
+                if(watchedSeconds.size > 0) {
+                    localStorage.setItem('agrosense_watched_seconds', JSON.stringify(Array.from(watchedSeconds)));
+                }
+            }
+        }
+
+        function trackProgress() {
+            if (isCourseCompleted) return; // Stop tracking if already completed
+
+            const currentTime = Math.floor(player.getCurrentTime());
+            watchedSeconds.add(currentTime);
+            updateProgressUI();
+            
+            const currentPercentage = watchedSeconds.size / videoDuration;
+            
+            if (currentPercentage >= COMPLETION_THRESHOLD) {
+                isCourseCompleted = true;
+                localStorage.setItem('agrosense_course_completed', 'true');
+                updateUIForCompletion();
+            }
+        }
+
+        function updateProgressUI() {
+            if (!videoDuration) return;
+            
+            // Calculate percentage based on unique seconds watched
+            let rawPercentage = (watchedSeconds.size / videoDuration) * 100;
+            // Cap at 100
+            let percentage = Math.min(100, Math.max(0, rawPercentage));
+            
+            // If completed from previous session, force 100%
+            if(isCourseCompleted) percentage = 100;
+            
+            const formattedPercent = Math.round(percentage) + '%';
+            
+            progressBar.style.width = formattedPercent;
+            progressPercent.innerText = formattedPercent;
+            
+            // Add pulse effect when nearing completion
+            if(percentage > 80 && !isCourseCompleted) {
+                progressBar.classList.add('animate-pulse');
+            } else {
+                progressBar.classList.remove('animate-pulse');
+            }
+        }
+
+        function updateUIForCompletion() {
+            progressBar.style.width = '100%';
+            progressPercent.innerText = '100%';
+            progressPercent.classList.add('text-green-600');
+            progressBar.classList.remove('animate-pulse');
+            progressBar.classList.add('bg-gradient-to-r', 'from-green-500', 'to-green-400');
+            
+            // Show alert
+            completionAlert.classList.remove('hidden');
+            
+            // Enable form
+            userNameInput.disabled = false;
+            generateBtn.disabled = false;
+            
+            // Style button
+            generateBtn.innerText = 'Generate Certificate';
+            generateBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:-translate-y-1 whitespace-nowrap';
+        }
+
+        // --- Certificate Generation Logic ---
+
+        generateBtn.addEventListener('click', () => {
+            const name = userNameInput.value.trim();
+            if (!name) {
+                // Shake animation for validation
+                userNameInput.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+                setTimeout(() => userNameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-200'), 1000);
+                userNameInput.focus();
+                return;
+            }
+
+            // Fill Data
+            document.getElementById('cert-name').innerText = name;
+            
+            const date = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('cert-date').innerText = date.toLocaleDateString('en-US', options);
+            
+            const randChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const dateStr = date.toISOString().slice(0,10).replace(/-/g,'');
+            document.getElementById('cert-id').innerText = `ID: AGS-${dateStr}-${randChars}`;
+
+            // Show Certificate
+            certWrapper.classList.remove('hidden');
+            certWrapper.classList.add('flex');
+            
+            // Scroll to it on mobile
+            if(window.innerWidth < 1280) {
+                setTimeout(() => {
+                    certWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        });
+
+        // --- Download Logic using html2canvas ---
+        
+        document.getElementById('download-btn').addEventListener('click', function() {
+            const certElement = document.getElementById('certificate-render-target');
+            const originalTransform = certElement.style.transform;
+            
+            // Remove hover transform temporarily for clean snapshot
+            certElement.style.transform = 'none';
+            
+            // Change button state
+            const originalText = this.innerHTML;
+            this.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating High-Res Image...';
+            this.disabled = true;
+
+            // Wait a tick for UI update, then capture
+            setTimeout(() => {
+                html2canvas(certElement, {
+                    scale: 3, // High resolution
+                    useCORS: true,
+                    backgroundColor: null,
+                    logging: false
+                }).then(canvas => {
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.download = `AgroSense-Certificate-${document.getElementById('cert-name').innerText.replace(/\s+/g, '-')}.png`;
+                    link.href = canvas.toDataURL('image/png', 1.0);
+                    link.click();
+                    
+                    // Restore state
+                    certElement.style.transform = originalTransform;
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }).catch(err => {
+                    console.error('Error generating certificate:', err);
+                    alert('There was an issue generating your certificate. Please try again.');
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                });
+            }, 100);
+        });
+
+        // --- Share Mock ---
+        document.getElementById('share-btn').addEventListener('click', function() {
+            const name = document.getElementById('cert-name').innerText;
+            const text = `I just completed the Sustainable Agriculture & Soil Health masterclass on AgroSense Edu! 🌾🚜 #AgroSense #Agriculture #ContinuousLearning`;
+            const linkedinUrl = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+            window.open(linkedinUrl, '_blank');
+        });
+    </script>
+</body>
+</html>

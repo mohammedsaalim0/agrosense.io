@@ -46,3 +46,45 @@ class SchemeApplication(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.scheme_name}"
+
+
+class LearningProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course_key = models.CharField(max_length=120)
+    progress = models.PositiveSmallIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('user', 'course_key')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course_key} ({self.progress}%)"
+
+
+class CourseCertificate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course_key = models.CharField(max_length=120)
+    course_title = models.CharField(max_length=250)
+    certificate_code = models.CharField(max_length=32, unique=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'course_key')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course_title}"
+
+
+class CourseAssessment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course_key = models.CharField(max_length=120)
+    score = models.PositiveSmallIntegerField(default=0)
+    passed = models.BooleanField(default=False)
+    attempted_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'course_key')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course_key} ({self.score}%)"

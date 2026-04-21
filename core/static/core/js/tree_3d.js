@@ -2,7 +2,7 @@ class AgroTree {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(52, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
@@ -12,20 +12,26 @@ class AgroTree {
         this.mouse = new THREE.Vector2();
         this.targetRotation = new THREE.Vector2();
         
+        this.leaves = [];
         this.init();
         this.addCrows();
+        this.addFireflies();
         this.animate();
         this.setupInteractions();
     }
 
     init() {
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
         this.scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xFFE082, 1);
-        sunLight.position.set(5, 10, 5);
+        const sunLight = new THREE.DirectionalLight(0xffe9b5, 1.2);
+        sunLight.position.set(8, 12, 6);
+        sunLight.castShadow = true;
         this.scene.add(sunLight);
+        this.rimLight = new THREE.PointLight(0xc6f7d4, 1.1, 18);
+        this.rimLight.position.set(-5, 7, 5);
+        this.scene.add(this.rimLight);
 
         // Original AgroSense Colors
         this.trunkMaterial = new THREE.MeshStandardMaterial({ 
@@ -35,15 +41,15 @@ class AgroTree {
         this.leafMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x4E6E5D, // Original Moss Green
             emissive: 0xDAA520, 
-            emissiveIntensity: 0.2
+            emissiveIntensity: 0.15
         });
 
         this.treeGroup = new THREE.Group();
         this.createBranch(0, 0, 0, 1.2, 0, 6);
         this.scene.add(this.treeGroup);
 
-        this.camera.position.set(0, 4, 10);
-        this.camera.lookAt(0, 4, 0);
+        this.camera.position.set(0, 4.8, 11);
+        this.camera.lookAt(0, 4.2, 0);
     }
 
     createBranch(x, y, z, height, angle, depth) {
@@ -57,6 +63,12 @@ class AgroTree {
                     y + (Math.random() - 0.5) * 0.5,
                     z + (Math.random() - 0.5) * 0.5
                 );
+                leaf.userData = {
+                    swayOffset: Math.random() * Math.PI * 2,
+                    swayAmp: 0.05 + Math.random() * 0.08,
+                    baseY: leaf.position.y,
+                };
+                this.leaves.push(leaf);
                 this.treeGroup.add(leaf);
             }
             return;
@@ -102,6 +114,24 @@ class AgroTree {
         }
     }
 
+    addFireflies() {
+        this.fireflies = [];
+        const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xffe082 });
+        for (let i = 0; i < 18; i++) {
+            const dot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), glowMaterial);
+            dot.position.set((Math.random() - 0.5) * 8, 3 + Math.random() * 6, (Math.random() - 0.5) * 8);
+            this.fireflies.push({
+                dot,
+                ox: dot.position.x,
+                oy: dot.position.y,
+                oz: dot.position.z,
+                speed: 0.6 + Math.random() * 1.2,
+                phase: Math.random() * Math.PI * 2,
+            });
+            this.scene.add(dot);
+        }
+    }
+
     setupInteractions() {
         const handleMove = (x, y) => {
             const rect = this.container.getBoundingClientRect();
@@ -110,14 +140,27 @@ class AgroTree {
         };
         this.container.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
         this.container.addEventListener('touchmove', (e) => handleMove(e.touches[0].clientX, e.touches[0].clientY));
+        window.addEventListener('resize', () => {
+            const width = this.container.clientWidth;
+            const height = this.container.clientHeight;
+            this.camera.aspect = width / height;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(width, height);
+        });
     }
 
     animate() {
         requestAnimationFrame(() => this.animate());
         const time = Date.now() * 0.001;
 
-        this.treeGroup.rotation.x += (this.mouse.y * 0.2 - this.treeGroup.rotation.x) * 0.05;
-        this.treeGroup.rotation.y += (this.mouse.x * 0.2 - this.treeGroup.rotation.y) * 0.05;
+        this.treeGroup.rotation.x += (this.mouse.y * 0.16 - this.treeGroup.rotation.x) * 0.04;
+        this.treeGroup.rotation.y += (this.mouse.x * 0.2 + Math.sin(time * 0.5) * 0.08 - this.treeGroup.rotation.y) * 0.04;
+        this.treeGroup.position.y = Math.sin(time * 0.75) * 0.08;
+
+        this.leaves.forEach((leaf) => {
+            leaf.position.y = leaf.userData.baseY + Math.sin(time * 2 + leaf.userData.swayOffset) * leaf.userData.swayAmp;
+            leaf.rotation.y += 0.003;
+        });
 
         this.crows.forEach(crow => {
             crow.group.position.x += crow.speed;
@@ -126,6 +169,17 @@ class AgroTree {
             crow.wings[0].rotation.z = flap;
             crow.wings[1].rotation.z = -flap;
         });
+
+        this.fireflies.forEach((f) => {
+            f.dot.position.x = f.ox + Math.sin(time * f.speed + f.phase) * 0.8;
+            f.dot.position.y = f.oy + Math.cos(time * f.speed * 1.2 + f.phase) * 0.5;
+            f.dot.position.z = f.oz + Math.sin(time * f.speed * 0.9 + f.phase) * 0.7;
+            f.dot.scale.setScalar(0.6 + (Math.sin(time * 5 + f.phase) + 1) * 0.5);
+        });
+
+        this.rimLight.intensity = 0.8 + Math.sin(time * 1.2) * 0.2;
+        this.camera.position.x = Math.sin(time * 0.25) * 0.8;
+        this.camera.lookAt(0, 4.2, 0);
 
         this.renderer.render(this.scene, this.camera);
     }

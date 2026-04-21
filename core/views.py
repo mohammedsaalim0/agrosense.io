@@ -3,20 +3,103 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login as auth_login, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.http import JsonResponse
-from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile
+from django.db.utils import OperationalError, ProgrammingError
+from django.utils import timezone
+from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment
 import random
 import io
+import base64
 from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+
+PASSING_SCORE = 70
+
+
+EDU_COURSES = [
+    {
+        'course_key': 'agri-course-1',
+        'title': 'AgroSense Foundations',
+        'description': 'Core agriculture fundamentals for smart decision making.',
+        'playlist_url': 'https://www.youtube.com/watch?v=KuePVJQP4sc&list=PLVg7mwdkOVxisCHVXAUrYwjiOMUDhUb93',
+        'embed_url': 'https://www.youtube.com/embed/KuePVJQP4sc?list=PLVg7mwdkOVxisCHVXAUrYwjiOMUDhUb93&enablejsapi=1&rel=0',
+        'lessons': 15,
+        'duration': '3h 00m',
+        'duration_seconds': 10800,
+    },
+    {
+        'course_key': 'agri-course-2',
+        'title': 'AgroSense Advanced Practices',
+        'description': 'Practical field strategies to improve productivity and resilience.',
+        'playlist_url': 'https://www.youtube.com/watch?v=IQzlj93Pz5Q&list=PL7Ine0vGWAijDlGc-nFoaCP3i5Jf_frqj',
+        'embed_url': 'https://www.youtube.com/embed/IQzlj93Pz5Q?list=PL7Ine0vGWAijDlGc-nFoaCP3i5Jf_frqj&enablejsapi=1&rel=0',
+        'lessons': 14,
+        'duration': '2h 30m',
+        'duration_seconds': 9000,
+    },
+    {
+        'course_key': 'agri-course-3',
+        'title': 'AgroSense Crop Mastery',
+        'description': 'Improve crop care, disease detection, and farm output planning.',
+        'playlist_url': 'https://www.youtube.com/watch?v=oy0AJYCDoFU&list=PLDsv3FFHKiccaLVwGA-DvGo2APiMWL2cq',
+        'embed_url': 'https://www.youtube.com/embed/oy0AJYCDoFU?list=PLDsv3FFHKiccaLVwGA-DvGo2APiMWL2cq&enablejsapi=1&rel=0',
+        'lessons': 18,
+        'duration': '3h 30m',
+        'duration_seconds': 12600,
+    },
+    {
+        'course_key': 'agri-course-4',
+        'title': 'AgroSense Expert Session',
+        'description': 'A focused expert lecture with real-world farm insights.',
+        'playlist_url': 'https://www.youtube.com/watch?v=VgJ-zRAdvaE',
+        'embed_url': 'https://www.youtube.com/embed/VgJ-zRAdvaE?enablejsapi=1&rel=0',
+        'lessons': 1,
+        'duration': '1h 00m',
+        'duration_seconds': 3600,
+    },
+]
 
 @login_required
 def dashboard(request):
     schemes = SupportScheme.objects.all()[:6]
     listings = MarketListing.objects.all().order_by('-created_at')[:5]
     applications = SchemeApplication.objects.filter(user=request.user).order_by('-applied_at')
+    try:
+        progress_map = {item.course_key: item for item in LearningProgress.objects.filter(user=request.user)}
+        cert_map = {item.course_key: item for item in CourseCertificate.objects.filter(user=request.user)}
+        assess_map = {item.course_key: item for item in CourseAssessment.objects.filter(user=request.user)}
+    except (OperationalError, ProgrammingError):
+        # Keep dashboard usable even if migrations were not applied yet.
+        progress_map = {}
+        cert_map = {}
+        assess_map = {}
+    edu_courses = []
+    origin = f"{request.scheme}://{request.get_host()}"
+    for course in EDU_COURSES:
+        progress_entry = progress_map.get(course['course_key'])
+        certificate = cert_map.get(course['course_key'])
+        parsed = urlparse(course['embed_url'])
+        query = dict(parse_qsl(parsed.query))
+        query['origin'] = origin
+        query['enablejsapi'] = '1'
+        query['playsinline'] = '1'
+        embed_with_origin = urlunparse(parsed._replace(query=urlencode(query)))
+        edu_courses.append({
+            **course,
+            'embed_url': embed_with_origin,
+            'progress': progress_entry.progress if progress_entry else 0,
+            'completed': progress_entry.completed if progress_entry else False,
+            'certificate_code': certificate.certificate_code if certificate else '',
+            'assessment_passed': assess_map.get(course['course_key']).passed if assess_map.get(course['course_key']) else False,
+            'assessment_score': assess_map.get(course['course_key']).score if assess_map.get(course['course_key']) else 0,
+        })
+
     context = {
         'schemes': schemes,
         'listings': listings,
         'applications': applications,
+        'edu_courses': edu_courses,
     }
     return render(request, 'core/dashboard.html', context)
 
@@ -175,6 +258,7 @@ def api_create_listing(request):
         return JsonResponse({
             'status': 'success', 
             'listing': {
+                'id': listing.id,
                 'crop_name': listing.crop_name,
                 'price': float(listing.price),
                 'quantity': listing.quantity,
@@ -182,6 +266,202 @@ def api_create_listing(request):
             }
         })
     return JsonResponse({'status': 'error'}, status=400)
+
+
+def _course_by_key(course_key):
+    for course in EDU_COURSES:
+        if course['course_key'] == course_key:
+            return course
+    return None
+
+
+def api_update_learning_progress(request):
+    if request.method != 'POST' or not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+    course_key = request.POST.get('course_key')
+    progress_raw = request.POST.get('progress', '0')
+    watched_seconds_raw = request.POST.get('watched_seconds')
+    duration_seconds_raw = request.POST.get('duration_seconds')
+    completed_videos_raw = request.POST.get('completed_videos')
+    course = _course_by_key(course_key)
+    if not course:
+        return JsonResponse({'status': 'error', 'message': 'Unknown course'}, status=404)
+
+    try:
+        progress = int(progress_raw)
+    except ValueError:
+        progress = 0
+
+    if completed_videos_raw is not None:
+        try:
+            completed_videos = int(completed_videos_raw)
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid completed videos value'}, status=400)
+        total_lessons = max(1, int(course.get('lessons', 1)))
+        completed_videos = max(0, min(total_lessons, completed_videos))
+        progress = int((completed_videos / total_lessons) * 100)
+    elif watched_seconds_raw is not None:
+        try:
+            watched_seconds = int(watched_seconds_raw)
+            duration_seconds = int(duration_seconds_raw or course.get('duration_seconds', 3600))
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid watch tracking values'}, status=400)
+        watched_seconds = max(0, watched_seconds)
+        duration_seconds = max(1, duration_seconds)
+        progress = min(100, int((watched_seconds / duration_seconds) * 100))
+    else:
+        progress = max(0, min(100, progress))
+    try:
+        progress_obj, _ = LearningProgress.objects.get_or_create(
+            user=request.user, course_key=course_key
+        )
+    except (OperationalError, ProgrammingError):
+        return JsonResponse({'status': 'error', 'message': 'Please run database migrations first.'}, status=503)
+    progress_obj.progress = progress
+    progress_obj.completed = progress >= 100
+    if progress_obj.completed and not progress_obj.completed_at:
+        progress_obj.completed_at = timezone.now()
+    progress_obj.save()
+
+    certificate_code = ''
+    if progress_obj.completed:
+        try:
+            certificate, _ = CourseCertificate.objects.get_or_create(
+                user=request.user,
+                course_key=course_key,
+                defaults={
+                    'course_title': course['title'],
+                    'certificate_code': f"AGRO-{request.user.id}-{course_key[:6].upper()}-{random.randint(1000,9999)}",
+                }
+            )
+        except (OperationalError, ProgrammingError):
+            return JsonResponse({'status': 'error', 'message': 'Please run database migrations first.'}, status=503)
+        certificate_code = certificate.certificate_code
+
+    return JsonResponse({
+        'status': 'success',
+        'progress': progress_obj.progress,
+        'completed': progress_obj.completed,
+        'certificate_code': certificate_code,
+    })
+
+
+def api_submit_assessment(request):
+    if request.method != 'POST' or not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+    course_key = request.POST.get('course_key')
+    score_raw = request.POST.get('score')
+    course = _course_by_key(course_key)
+    if not course:
+        return JsonResponse({'status': 'error', 'message': 'Unknown course'}, status=404)
+
+    try:
+        score = int(score_raw)
+    except (TypeError, ValueError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid assessment score'}, status=400)
+
+    score = max(0, min(100, score))
+    passed = score >= PASSING_SCORE
+
+    assessment, _ = CourseAssessment.objects.get_or_create(
+        user=request.user,
+        course_key=course_key,
+        defaults={'score': score, 'passed': passed},
+    )
+    assessment.score = score
+    assessment.passed = passed
+    assessment.save()
+
+    progress_obj = LearningProgress.objects.filter(user=request.user, course_key=course_key).first()
+    certificate_code = ''
+    if progress_obj and progress_obj.progress >= 100 and passed:
+        progress_obj.completed = True
+        if not progress_obj.completed_at:
+            progress_obj.completed_at = timezone.now()
+        progress_obj.save()
+        certificate, _ = CourseCertificate.objects.get_or_create(
+            user=request.user,
+            course_key=course_key,
+            defaults={
+                'course_title': course['title'],
+                'certificate_code': f"AGRO-{request.user.id}-{course_key[:6].upper()}-{random.randint(1000,9999)}",
+            }
+        )
+        certificate_code = certificate.certificate_code
+
+    return JsonResponse({
+        'status': 'success',
+        'score': score,
+        'passed': passed,
+        'passing_score': PASSING_SCORE,
+        'certificate_code': certificate_code,
+    })
+
+
+def api_generate_certificate(request):
+    if request.method != 'POST' or not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+    course_key = request.POST.get('course_key')
+    course = _course_by_key(course_key)
+    if not course:
+        return JsonResponse({'status': 'error', 'message': 'Unknown course'}, status=404)
+
+    try:
+        progress = LearningProgress.objects.filter(
+            user=request.user, course_key=course_key, completed=True
+        ).first()
+    except (OperationalError, ProgrammingError):
+        return JsonResponse({'status': 'error', 'message': 'Please run database migrations first.'}, status=503)
+    if not progress:
+        return JsonResponse({'status': 'error', 'message': 'Complete the course to unlock certificate'}, status=400)
+
+    try:
+        certificate, _ = CourseCertificate.objects.get_or_create(
+            user=request.user,
+            course_key=course_key,
+            defaults={
+                'course_title': course['title'],
+                'certificate_code': f"AGRO-{request.user.id}-{course_key[:6].upper()}-{random.randint(1000,9999)}",
+            }
+        )
+    except (OperationalError, ProgrammingError):
+        return JsonResponse({'status': 'error', 'message': 'Please run database migrations first.'}, status=503)
+
+    image = Image.new('RGB', (1600, 1100), '#f7f2e6')
+    draw = ImageDraw.Draw(image)
+    title_font = ImageFont.load_default()
+    body_font = ImageFont.load_default()
+
+    draw.rectangle((30, 30, 1570, 1070), outline='#2d5b4a', width=5)
+    draw.rectangle((60, 60, 1540, 1040), outline='#b58f3a', width=3)
+    draw.text((650, 120), "AGROSENSE LEARNING", fill='#2d5b4a', font=title_font)
+    draw.text((610, 180), "COURSE COMPLETION CERTIFICATE", fill='#b58f3a', font=title_font)
+    draw.text((180, 320), "This is to proudly certify that", fill='#3E2723', font=body_font)
+    draw.text((180, 390), request.user.get_full_name() or request.user.username, fill='#1f4a3b', font=body_font)
+    draw.text((180, 460), "has successfully completed and passed final assessment for", fill='#3E2723', font=body_font)
+    draw.text((180, 520), course['title'], fill='#1f4a3b', font=body_font)
+    draw.text((180, 600), "Result: PASS", fill='#1f4a3b', font=body_font)
+    draw.text((180, 660), f"Certificate ID: {certificate.certificate_code}", fill='#3E2723', font=body_font)
+    draw.text((180, 720), f"Issued On: {certificate.issued_at.strftime('%d %b %Y')}", fill='#3E2723', font=body_font)
+    draw.ellipse((1220, 760, 1460, 1000), outline='#b58f3a', width=4)
+    draw.text((1270, 870), "AGRO", fill='#2d5b4a', font=body_font)
+    draw.text((180, 860), "AgroSense Learning Academy", fill='#2d5b4a', font=body_font)
+    draw.text((180, 930), "Authorized by AgroSense Digital Learning Board", fill='#2d5b4a', font=body_font)
+
+    buffer = io.BytesIO()
+    image.save(buffer, format='PNG')
+    encoded = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    data_url = f"data:image/png;base64,{encoded}"
+
+    return JsonResponse({
+        'status': 'success',
+        'data_url': data_url,
+        'filename': f"agrosense_certificate_{course_key}.png",
+        'certificate_code': certificate.certificate_code,
+    })
 
 def api_remove_listing(request):
     if request.method == 'POST' and request.user.is_authenticated:
