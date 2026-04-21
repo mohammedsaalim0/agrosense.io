@@ -960,12 +960,12 @@
         const reader = new FileReader();
         reader.onload = function(event) {
             document.getElementById('scanned-image').src = event.target.result;
-            startScan(file.name);
+            startScan(file);
         };
         reader.readAsDataURL(file);
     });
 
-    function startScan(fileName) {
+    function startScan(file) {
         const line = document.getElementById('scan-line');
         const date = document.getElementById('scan-date').value;
         const resultsArea = document.getElementById('scan-results');
@@ -979,13 +979,21 @@
         // Reset UI for new scan
         resultsArea.style.display = 'none';
         line.style.display = 'block';
-        showToast(`AI Vision: Analyzing ${fileName}...`);
+        showToast(`AI Vision: Analyzing ${file.name}...`);
         
         // Add scanning class for extra visual feedback
         document.getElementById('drop-zone').classList.add('scanning');
         
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('date', date);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
         setTimeout(() => {
-            fetch(`/api/scan/?filename=${fileName}&date=${date}`)
+            fetch(`/api/scan/`, {
+                method: 'POST',
+                body: formData
+            })
                 .then(res => {
                     if (!res.ok) {
                         return res.json().then(err => { throw new Error(err.message); });

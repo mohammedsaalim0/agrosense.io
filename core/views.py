@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login as auth_login
+from django.contrib.auth import login as auth_login, authenticate
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.http import JsonResponse
 from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile
 import random
+import io
+from PIL import Image
 
 @login_required
 def dashboard(request):
@@ -80,79 +82,81 @@ def api_market_data(request):
     })
 
 def api_scan(request):
-    filename = request.GET.get('filename', '').lower()
-    date_str = request.GET.get('date', '')
-    
-    # Supported image extensions
-    image_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic']
-    is_image = any(filename.endswith(ext) for ext in image_extensions)
-    
-    if not is_image:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Unsupported file format. Please upload an image file (JPG, PNG, etc.).'
-        }, status=400)
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST requests are allowed.'}, status=405)
 
-    # Specific Plant Keywords (High Confidence)
-    real_plant_keywords = [
-        'leaf', 'plant', 'rice', 'wheat', 'maize', 'cotton', 'crop', 'tree', 'flower', 
-        'grass', 'root', 'stem', 'basil', 'tomato', 'potato', 'chili', 'paddy', 'field'
-    ]
-    
-    # Non-Plant Keywords (Forbidden)
-    non_plant_keywords = [
-        'car', 'bike', 'person', 'human', 'building', 'laptop', 'phone', 'furniture', 
-        'toy', 'plastic', 'fake', 'artificial', 'screen', 'keyboard', 'dog', 'cat'
-    ]
+    if 'file' not in request.FILES:
+        return JsonResponse({'status': 'error', 'message': 'No file uploaded.'}, status=400)
 
-    # Check for non-plant keywords first
-    is_non_plant = any(kw in filename for kw in non_plant_keywords)
+    image_file = request.FILES['file']
+    date_str = request.POST.get('date', '')
     
-    # Deterministic Seed based on file and date
-    random.seed(f"{filename}{date_str}")
-    
-    if is_non_plant:
+    try:
+        # Open image using Pillow
+        img = Image.open(image_file)
+        img = img.convert('RGB')
+        width, height = img.size
+        
+        # Analyze image for "Greenness"
+        # We'll sample some pixels to get an idea of the color profile
+        pixels = img.getdata()
+        green_pixels = 0
+        total_pixels = len(pixels)
+        
+        # Sample every 10th pixel for performance
+        sample_step = max(1, total_pixels // 1000)
+        for i in range(0, total_pixels, sample_step):
+            r, g, b = pixels[i]
+            # Plant-like green detection: G > R and G > B, or G is significantly high
+            if g > r * 1.1 and g > b * 1.1:
+                green_pixels += 1
+        
+        green_ratio = green_pixels / (total_pixels / sample_step)
+        
+        # If green ratio is very low, it's likely not a plant
+        if green_ratio < 0.15:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'AI Vision: Non-plant object detected. Please upload a real crop or plant photo (it seems there is not enough green foliage).'
+            }, status=400)
+
+        # Identification Logic based on green ratio and randomness
+        # This is still a simulation but now it's grounded in the image data
+        random.seed(f"{image_file.name}{date_str}")
+        
+        detected_plant = 'Rice (Oryza sativa)'
+        confidence_val = int(85 + (green_ratio * 10)) # Higher green ratio = more confidence
+        if confidence_val > 99: confidence_val = 99
+        
+        # Heuristics based on filename if available (as a fallback/supplement)
+        filename = image_file.name.lower()
+        if 'wheat' in filename: 
+            detected_plant = 'Wheat (Triticum aestivum)'
+        elif 'maize' in filename: 
+            detected_plant = 'Maize (Zea mays)'
+        elif 'cotton' in filename: 
+            detected_plant = 'Cotton (Gossypium)'
+        elif 'tomato' in filename: 
+            detected_plant = 'Tomato (Solanum lycopersicum)'
+        else:
+            detected_plant = random.choice(['High-Yield Rice', 'Resilient Wheat', 'Hybrid Maize'])
+
+        results = {
+            'status': 'success',
+            'plant': detected_plant,
+            'health': 'Healthy' if green_ratio > 0.4 else 'Needs Attention',
+            'confidence': f"{confidence_val}%",
+            'growth': int(70 + (green_ratio * 30)),
+            'health_radar': [random.randint(70, 100) for _ in range(5)],
+            'disease_risk': random.randint(1, 5) if green_ratio > 0.4 else random.randint(5, 15),
+            'chlorophyll': [int(50 + (green_ratio * 50) + random.randint(-5, 5)) for _ in range(7)]
+        }
+
         random.seed(None)
-        return JsonResponse({
-            'status': 'error',
-            'message': 'AI Vision: Non-plant object detected. Please upload a real crop or plant.'
-        }, status=400)
+        return JsonResponse(results)
 
-    # Identification Logic: If it's an image, we'll try to find a match or use a generic one
-    detected_plant = 'Rice (Oryza sativa)' # Default
-    confidence_val = random.randint(85, 98)
-    
-    if 'wheat' in filename: 
-        detected_plant = 'Wheat (Triticum aestivum)'
-    elif 'maize' in filename: 
-        detected_plant = 'Maize (Zea mays)'
-    elif 'cotton' in filename: 
-        detected_plant = 'Cotton (Gossypium)'
-    elif 'tomato' in filename: 
-        detected_plant = 'Tomato (Solanum lycopersicum)'
-    elif 'leaf' in filename or 'plant' in filename or 'crop' in filename:
-        detected_plant = random.choice(['Basmati Rice', 'Organic Wheat', 'Golden Maize'])
-    else:
-        # Generic image identification
-        detected_plant = random.choice(['High-Yield Rice', 'Resilient Wheat', 'Hybrid Maize'])
-        confidence_val = random.randint(70, 85)
-
-    results = {
-        'status': 'success',
-        'plant': detected_plant,
-        'health': random.choice(['Healthy', 'Thriving', 'Excellent']),
-        'confidence': f"{confidence_val}%",
-        'growth': random.randint(75, 95),
-        'health_radar': [random.randint(70, 100) for _ in range(5)],
-        'disease_risk': random.randint(1, 8),
-        'chlorophyll': [random.randint(50, 98) for _ in range(7)]
-    }
-
-    random.seed(None)
-    return JsonResponse(results)
-
-    random.seed(None)
-    return JsonResponse(results)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Error processing image: {str(e)}'}, status=500)
 
 def api_create_listing(request):
     if request.method == 'POST':
@@ -212,3 +216,23 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
+
+def custom_login(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            auth_login(request, user)
+            
+            # Remember Me logic
+            if request.POST.get('remember'):
+                # 2 weeks
+                request.session.set_expiry(1209600)
+            else:
+                # Browser close
+                request.session.set_expiry(0)
+                
+            return redirect('dashboard')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'registration/login.html', {'form': form})
