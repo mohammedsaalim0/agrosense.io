@@ -85,6 +85,10 @@
             <div class="market-card price-trend glass-card animated-border">
                 <div class="data-ping"></div>
                 <h3>12-Month Price Trend</h3>
+                <div class="current-price-badge">
+                    <span id="res-current-price">₹ --</span>
+                    <small id="res-source">AI Analyzing...</small>
+                </div>
                 <div id="price-chart-container" class="chart-container"></div>
             </div>
             <div class="market-card stats glass-card animated-border">
@@ -140,7 +144,12 @@
                         <span>Rating: ★★★★★</span>
                         <span id="top-seller-loc">📍 Ludhiana</span>
                     </div>
-                    <button class="btn btn-primary">Contact Seller</button>
+                    <div class="contact-info">
+                        <p>📞 <span id="top-seller-phone"></span></p>
+                        <p>📧 <span id="top-seller-email"></span></p>
+                    </div>
+                    <div id="seller-map"></div>
+                    <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;">Contact Seller</button>
                 </div>
                 <div class="result-card buyer-highlight">
                     <span class="badge">TOP BUYER</span>
@@ -151,7 +160,12 @@
                         <span>Rating: ★★★★☆</span>
                         <span id="top-buyer-loc">📍 Amritsar</span>
                     </div>
-                    <button class="btn btn-primary">Contact Buyer</button>
+                    <div class="contact-info">
+                        <p>📞 <span id="top-buyer-phone"></span></p>
+                        <p>📧 <span id="top-buyer-email"></span></p>
+                    </div>
+                    <div id="buyer-map"></div>
+                    <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;">Contact Buyer</button>
                 </div>
             </div>
         </div>
@@ -164,38 +178,9 @@
         <h2>Support Schemes</h2>
         <p>Explore government subsidies, low-interest loans, and crop insurance programs.</p>
     </div>
-    <div class="schemes-grid">
-        {% if schemes %}
-            {% for scheme in schemes %}
-            <div class="scheme-card glass-card">
-                <span class="scheme-type">{{ scheme.category|default:"General" }}</span>
-                <h3>{{ scheme.title }}</h3>
-                <p class="provider">By {{ scheme.provider }}</p>
-                <p class="amount">{{ scheme.amount }}</p>
-                <p class="desc">{{ scheme.description }}</p>
-                <button onclick="applyForScheme('{{ scheme.title }}')" class="btn btn-primary">Apply Now</button>
-            </div>
-            {% endfor %}
-        {% else %}
-            <!-- Fallback static cards if no DB data -->
-            <div class="scheme-card glass-card">
-                <span class="scheme-type">Subsidy</span>
-                <h3>PM-Kisan Samman</h3>
-                <p class="provider">Central Govt</p>
-                <p class="amount">₹6,000 / Year</p>
-                <p class="desc">Direct income support for small and marginal farmers across the country.</p>
-                <button onclick="showToast('Application submitted')" class="btn btn-primary">Apply Now</button>
-            </div>
-            <div class="scheme-card glass-card">
-                <span class="scheme-type">Insurance</span>
-                <h3>PM Fasal Bima</h3>
-                <p class="provider">MoA&FW</p>
-                <p class="amount">Low Premium</p>
-                <p class="desc">Comprehensive insurance cover against failure of the crop due to natural calamities.</p>
-                <button onclick="applyForScheme('PM Fasal Bima')" class="btn btn-primary">Apply Now</button>
-            </div>
-            <!-- More static cards would go here -->
-        {% endif %}
+    <div class="schemes-grid" id="schemes-grid">
+        <!-- Schemes will be dynamically injected here -->
+        <div style="grid-column: 1/-1; text-align: center;">Fetching latest government schemes...</div>
     </div>
 </section>
 
@@ -263,44 +248,57 @@
                 <label>Crop Type</label>
                 <select id="listing-crop" name="crop" onchange="updateMSP()">
                     <option value="">Select Crop</option>
-                    <option value="wheat">Wheat (MSP: ₹2275)</option>
-                    <option value="paddy">Paddy (MSP: ₹2183)</option>
-                    <option value="maize">Maize (MSP: ₹2090)</option>
-                    <option value="cotton">Cotton (MSP: ₹6620)</option>
+                    <option value="Wheat">Wheat (MSP: ₹2275)</option>
+                    <option value="Paddy">Paddy (MSP: ₹2183)</option>
+                    <option value="Maize">Maize (MSP: ₹2090)</option>
+                    <option value="Cotton">Cotton (MSP: ₹6620)</option>
+                    <option value="Bajra">Bajra (MSP: ₹2500)</option>
+                    <option value="Jowar">Jowar (MSP: ₹3180)</option>
+                    <option value="Ragi">Ragi (MSP: ₹3846)</option>
+                    <option value="Arhar">Arhar (Dal) (MSP: ₹7000)</option>
+                    <option value="Moong">Moong (Dal) (MSP: ₹8558)</option>
+                    <option value="Urad">Urad (Dal) (MSP: ₹6950)</option>
+                    <option value="Groundnut">Groundnut (MSP: ₹6377)</option>
+                    <option value="Soyabean">Soyabean (MSP: ₹4600)</option>
+                    <option value="Sugarcane">Sugarcane (FRP: ₹315)</option>
+                    <option value="Tomato">Tomato (Market: ₹2500)</option>
+                    <option value="Potato">Potato (Market: ₹1500)</option>
+                    <option value="Onion">Onion (Market: ₹2200)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Quantity (Quintals)</label>
-                <input type="number" id="listing-qty" name="quantity" placeholder="e.g. 50">
+                <label>Quality Grade</label>
+                <select id="listing-quality" name="quality">
+                    <option value="Premium">Premium (Best Quality)</option>
+                    <option value="A-Grade">A-Grade (Export Quality)</option>
+                    <option value="Standard" selected>Standard (Market Quality)</option>
+                    <option value="Low">Low (Direct Feed/Other)</option>
+                </select>
             </div>
-            <div class="ai-price-box">
-                <p>AI Suggested Price</p>
-                <h4 id="suggested-price">₹ --</h4>
-                <small>Based on current market demand + 5% premium</small>
+            <div class="form-group">
+                <label>Crop Image</label>
+                <input type="file" id="listing-image" accept="image/*" class="form-control">
+            </div>
+
+            <div class="ai-price-box" id="fair-price-scanner">
+                <div class="scanner-header">
+                    <span>💎 Agro Fair Price AI</span>
+                    <button type="button" onclick="scanFairPrice()" class="btn-mini">Scan & Predict</button>
+                </div>
+                <div class="scanner-results" id="fair-price-results">
+                    <p>Click "Scan" to verify quality & MSP</p>
+                </div>
                 <input type="hidden" id="hidden-price" name="price">
             </div>
-            <button onclick="submitListing()" class="btn btn-primary" style="width: 100%;">Post Listing</button>
+            <button onclick="submitListing()" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Post to AgroStore</button>
         </div>
 
         <div class="active-listings">
             <h3>Recent Marketplace Bids</h3>
             <div class="bid-list" id="bid-list">
-                {% for listing in listings %}
-                <div class="bid-card glass-card" id="listing-{{ listing.id }}">
-                    <div class="bid-info">
-                        <strong>{{ listing.crop_name }}</strong>
-                        <p>{{ listing.quantity }} • {{ listing.location }}</p>
-                        <small>Seller: {{ listing.seller_name }}</small>
-                    </div>
-                    <div class="bid-action">
-                        <span class="price">₹{{ listing.price }}/Q</span>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="showToast('Bid placed!')" class="btn btn-primary">Bid</button>
-                            <button onclick="removeListing({{ listing.id }})" class="btn" style="background: #b71c1c; color: white; padding: 0.5rem 1rem;">Remove</button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
+            <div class="bid-list" id="bid-list">
+                <!-- Farmer listings will appear here dynamically -->
+            </div>
             </div>
         </div>
     </div>
@@ -1168,6 +1166,64 @@
     .dev-info .role { font-weight: 700; color: var(--harvest-gold); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 1rem; }
     .dev-info .bio { font-size: 0.95rem; color: #FFF8E1; opacity: 0.9; line-height: 1.6; }
     .dev-socials { margin-top: 1.5rem; font-size: 0.8rem; color: var(--harvest-gold); }
+
+    .current-price-badge {
+        background: var(--soil-brown);
+        color: var(--harvest-gold);
+        padding: 1rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .current-price-badge span { font-size: 1.8rem; font-weight: 800; display: block; }
+    .current-price-badge small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+
+    .contact-info {
+        background: #fdfdfd;
+        border: 1px dashed var(--moss-green);
+        border-radius: 10px;
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+        text-align: left;
+    }
+    .contact-info p { margin: 0; font-size: 0.85rem; color: var(--soil-brown); font-weight: 600; }
+    .contact-info p { margin: 0; font-size: 0.85rem; color: var(--soil-brown); font-weight: 600; }
+
+    .scheme-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .status-track-btn { background: #1565c0 !important; color: white !important; }
+    .official-badge { 
+        position: absolute; bottom: 10px; right: 10px; font-size: 0.6rem; 
+        color: #2e7d32; font-weight: 800; text-transform: uppercase;
+        background: #e8f5e9; padding: 2px 8px; border-radius: 4px;
+    }
+
+    /* Fair Price Scanner */
+    .ai-price-box { background: #fdfdfd !important; border: 1px solid #e0e0e0; }
+    .scanner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+    .scanner-header span { font-weight: 800; font-size: 0.9rem; color: var(--soil-brown); }
+    .btn-mini { background: var(--harvest-gold); border: none; padding: 4px 12px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; cursor: pointer; }
+    .fair-price-data { text-align: left; margin-bottom: 0.5rem; }
+    .data-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
+    .fair-total { margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; font-size: 1.1rem; color: #1b5e20; }
+    
+    .quality-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .grade-badge { padding: 4px 12px; border-radius: 20px; color: white; font-weight: 800; font-size: 0.8rem; }
+    .grade-premium { background: #d4af37; }
+    .grade-a-grade { background: #2e7d32; }
+    .grade-standard { background: #1976d2; }
+    .grade-low { background: #d32f2f; }
+    .quality-score { font-size: 0.8rem; color: #666; font-weight: 600; }
+    
+    .report-list ul { padding-left: 0; list-style: none; margin: 1rem 0; }
+    .report-list li { font-size: 0.8rem; margin-bottom: 5px; color: #444; }
+    .price-summary { background: #f1f8e9; padding: 10px; border-radius: 8px; margin-top: 10px; }
+    .price-summary p { font-size: 0.85rem; margin-bottom: 8px; color: var(--soil-brown); }
+
+    .ai-scanning-dots span { animation: blink 1.4s infinite both; }
+    .ai-scanning-dots span:nth-child(2) { animation-delay: .2s; }
+    .ai-scanning-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
 </style>
 {% endblock %}
 
@@ -1464,6 +1520,9 @@
         fetch(`/api/market/?crop=${crop}`)
             .then(res => res.json())
             .then(data => {
+                document.getElementById('res-current-price').textContent = `₹${data.current_price || '--'}`;
+                document.getElementById('res-source').textContent = data.metrics.source || "AgroSense Analysis";
+                
                 Charts.bar('price-chart-container', data.trends, []);
                 Charts.donut('market-donut-container', data.metrics.demand);
                 Charts.radar('market-radar-container', data.stability);
@@ -1476,30 +1535,80 @@
             });
     }
 
-    // MSP Logic
-    function updateMSP() {
+    // Agro Fair Price Scanning
+    async function scanFairPrice() {
         const crop = document.getElementById('listing-crop').value;
-        const priceTag = document.getElementById('suggested-price');
-        const hiddenPrice = document.getElementById('hidden-price');
-        const msps = { 'wheat': 2275, 'paddy': 2183, 'maize': 2090, 'cotton': 6620 };
+        const fileInput = document.getElementById('listing-image');
+        const results = document.getElementById('fair-price-results');
         
-        if(msps[crop]) {
-            const suggested = Math.floor(msps[crop] * 1.05);
-            priceTag.textContent = `₹${suggested}`;
-            hiddenPrice.value = suggested;
-        } else {
-            priceTag.textContent = `₹ --`;
-            hiddenPrice.value = "";
+        if(!crop) {
+            showToast("Select a crop first.");
+            return;
         }
+        if(!fileInput.files[0]) {
+            showToast("Please upload a crop image for AI scanning.");
+            return;
+        }
+
+        results.innerHTML = '<div class="ai-scanning-dots">Analyzing Image Hardware...<span>.</span><span>.</span><span>.</span></div>';
+        
+        const formData = new FormData();
+        formData.append('crop', crop);
+        formData.append('file', fileInput.files[0]);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        try {
+            const res = await fetch('/api/predict-fair-price/', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if(data.status === 'error') {
+                results.innerHTML = `<p style="color:red">${data.message}</p>`;
+                return;
+            }
+            
+            let reportHtml = data.report.map(pt => `<li>✅ ${pt}</li>`).join('');
+            
+            results.innerHTML = `
+                <div class="fair-price-data">
+                    <div class="quality-header">
+                        <span class="grade-badge grade-${data.quality.toLowerCase()}">${data.quality}</span>
+                        <span class="quality-score">AI Score: ${data.score}/100</span>
+                    </div>
+                    <div class="report-list">
+                        <ul>${reportHtml}</ul>
+                    </div>
+                    <div class="price-summary">
+                        <p><strong>${data.summary}</strong></p>
+                        <div class="data-row fair-total"><span>Fair Price:</span> <strong>₹${data.fair_price}/Q</strong></div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('hidden-price').value = data.fair_price;
+            document.getElementById('listing-quality').value = data.quality;
+            showToast("AI Quality Analysis Complete!");
+        } catch (err) {
+            results.innerHTML = '<p style="color:red">AI Scanner Connection Error.</p>';
+        }
+    }
+
+    // MSP Logic (Kept for manual fallback if needed)
+    function updateMSP() {
+        const results = document.getElementById('fair-price-results');
+        results.innerHTML = '<p>Crop changed. Re-scan for accurate fair price.</p>';
     }
 
     function submitListing() {
         const crop = document.getElementById('listing-crop').value;
         const qty = document.getElementById('listing-qty').value;
         const price = document.getElementById('hidden-price').value;
+        const quality = document.getElementById('listing-quality').value;
 
         if(!crop || !qty || !price) {
-            showToast("Please fill all listing details.");
+            showToast("Please select crop, enter quantity, and Run AI Scan for price.");
             return;
         }
 
@@ -1507,7 +1616,11 @@
         formData.append('crop', crop);
         formData.append('quantity', qty);
         formData.append('price', price);
+        formData.append('quality', quality);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        // In a real app we would handle the image upload to a bucket
+        formData.append('image_url', 'https://images.unsplash.com/photo-1595111166304-43400d72f9b1?auto=format&fit=crop&q=80&w=600');
 
         fetch('/api/create-listing/', {
             method: 'POST',
@@ -1516,7 +1629,7 @@
         .then(res => res.json())
         .then(data => {
             if(data.status === 'success') {
-                showToast("Listing posted to marketplace!");
+                showToast("Listing posted! It is now visible in the AgroStore.");
                 const bidList = document.getElementById('bid-list');
                 const card = document.createElement('div');
                 card.className = 'bid-card glass-card';
@@ -1524,13 +1637,12 @@
                 card.innerHTML = `
                     <div class="bid-info">
                         <strong>${data.listing.crop_name}</strong>
-                        <p>${data.listing.quantity} • Your Location</p>
-                        <small>Seller: ${data.listing.seller_name}</small>
+                        <p>${data.listing.quantity} Quintals • Verified Location</p>
+                        <small>Seller: ${data.listing.seller_name} (You)</small>
                     </div>
                     <div class="bid-action">
                         <span class="price">₹${data.listing.price}/Q</span>
                         <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="showToast('Bid placed!')" class="btn btn-primary">Bid</button>
                             <button onclick="removeListing(${data.listing.id})" class="btn" style="background: #b71c1c; color: white; padding: 0.5rem 1rem;">Remove</button>
                         </div>
                     </div>
@@ -1619,7 +1731,7 @@
         }, 3000);
     }
 
-    function searchMarket() {
+    async function searchMarket() {
         const crop = document.getElementById('search-crop').value;
         const loc = document.getElementById('search-location').value;
 
@@ -1628,41 +1740,44 @@
             return;
         }
 
-        showToast(`Searching for top ${crop} specialists in ${loc}...`);
+        showToast(`Searching "Book My Crop" network for ${crop} in ${loc}...`);
         
-        setTimeout(() => {
+        try {
+            const res = await fetch(`/api/search-market/?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(loc)}`);
+            const data = await res.json();
+            
             document.getElementById('search-results').style.display = 'block';
             document.getElementById('search-results').scrollIntoView({ behavior: 'smooth' });
             
-            const sellers = [
-                { name: "Rajesh Singh", desc: "Specialized in Premium Grain" },
-                { name: "Sukhwinder Gill", desc: "Organic Farming Pioneer" },
-                { name: "Amit Verma", desc: "Quality Seed Distributor" },
-                { name: "Vikram Rathore", desc: "Sustainable Crop Expert" },
-                { name: "Gurpreet Brar", desc: "Pesticide-Free Specialist" },
-                { name: "Deepak Choudhary", desc: "Advanced Irrigation Merchant" }
-            ];
-            const buyers = [
-                { name: "AgriCorp Global", desc: "Bulk Export Specialist" },
-                { name: "Harvest India Ltd", desc: "Government Authorized Procurement" },
-                { name: "NatureFresh Exports", desc: "Organic Chain Supply" },
-                { name: "Kisan Solutions", desc: "Fair Trade Certified" },
-                { name: "FarmToTable Co.", desc: "Direct Retail Supply" },
-                { name: "GreenGrain Partners", desc: "Industrial Scale Buyer" }
-            ];
-            
-            const seller = sellers[Math.floor(Math.random() * sellers.length)];
-            const buyer = buyers[Math.floor(Math.random() * buyers.length)];
+            const seller = data.seller;
+            const buyer = data.buyer;
             
             document.getElementById('top-seller-name').textContent = seller.name;
             document.getElementById('top-seller-desc').textContent = seller.desc;
+            document.getElementById('top-seller-loc').textContent = `📍 ${seller.loc}`;
+            document.getElementById('top-seller-phone').textContent = seller.phone;
+            document.getElementById('top-seller-email').textContent = seller.email;
+            
             document.getElementById('top-buyer-name').textContent = buyer.name;
             document.getElementById('top-buyer-desc').textContent = buyer.desc;
-            document.getElementById('top-seller-loc').textContent = `📍 ${loc}`;
-            document.getElementById('top-buyer-loc').textContent = `📍 ${loc} Area`;
+            document.getElementById('top-buyer-loc').textContent = `📍 ${buyer.loc}`;
+            document.getElementById('top-buyer-phone').textContent = buyer.phone;
+            document.getElementById('top-buyer-email').textContent = buyer.email;
             
-            showToast("Best matches found!");
-        }, 1500);
+            // Inject Maps
+            const sellerMap = document.getElementById('seller-map');
+            const buyerMap = document.getElementById('buyer-map');
+            
+            sellerMap.innerHTML = `<iframe width="100%" height="150" frameborder="0" style="border:0; border-radius:12px; margin-top:1rem;" src="https://www.google.com/maps/embed/v1/place?key=REPLACE_WITH_GOOGLE_MAPS_API_KEY&q=${encodeURIComponent(seller.loc)}" allowfullscreen></iframe>`;
+            // Note: Since I don't have an API key, I'll use the public non-API embed as a fallback
+            sellerMap.innerHTML = `<iframe width="100%" height="150" frameborder="0" style="border:0; border-radius:12px; margin-top:1rem;" src="https://maps.google.com/maps?q=${encodeURIComponent(seller.loc)}&t=&z=13&ie=UTF8&iwloc=&output=embed" allowfullscreen></iframe>`;
+            
+            buyerMap.innerHTML = `<iframe width="100%" height="150" frameborder="0" style="border:0; border-radius:12px; margin-top:1rem;" src="https://maps.google.com/maps?q=${encodeURIComponent(buyer.loc)}&t=&z=13&ie=UTF8&iwloc=&output=embed" allowfullscreen></iframe>`;
+            
+            showToast("Real-time participants found!");
+        } catch (err) {
+            showToast("Failed to connect to Book My Crop service.");
+        }
     }
 
     function applyForScheme(schemeName) {
@@ -1877,6 +1992,32 @@
             }
         }, 3000);
         
+        // Fetch Schemes
+        fetch('/api/schemes/')
+            .then(res => res.json())
+            .then(data => {
+                const grid = document.getElementById('schemes-grid');
+                grid.innerHTML = '';
+                data.schemes.forEach(scheme => {
+                    if(!scheme.active) return;
+                    const card = document.createElement('div');
+                    card.className = 'scheme-card glass-card';
+                    card.innerHTML = `
+                        <span class="scheme-type">${scheme.category}</span>
+                        <h3>${scheme.title}</h3>
+                        <p class="provider">By ${scheme.provider}</p>
+                        <p class="amount">${scheme.amount}</p>
+                        <p class="desc">${scheme.desc}</p>
+                        <div class="scheme-actions">
+                            <a href="${scheme.official_url}" target="_blank" class="btn btn-primary">Official Portal</a>
+                            <a href="${scheme.status_url}" target="_blank" class="btn status-track-btn">Track Real Status</a>
+                        </div>
+                        <div class="official-badge">Verified Official</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+
         // Only update if search has value (prevents auto-show)
         if(document.getElementById('market-search').value) {
             updateMarketData();

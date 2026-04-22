@@ -300,6 +300,83 @@
 
         .logout-btn, .login-btn { padding: 0.5rem 1.5rem; color: var(--soil-brown); background: var(--harvest-gold); cursor: pointer; }
 
+        /* AgroBot Styles */
+        .agrobot-trigger {
+            position: fixed; bottom: 30px; right: 30px; width: 70px; height: 70px;
+            background: var(--soil-brown); border-radius: 50%; cursor: pointer; z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 3px solid var(--harvest-gold);
+            display: flex; align-items: center; justify-content: center; transition: var(--transition);
+            animation: botFloat 3s ease-in-out infinite;
+        }
+        @keyframes botFloat {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+        .agrobot-trigger:hover { transform: scale(1.1) !important; box-shadow: 0 0 20px var(--harvest-gold); }
+        .agrobot-trigger img { width: 85%; height: 85%; border-radius: 50%; object-fit: cover; filter: drop-shadow(0 0 5px rgba(0,255,255,0.3)); }
+        .online-indicator { 
+            position: absolute; bottom: 5px; right: 5px; width: 15px; height: 15px; 
+            background: #4caf50; border: 2px solid var(--soil-brown); border-radius: 50%; 
+            box-shadow: 0 0 10px #4caf50; animation: pulseGlow 2s infinite;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .agrobot-window {
+            position: fixed; bottom: 110px; right: 30px; width: 400px; height: 600px;
+            background: white; border-radius: 20px; z-index: 10000; display: none;
+            flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+            animation: slideUpBot 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .agrobot-window.active { display: flex; }
+        @keyframes slideUpBot { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .agrobot-header {
+            background: var(--soil-brown); color: white; padding: 1.2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-info { display: flex; align-items: center; gap: 10px; }
+        .header-info img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--harvest-gold); }
+        .header-info h3 { font-size: 1.1rem; margin: 0; }
+        .header-info p { font-size: 0.7rem; opacity: 0.8; margin: 0; color: var(--harvest-gold); }
+        .close-bot { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+
+        .agrobot-messages { flex: 1; padding: 1.5rem; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 1rem; }
+        .msg { display: flex; align-items: flex-start; gap: 10px; max-width: 85%; }
+        .bot-msg { align-self: flex-start; }
+        .user-msg { align-self: flex-end; flex-direction: row-reverse; }
+        .bot-icon { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--moss-green); }
+        .msg-bubble { padding: 0.8rem 1.2rem; border-radius: 18px; font-size: 0.95rem; line-height: 1.4; position: relative; }
+        .bot-msg .msg-bubble { background: #eee; color: var(--soil-brown); border-bottom-left-radius: 2px; }
+        .user-msg .msg-bubble { background: var(--moss-green); color: white; border-bottom-right-radius: 2px; }
+        .chat-image { width: 100%; border-radius: 10px; margin-top: 5px; }
+
+        .agrobot-input { padding: 1.2rem; background: white; border-top: 1px solid #eee; }
+        .input-actions { display: flex; gap: 1rem; margin-bottom: 0.8rem; }
+        .action-btn { font-size: 1.2rem; cursor: pointer; opacity: 0.6; transition: 0.2s; background: none; border: none; padding: 0; }
+        .action-btn:hover { opacity: 1; color: var(--moss-green); }
+        .action-btn.listening { color: #f44336; animation: pulseRed 1s infinite; }
+        @keyframes pulseRed { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        .input-wrap { display: flex; gap: 10px; background: #f0f0f0; padding: 5px 15px; border-radius: 30px; }
+        .input-wrap input { flex: 1; border: none; background: none; padding: 10px 0; outline: none; font-family: inherit; }
+        .btn-send { background: none; border: none; color: var(--moss-green); font-size: 1.2rem; cursor: pointer; }
+
+        .camera-preview-container {
+            position: absolute; bottom: 120px; left: 10px; right: 10px;
+            background: black; border-radius: 15px; overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #camera-video { width: 100%; height: 200px; object-fit: cover; }
+        .btn-snap { background: var(--harvest-gold); color: var(--soil-brown); border: none; padding: 0.8rem; font-weight: bold; cursor: pointer; }
+        .btn-cancel-cam { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
+
+        @media (max-width: 480px) {
+            .agrobot-window { width: calc(100vw - 40px); height: calc(100vh - 150px); bottom: 100px; right: 20px; }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -325,6 +402,8 @@
             <a href="{% url 'dashboard' %}#schemes">Support Schemes</a>
             <a href="{% url 'dashboard' %}#edu">AgroSense Edu</a>
             <a href="{% url 'dashboard' %}#sell">Sell Crop</a>
+            <a href="{% url 'agro_suggestion' %}">Agro-Suggestion</a>
+            <a href="{% url 'agro_store' %}" style="color: var(--harvest-gold); font-weight: bold;">AgroStore</a>
             <a href="{% url 'dashboard' %}#scanner">Plant Scanner</a>
             {% if user.is_authenticated %}
                 <div class="status-tracker-container">
@@ -362,8 +441,207 @@
 
     <div id="toast-container"></div>
 
+    <!-- AgroBot UI -->
+    <div id="agrobot-trigger" class="agrobot-trigger" onclick="toggleAgroBot()">
+        <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="AgroBot">
+        <div class="online-indicator"></div>
+    </div>
+
+    <div id="agrobot-window" class="agrobot-window">
+        <div class="agrobot-header">
+            <div class="header-info">
+                <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="AgroBot">
+                <div>
+                    <h3>AgroBot</h3>
+                    <p>Powered by Ollama AI</p>
+                </div>
+            </div>
+            <button class="close-bot" onclick="toggleAgroBot()">✕</button>
+        </div>
+        <div class="agrobot-messages" id="agrobot-messages">
+            <!-- Initial Messages -->
+            <div class="msg bot-msg">
+                <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="Bot" class="bot-icon">
+                <div class="msg-bubble">
+                    Namaste! I am AgroBot. How can I help you with your farm today? 🌾
+                </div>
+            </div>
+            <div class="msg user-msg">
+                <div class="msg-bubble">
+                    I found some spots on my tomato leaves. Can you check?
+                </div>
+            </div>
+            <div class="msg bot-msg">
+                <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="Bot" class="bot-icon">
+                <div class="msg-bubble">
+                    Certainly! Please upload a clear photo of the leaf, and I will analyze it for you.
+                </div>
+            </div>
+            <div class="msg user-msg">
+                <div class="msg-bubble">
+                    <img src="{% static 'core/images/tomato_leaf_disease.png' %}" alt="Symptom" class="chat-image">
+                    Here is the photo.
+                </div>
+            </div>
+            <div class="msg bot-msg">
+                <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="Bot" class="bot-icon">
+                <div class="msg-bubble">
+                    <strong>Analysis Complete:</strong> This appears to be <em>Early Blight</em> (Alternaria solani). 
+                    <br><br>
+                    <strong>Solution:</strong>
+                    1. Remove infected lower leaves.
+                    2. Apply organic Copper Fungicide.
+                    3. Avoid overhead watering.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Camera Preview -->
+        <div id="camera-preview-container" class="camera-preview-container" style="display: none;">
+            <video id="camera-video" autoplay playsinline></video>
+            <button class="btn-snap" onclick="takeSnapshot()">Capture</button>
+            <button class="btn-cancel-cam" onclick="stopCamera()">✕</button>
+        </div>
+
+        <div class="agrobot-input">
+            <div class="input-actions">
+                <label for="bot-upload" class="action-btn">📎</label>
+                <input type="file" id="bot-upload" hidden accept="image/*" onchange="handleBotUpload(event)">
+                <button class="action-btn" onclick="startCamera()">📷</button>
+                <button class="action-btn" id="mic-btn" onclick="toggleVoiceInput()">🎤</button>
+            </div>
+            <div class="input-wrap">
+                <input type="text" id="bot-text-input" placeholder="Ask AgroBot..." onkeypress="handleBotKey(event)">
+                <button class="btn-send" onclick="sendBotMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Create ambient particles
+        function toggleAgroBot() {
+            const win = document.getElementById('agrobot-window');
+            win.classList.toggle('active');
+        }
+
+        function handleBotKey(e) {
+            if(e.key === 'Enter') sendBotMessage();
+        }
+
+        function sendBotMessage() {
+            const input = document.getElementById('bot-text-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            appendMessage('user', text);
+            input.value = '';
+
+            const container = document.getElementById('agrobot-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'msg bot-msg typing-msg';
+            typingDiv.innerHTML = `
+                <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="Bot" class="bot-icon">
+                <div class="msg-bubble">AgroBot is thinking...</div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+
+            // Simple Keyword Logic to feel more "AI"
+            let response = "I'm analyzing your farm data with Ollama AI. Could you provide more details about your crops?";
+            const lowText = text.toLowerCase();
+            
+            if(lowText.includes('hello') || lowText.includes('hi')) {
+                response = "Namaste! I am AgroBot, your digital farm assistant. How is your harvest going today?";
+            } else if(lowText.includes('price') || lowText.includes('market')) {
+                response = "Current market trends show a 5% increase in Basmati rice demand. Check the 'Market Intel' section for real-time prices!";
+            } else if(lowText.includes('tomato') || lowText.includes('leaf') || lowText.includes('disease')) {
+                response = "I see you're concerned about your tomatoes. Based on recent scans, ensure there's no stagnant water around the roots to prevent blight.";
+            } else if(lowText.includes('help') || lowText.includes('how to')) {
+                response = "I can help with crop diagnostics, market price trends, and government schemes. Try uploading a photo of your crop!";
+            } else if(lowText.includes('weather')) {
+                response = "The local forecast predicts light showers in the next 48 hours. Ideal for sowing Kharif crops!";
+            }
+
+            setTimeout(() => {
+                typingDiv.remove();
+                appendMessage('bot', response);
+            }, 1200);
+        }
+
+        function appendMessage(type, content) {
+            const container = document.getElementById('agrobot-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `msg ${type}-msg`;
+            
+            if(type === 'bot') {
+                msgDiv.innerHTML = `
+                    <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="Bot" class="bot-icon">
+                    <div class="msg-bubble">${content}</div>
+                `;
+            } else {
+                msgDiv.innerHTML = `<div class="msg-bubble">${content}</div>`;
+            }
+            
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleBotUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const imgHtml = `<img src="${event.target.result}" class="chat-image"> Image uploaded for analysis.`;
+                appendMessage('user', imgHtml);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        let camStream = null;
+        function startCamera() {
+            const container = document.getElementById('camera-preview-container');
+            const video = document.getElementById('camera-video');
+            container.style.display = 'flex';
+            
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    camStream = stream;
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    showToast("Camera access denied.");
+                    container.style.display = 'none';
+                });
+        }
+
+        function stopCamera() {
+            if(camStream) {
+                camStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('camera-preview-container').style.display = 'none';
+        }
+
+        function takeSnapshot() {
+            const video = document.getElementById('camera-video');
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            appendMessage('user', `<img src="${dataUrl}" class="chat-image"> Captured from camera.`);
+            stopCamera();
+        }
+
+        function toggleVoiceInput() {
+            const micBtn = document.getElementById('mic-btn');
+            micBtn.classList.toggle('listening');
+            if(micBtn.classList.contains('listening')) {
+                showToast("Listening for farm commands...");
+            } else {
+                showToast("Voice input stopped.");
+            }
+        }
+
         function initParticles() {
             const container = document.getElementById('ambient-particles');
             for(let i=0; i<20; i++) {
@@ -383,8 +661,8 @@
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const bootScreen = document.getElementById('boot-screen');
-                bootScreen.classList.add('hidden');
-            }, 2500); // Cinematic delay
+                if(bootScreen) bootScreen.classList.add('hidden');
+            }, 2500); 
         });
 
         function showToast(message) {
@@ -406,7 +684,6 @@
             nav.classList.toggle('active');
         }
 
-        // Close menu on link click
         document.querySelectorAll('.nav-links a').forEach(link => {
             link.addEventListener('click', () => {
                 document.getElementById('nav-links').classList.remove('active');
@@ -425,7 +702,6 @@
             }
         }
 
-        // Smooth scroll
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();

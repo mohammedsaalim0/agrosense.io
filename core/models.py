@@ -29,6 +29,9 @@ class MarketListing(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     seller_name = models.CharField(max_length=100)
     location = models.CharField(max_length=100)
+    quality = models.CharField(max_length=50, default='Standard') # Standard, Premium, A-Grade
+    image_url = models.URLField(max_length=500, blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
 class SchemeApplication(models.Model):
@@ -88,3 +91,43 @@ class CourseAssessment(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.course_key} ({self.score}%)"
+
+class Product(models.Model):
+    CATEGORY_CHOICES = [
+        ('Fertilizers', 'Fertilizers'),
+        ('Seeds', 'Seeds & Planting Material'),
+        ('Pesticides', 'Pesticides & Insecticides'),
+        ('Tools', 'Farming Tools & Equipment'),
+        ('Organic', 'Organic Products'),
+        ('Irrigation', 'Irrigation & Sprinklers'),
+        ('Soil', 'Soil Testing Kits'),
+        ('Marketplace', 'Farmers Marketplace'),
+    ]
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    image_url = models.URLField(max_length=500, blank=True, null=True)
+    mrp = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity_weight = models.CharField(max_length=100) # e.g. 50kg, 1kg, 500ml
+    rating = models.FloatField(default=4.5)
+    is_organic = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.name
+
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order_id = models.CharField(max_length=20, unique=True)
+    full_name = models.CharField(max_length=200)
+    address = models.TextField()
+    pincode = models.CharField(max_length=10)
+    phone = models.CharField(max_length=15)
+    payment_method = models.CharField(max_length=50)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, default='PENDING') # PENDING, PAID, CANCELLED, SHIPPED, DELIVERED
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order {self.order_id} - {self.full_name}"
+

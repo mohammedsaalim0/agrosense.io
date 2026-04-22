@@ -21,7 +21,7 @@ def populate():
         SupportScheme.objects.get_or_create(
             title=title,
             provider=provider,
-            scheme_type=stype,
+            category=stype,
             amount=amount,
             description=desc
         )

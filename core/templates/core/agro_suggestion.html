@@ -1,0 +1,329 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .suggestion-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .hero-suggestion {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .hero-suggestion h1 {
+        font-size: 3rem;
+        color: var(--soil-brown);
+        margin-bottom: 15px;
+    }
+
+    .hero-suggestion p {
+        font-size: 1.2rem;
+        color: var(--moss-green);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 30px;
+    }
+
+    .input-card {
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        height: fit-content;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        color: var(--soil-brown);
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        font-family: inherit;
+    }
+
+    .btn-analyze {
+        width: 100%;
+        background: var(--harvest-gold);
+        color: var(--soil-brown);
+        border: none;
+        padding: 15px;
+        border-radius: 50px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-analyze:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(218, 165, 32, 0.4);
+    }
+
+    .results-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .metric-card {
+        background: white;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        background: #f0fdf4;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .metric-info h4 {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .metric-info p {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--soil-brown);
+    }
+
+    .suitability-card {
+        grid-column: span 2;
+        padding: 40px;
+        text-align: center;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 1px solid #86efac;
+    }
+
+    .suit-val {
+        font-size: 4rem;
+        font-weight: 900;
+        color: #166534;
+        margin: 10px 0;
+    }
+
+    .chart-card {
+        background: white;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        grid-column: span 1;
+    }
+
+    .chart-card h4 { margin-bottom: 20px; }
+
+    @media (max-width: 992px) {
+        .dashboard-grid { grid-template-columns: 1fr; }
+        .results-panel { grid-template-columns: 1fr; }
+        .suitability-card { grid-column: span 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="suggestion-container">
+    <div class="hero-suggestion">
+        <h1>Agro-Suggestion Engine</h1>
+        <p>Advanced AI-driven analysis for optimal crop selection based on real geographic and environmental data.</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Sidebar Inputs -->
+        <div class="input-card">
+            <h3>Diagnostic Parameters</h3>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 25px;">Enter your details to generate a real-time suitability report.</p>
+            
+            <div class="form-group">
+                <label>Geographic Location</label>
+                <input type="text" id="loc-input" value="Punjab, India" placeholder="e.g. Sahara Desert, Antarctica">
+            </div>
+
+            <div class="form-group">
+                <label>Proposed Crop</label>
+                <input type="text" id="crop-input" value="Wheat" placeholder="e.g. Rice, Corn">
+            </div>
+
+            <button class="btn-analyze" onclick="runDiagnostic()">
+                <span>🚀</span> Run Full Diagnostic
+            </button>
+        </div>
+
+        <!-- Main Results -->
+        <div class="results-panel" id="results-panel">
+            <div class="suitability-card metric-card">
+                <div style="width: 100%;">
+                    <h4>Crop Suitability Index</h4>
+                    <div class="suit-val" id="res-suit">High</div>
+                    <p id="res-suit-msg">Environment is highly conducive for optimal growth.</p>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon">🌡️</div>
+                <div class="metric-info">
+                    <h4>Temperature</h4>
+                    <p id="res-temp">28°C</p>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon">💧</div>
+                <div class="metric-info">
+                    <h4>Humidity</h4>
+                    <p id="res-humidity">65%</p>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon">🧪</div>
+                <div class="metric-info">
+                    <h4>Soil pH</h4>
+                    <p id="res-ph">6.8</p>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon">🌱</div>
+                <div class="metric-info">
+                    <h4>Soil Type</h4>
+                    <p id="res-soil">Alluvial</p>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="chart-card">
+                <h4>Soil Composition Breakdown</h4>
+                <canvas id="compositionChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+                <h4>6-Month Yield Forecast</h4>
+                <canvas id="yieldChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let compChart, yieldChart;
+
+    function initCharts(compData, yieldData) {
+        const ctxComp = document.getElementById('compositionChart').getContext('2d');
+        const ctxYield = document.getElementById('yieldChart').getContext('2d');
+
+        if (compChart) compChart.destroy();
+        if (yieldChart) yieldChart.destroy();
+
+        compChart = new Chart(ctxComp, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(compData),
+                datasets: [{
+                    data: Object.values(compData),
+                    backgroundColor: ['#DAA520', '#4E6E5D', '#3E2723']
+                }]
+            }
+        });
+
+        yieldChart = new Chart(ctxYield, {
+            type: 'line',
+            data: {
+                labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                datasets: [{
+                    label: 'Expected Yield (%)',
+                    data: yieldData,
+                    borderColor: '#4E6E5D',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(78, 110, 93, 0.1)'
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    }
+
+    async function runDiagnostic() {
+        const loc = document.getElementById('loc-input').value;
+        const crop = document.getElementById('crop-input').value;
+        const btn = document.querySelector('.btn-analyze');
+        
+        btn.disabled = true;
+        btn.innerHTML = '⚙️ Analyzing Data...';
+
+        try {
+            const res = await fetch(`/api/weather-soil/?location=${encodeURIComponent(loc)}&crop=${encodeURIComponent(crop)}`);
+            const data = await res.json();
+
+            document.getElementById('res-suit').textContent = data.suitability;
+            document.getElementById('res-temp').textContent = data.temp;
+            document.getElementById('res-humidity').textContent = data.humidity;
+            document.getElementById('res-ph').textContent = data.ph;
+            document.getElementById('res-soil').textContent = data.soil_type;
+
+            // Change card color based on suitability
+            const suitCard = document.querySelector('.suitability-card');
+            if (data.suitability === 'Low') {
+                suitCard.style.background = 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+                suitCard.style.borderColor = '#ef4444';
+                document.getElementById('res-suit-msg').textContent = 'Extreme conditions detected. Crop survival is unlikely.';
+            } else if (data.suitability === 'Moderate') {
+                suitCard.style.background = 'linear-gradient(135deg, #fef9c3 0%, #fef08a 100%)';
+                suitCard.style.borderColor = '#eab308';
+                document.getElementById('res-suit-msg').textContent = 'Sub-optimal conditions. Requires careful monitoring and amendments.';
+            } else {
+                suitCard.style.background = 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)';
+                suitCard.style.borderColor = '#86efac';
+                document.getElementById('res-suit-msg').textContent = 'Environment is highly conducive for optimal growth.';
+            }
+
+            initCharts(data.chart_data.soil_composition, data.chart_data.yield_forecast);
+
+        } catch (err) {
+            alert("Diagnostic failed. Check your internet connection.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '🚀 Run Full Diagnostic';
+        }
+    }
+
+    window.onload = () => runDiagnostic();
+</script>
+{% endblock %}
