@@ -144,7 +144,10 @@
                     <span id="cart-total">₹0.00</span>
                 </div>
             </div>
-            <button class="btn-checkout" onclick="openCheckout()">Proceed to Checkout</button>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-checkout" onclick="openCheckout()" style="flex: 2;">Proceed to Checkout</button>
+                <button class="btn-outline" onclick="toggleCart()" style="flex: 1; border: 1px solid var(--text-muted); color: var(--text-muted);">Close</button>
+            </div>
         </div>
     </div>
 
@@ -374,7 +377,7 @@
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 10000;
+        z-index: 50000;
         padding: 20px;
     }
     
@@ -1036,7 +1039,7 @@
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 20000; /* Higher than base nav */
+        z-index: 20000;
         padding: 2rem;
     }
 
@@ -1292,46 +1295,16 @@
     .btn-buy-upi:hover { background: #00a042; transform: scale(1.02); }
 </style>
 
-    <!-- Razorpay Simulated Modal -->
-    <div id="razorpay-modal" class="modal-overlay" style="display:none; z-index: 10001;">
-        <div class="razorpay-card">
-            <div class="rp-header">
-                <div class="rp-logo">Agro<span>Sense</span></div>
-                <div class="rp-amount-box">
-                    <small>Amount to Pay</small>
-                    <h2 id="rp-amount">₹0</h2>
-                </div>
-            </div>
-            <div class="rp-body">
-                <p>Secured by <strong>Razorpay</strong></p>
-                
-                <div class="rp-qr-section" style="margin: 1rem 0; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                    <p style="font-size: 0.8rem; margin-bottom: 10px; color: #555;">Scan QR to Pay with any UPI App</p>
-                    <img id="rp-qr-code" src="" alt="UPI QR Code" style="width: 180px; height: 180px; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                    <p id="rp-qr-footer" style="font-size: 0.75rem; margin-top: 10px; font-weight: 700; color: #339aff;"></p>
-                </div>
+    <!-- Razorpay Official SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-                <div class="rp-input-group" style="text-align: left; margin: 1rem 0;">
-                    <label style="font-size: 0.8rem; color: #666; display: block; margin-bottom: 5px;">Enter Razorpay Payment ID</label>
-                    <input type="text" id="rp-payment-id" placeholder="pay_Lp8X9v2M1..." class="rp-input" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
-                    <small style="font-size: 0.65rem; color: #999;">Copy the 'pay_' ID from your app after success</small>
-                </div>
-                <button onclick="processRazorpayPayment()" class="rp-pay-btn">Authenticate Payment</button>
-                <button onclick="closeRPModal()" class="rp-cancel">Cancel Payment</button>
-            </div>
-            <div class="rp-footer">
-                <span>🛡️ PCI DSS Compliant • Secured by AgroSense</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bill Success Modal -->
-    <div id="bill-modal" class="modal-overlay" style="display:none; z-index: 10002;">
-        <div class="modal-content" style="max-width: 500px; text-align: center;">
+    <!-- Bill Success Modal (kept for invoice viewing) -->
+    <div id="bill-modal" class="modal-overlay" style="display:none; z-index: 60000;">
+        <div class="modal-content" style="max-width: 500px; text-align: center; border-radius: 16px; overflow: hidden; padding: 2rem;">
             <div style="background: #1a4d2e; color: white; padding: 2rem; border-radius: 12px 12px 0 0; margin: -2rem -2rem 2rem -2rem;">
-                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; items-center; justify-content: center; margin: 0 auto 1rem auto; font-size: 2rem;">✅</div>
+                <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 2rem;">✅</div>
                 <h2 style="margin: 0;">Order Authenticated!</h2>
-                <p style="opacity: 0.8; margin: 5px 0 0 0;">Transaction Verified by Razorpay</p>
+                <p style="opacity: 0.8; margin: 5px 0 0 0;">Payment Verified by Razorpay</p>
             </div>
             <div id="bill-content" style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; font-family: monospace; font-size: 0.85rem; text-align: left; border: 1px dashed #cbd5e1;">
                 <!-- Content injected via JS -->
@@ -1617,117 +1590,129 @@
         console.log("Selected Method:", method);
 
         if (method === 'UPI') {
-            // Open the Authentication Modal
-            document.getElementById('razorpay-modal').style.display = 'flex';
-            document.getElementById('rp-amount').textContent = `₹${total.toFixed(2)}`;
-            
-            const upiId = "7975685763@fam";
-            const upiUri = `upi://pay?pa=${upiId}&pn=AgroSense&am=${total.toFixed(2)}&cu=INR`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
-            
-            document.getElementById('rp-qr-code').src = qrUrl;
-            document.getElementById('rp-qr-footer').textContent = `Order Value: ₹${total.toFixed(2)}`;
+            // Close checkout form cleanly first
+            closeCheckout();
+
+            const csrfToken = formData.get('csrfmiddlewaretoken');
+
+            // Step 1: Create a real Razorpay order on the backend
+            const orderPayload = new FormData();
+            orderPayload.append('total_amount', total);
+            orderPayload.append('csrfmiddlewaretoken', csrfToken);
+
+            let orderInfo;
+            try {
+                const resp = await fetch('/api/create-razorpay-order/', {
+                    method: 'POST',
+                    body: orderPayload,
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+                orderInfo = await resp.json();
+            } catch (err) {
+                alert('Could not connect to payment server. Please check your internet and try again.');
+                return;
+            }
+
+            if (orderInfo.status !== 'success') {
+                alert('Payment setup failed: ' + orderInfo.message + '\n\nPlease add your Razorpay API keys in settings.py to enable live payments.');
+                return;
+            }
+
+            // Step 2: Open Razorpay's official checkout popup
+            // This popup handles UPI QR, UPI ID, Cards, NetBanking — everything
+            const options = {
+                key: orderInfo.key,
+                amount: orderInfo.amount,          // in paise
+                currency: orderInfo.currency,
+                name: 'AgroSense Store',
+                description: 'AgroStore Purchase',
+                order_id: orderInfo.razorpay_order_id,
+                image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=80&h=80&fit=crop',
+                theme: { color: '#2d5a27' },
+                prefill: {
+                    name:    formData.get('full_name'),
+                    contact: formData.get('phone'),
+                },
+                // Step 3: Auto-called by Razorpay the moment payment succeeds
+                handler: async function(response) {
+                    // Verify the HMAC signature on the backend — this is the real authentication
+                    const verifyData = new FormData();
+                    verifyData.append('razorpay_payment_id', response.razorpay_payment_id);
+                    verifyData.append('razorpay_order_id',   response.razorpay_order_id);
+                    verifyData.append('razorpay_signature',  response.razorpay_signature);
+                    verifyData.append('full_name',     formData.get('full_name'));
+                    verifyData.append('address',       formData.get('address'));
+                    verifyData.append('pincode',       formData.get('pincode'));
+                    verifyData.append('phone',         formData.get('phone'));
+                    verifyData.append('total_amount',  total);
+                    verifyData.append('csrfmiddlewaretoken', csrfToken);
+
+                    try {
+                        const verifyResp = await fetch('/api/verify-razorpay-payment/', {
+                            method: 'POST',
+                            body: verifyData,
+                            headers: { 'X-CSRFToken': csrfToken }
+                        });
+                        const result = await verifyResp.json();
+
+                        if (result.status === 'success') {
+                            // Order is confirmed — show success screen
+                            document.getElementById('success-overlay').style.display = 'flex';
+                            document.getElementById('download-bill-btn').onclick = () => viewBill(result.order_id);
+                            cart = [];
+                            updateCart();
+                        } else {
+                            alert('Payment verification failed: ' + result.message);
+                        }
+                    } catch (err) {
+                        alert('Verification error. Contact support with payment ID: ' + response.razorpay_payment_id);
+                    }
+                },
+                modal: {
+                    ondismiss: function() {
+                        // User closed Razorpay popup without paying
+                        console.log('Payment cancelled by user.');
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
             return;
         }
 
-        // For COD or Card (Simulated Direct)
+        // For COD orders
         processFinalOrder(formData);
     }
 
     function expressBuy(id, name, price) {
         window.expressOrder = { id, name, price };
         document.getElementById('checkout-modal').style.display = 'flex';
-        
-        // Update Modal UI for Express Buy
         const total = price + Math.round(price * 0.05) + 40;
-        const totalStr = `₹${total.toFixed(2)}`;
-        document.getElementById('checkout-final-total').textContent = totalStr;
-        document.getElementById('upi-amt-val').textContent = totalStr;
-        
-        // Update QR
-        const upiQr = document.getElementById('upi-qr');
-        if (upiQr) {
-            upiQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=7975685763@fam&pn=AgroSense&am=${total.toFixed(2)}&cu=INR`;
-        }
-    }
-
-    function quickUPIBuy(id, name, price) {
-        // Show Razorpay Modal directly for this product
-        document.getElementById('razorpay-modal').style.display = 'flex';
-        document.getElementById('rp-amount').textContent = `₹${price}`;
-        
-        const upiId = "7975685763@fam";
-        const upiUri = `upi://pay?pa=${upiId}&pn=AgroSense&am=${price}&cu=INR&tn=Order_${name}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUri)}`;
-        
-        document.getElementById('rp-qr-code').src = qrUrl;
-        document.getElementById('rp-qr-footer').innerHTML = `
-            <div style="color: #1b5e20; font-weight: bold;">⚡ Requesting ₹${price} for ${name}</div>
-            <div style="font-size: 0.6rem; color: #666;">UPI: ${upiId}</div>
-        `;
-        
-        // Simulate "Request Sent" push notification UI
-        setTimeout(() => {
-            showToast(`UPI Request for ₹${price} sent to your linked app!`);
-        }, 1500);
-    }
-
-    async function processRazorpayPayment() {
-        const payId = document.getElementById('rp-payment-id').value.trim();
-        if(!payId.startsWith('pay_') || payId.length < 15) {
-            alert("Invalid Razorpay Payment ID. Transaction must start with 'pay_' followed by your unique bank reference.");
-            return;
-        }
-
-        const btn = document.querySelector('.rp-pay-btn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loader-dots">Authenticating Payment</span>';
-        
-        await new Promise(r => setTimeout(r, 2000));
-        
-        const checkoutForm = document.getElementById('checkout-form');
-        const formData = new FormData(checkoutForm);
-        
-        let total;
-        if(window.expressOrder) {
-            total = window.expressOrder.price + Math.round(window.expressOrder.price * 0.05) + 40;
-        } else {
-            total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
-        }
-
-        formData.append('total_amount', total);
-        formData.append('transaction_id', payId);
-        
-        processFinalOrder(formData);
+        document.getElementById('checkout-final-total').textContent = `₹${total.toFixed(2)}`;
     }
 
     async function processFinalOrder(formData) {
+        // Used for COD orders only
         try {
             const response = await fetch('/api/place-order/', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
             });
-            
             const data = await response.json();
             if (data.status === 'success') {
                 closeCheckout();
-                closeRPModal();
                 document.getElementById('success-overlay').style.display = 'flex';
                 document.getElementById('download-bill-btn').onclick = () => viewBill(data.order_id);
                 cart = [];
                 updateCart();
             } else {
-                alert("PAYMENT REJECTED: " + data.message);
-                closeRPModal();
+                alert('Order failed: ' + data.message);
             }
         } catch (err) {
-            alert("Connection timeout. Please try again.");
+            alert('Connection timeout. Please try again.');
         }
-    }
-
-    function closeRPModal() {
-        document.getElementById('razorpay-modal').style.display = 'none';
     }
     function downloadBill() {
         const content = document.getElementById('bill-content').innerText;

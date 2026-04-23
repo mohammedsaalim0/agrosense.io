@@ -24,4 +24,6 @@ urlpatterns = [
     path('api/search-market/', views.api_search_market, name='api_search_market'),
     path('api/schemes/', views.api_get_schemes, name='api_get_schemes'),
     path('api/predict-fair-price/', views.api_predict_fair_price, name='api_predict_fair_price'),
+    path('api/create-razorpay-order/', views.api_create_razorpay_order, name='api_create_razorpay_order'),
+    path('api/verify-razorpay-payment/', views.api_verify_razorpay_payment, name='api_verify_razorpay_payment'),
 ]

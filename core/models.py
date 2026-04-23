@@ -131,3 +131,14 @@ class Order(models.Model):
     def __str__(self):
         return f"Order {self.order_id} - {self.full_name}"
 
+class BankTransaction(models.Model):
+    """Simulates a real bank statement record for automated UTR verification."""
+    utr_id = models.CharField(max_length=12, unique=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    sender_name = models.CharField(max_length=100)
+    is_used = models.BooleanField(default=False)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"UTR {self.utr_id} - ₹{self.amount} ({'Used' if self.is_used else 'Available'})"
+

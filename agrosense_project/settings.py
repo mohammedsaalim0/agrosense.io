@@ -143,3 +143,7 @@ else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SAMESITE = 'Lax'
+# Razorpay Payment Gateway
+# Get your keys from: https://dashboard.razorpay.com/app/keys
+RAZORPAY_KEY_ID = 'rzp_test_REPLACE_WITH_YOUR_KEY_ID'
+RAZORPAY_KEY_SECRET = 'REPLACE_WITH_YOUR_KEY_SECRET'

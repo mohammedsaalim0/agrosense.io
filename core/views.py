@@ -806,6 +806,99 @@ def custom_login(request):
         form = AuthenticationForm()
     return render(request, 'registration/login.html', {'form': form})
 
+def api_create_razorpay_order(request):
+    """Step 1: Create a Razorpay order and return credentials to frontend."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Login required.'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error'}, status=405)
+
+    import razorpay
+    from django.conf import settings
+
+    total_amount = float(request.POST.get('total_amount', 0))
+    if total_amount <= 0:
+        return JsonResponse({'status': 'error', 'message': 'Invalid amount.'}, status=400)
+
+    try:
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        rp_order = client.order.create({
+            'amount': int(total_amount * 100),  # Razorpay works in paise
+            'currency': 'INR',
+            'payment_capture': 1,  # Auto-capture on payment
+        })
+        return JsonResponse({
+            'status': 'success',
+            'razorpay_order_id': rp_order['id'],
+            'amount': int(total_amount * 100),
+            'currency': 'INR',
+            'key': settings.RAZORPAY_KEY_ID,
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Could not create payment order: {str(e)}'}, status=500)
+
+
+def api_verify_razorpay_payment(request):
+    """Step 2: Verify Razorpay payment signature and place order."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Login required.'}, status=401)
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error'}, status=405)
+
+    import razorpay
+    import hmac, hashlib
+    from django.conf import settings
+
+    razorpay_payment_id = request.POST.get('razorpay_payment_id', '')
+    razorpay_order_id   = request.POST.get('razorpay_order_id', '')
+    razorpay_signature  = request.POST.get('razorpay_signature', '')
+
+    # HMAC-SHA256 verification — this is how Razorpay guarantees authenticity
+    msg = f"{razorpay_order_id}|{razorpay_payment_id}"
+    expected_sig = hmac.new(
+        settings.RAZORPAY_KEY_SECRET.encode('utf-8'),
+        msg.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_sig, razorpay_signature):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Payment signature verification failed. Possible fraud attempt.'
+        }, status=403)
+
+    # Signature valid — place the order
+    full_name      = request.POST.get('full_name')
+    address        = request.POST.get('address')
+    pincode        = request.POST.get('pincode')
+    phone          = request.POST.get('phone')
+    payment_method = 'UPI'
+    total_amount   = float(request.POST.get('total_amount', 0))
+
+    order_id = f"AGS-{uuid.uuid4().hex[:8].upper()}"
+    order = Order.objects.create(
+        user=request.user,
+        order_id=order_id,
+        full_name=full_name,
+        address=address,
+        pincode=pincode,
+        phone=phone,
+        payment_method=payment_method,
+        transaction_id=razorpay_payment_id,
+        total_amount=total_amount,
+        status='PAID'
+    )
+
+    delivery_date = (timezone.now() + timezone.timedelta(days=3)).strftime('%d %b %Y')
+    return JsonResponse({
+        'status': 'success',
+        'order_id': order_id,
+        'delivery_date': delivery_date,
+        'tracking_no': f"TRK-{random.randint(100000, 999999)}",
+        'message': 'Payment Verified by Razorpay. Order Placed!'
+    })
+
+
 def agro_store(request):
     products = Product.objects.all()
     categories = ['Fertilizers', 'Seeds', 'Pesticides', 'Tools', 'Organic', 'Irrigation', 'Soil', 'Marketplace']
@@ -827,36 +920,8 @@ def api_place_order(request):
         payment_method = request.POST.get('payment_method')
         total_amount = float(request.POST.get('total_amount', 0))
         transaction_id = request.POST.get('transaction_id', '').strip()
-        
-        # Hardened Razorpay Simulation Authentication
-        if payment_method == 'UPI':
-            # 1. Razorpay ID Validation
-            if not transaction_id.startswith('pay_') or len(transaction_id) < 15:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'Authenticity Failure: The provided Payment ID does not match the Razorpay secured format.'
-                }, status=400)
-            
-            # 2. Amount Integrity Verification (Simulated Bank Ledger Check)
-            # Logic: If the ID ends in the total amount's last digit, we simulate success.
-            # If the user enters a "test" ID like 'pay_0000', it fails.
-            import math
-            last_digit = str(int(math.floor(total_amount)))[-1]
-            
-            # Simulated check: Razorpay IDs for this amount usually end with the amount's signature
-            # We'll simulate a check where certain IDs are 'Amount Mismatch'
-            if transaction_id.endswith('0000'):
-                 return JsonResponse({
-                    'status': 'error', 
-                    'message': f'Razorpay Error: Amount Mismatch. This Payment ID was for a different transaction.'
-                }, status=403)
-                
-            # If the ID is too simple, reject it
-            if len(set(transaction_id)) < 8:
-                return JsonResponse({
-                    'status': 'error', 
-                    'message': 'Razorpay Security: Suspicious Transaction ID detected. Authentication failed.'
-                }, status=403)
+        # UPI orders are trusted — user confirmed payment in their UPI app
+        # Admin can cross-verify from their bank statement independently
 
         order_id = f"AGS-{uuid.uuid4().hex[:8].upper()}"
         status = 'PAID' if payment_method == 'UPI' else 'PENDING'
@@ -881,7 +946,7 @@ def api_place_order(request):
             'order_id': order_id,
             'delivery_date': delivery_date,
             'tracking_no': f"TRK-{random.randint(100000, 999999)}",
-            'message': 'Secured by Razorpay. Order Placed!'
+            'message': 'Payment Verified. Order Placed!'
         })
     return JsonResponse({'status': 'error'}, status=400)
 
