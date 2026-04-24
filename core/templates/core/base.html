@@ -117,6 +117,23 @@
             padding: 1.5rem; text-align: left; z-index: 10001;
             box-shadow: 0 15px 40px rgba(0,0,0,0.2);
         }
+        
+        @media (max-width: 480px) {
+            .status-dropdown {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                border-radius: 0; padding: 2rem; z-index: 10002;
+                background: white;
+            }
+        }
+
+        .close-status {
+            display: none; position: absolute; top: 20px; right: 20px;
+            background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;
+        }
+
+        @media (max-width: 480px) {
+            .close-status { display: block; }
+        }
         .status-dropdown h4 { margin-bottom: 1rem; color: var(--soil-brown); border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
         .status-item { padding: 0.8rem 0; border-bottom: 1px solid #eee; }
         .status-item:last-child { border-bottom: none; }
@@ -462,6 +479,7 @@
                         📋 <span class="badge">{{ applications.count|default:0 }}</span>
                     </button>
                     <div id="status-dropdown" class="status-dropdown">
+                        <button class="close-status" onclick="toggleStatusDropdown()">✕</button>
                         <h4>Application Status</h4>
                         <div class="status-list">
                             {% for app in applications %}
@@ -940,7 +958,13 @@ function toggleTheme() {
 
         function toggleStatusDropdown() {
             const dropdown = document.getElementById('status-dropdown');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            const isVisible = dropdown.style.display === 'block';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+            
+            // Prevent body scroll on mobile when modal is open
+            if (window.innerWidth <= 480) {
+                document.body.style.overflow = isVisible ? 'auto' : 'hidden';
+            }
         }
 
         window.onclick = function(event) {
