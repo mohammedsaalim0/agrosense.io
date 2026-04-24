@@ -19,6 +19,7 @@ class AgroTree {
         this.branches = [];
         
         this.init();
+        this.addCrows();
         this.addEnvironment();
         this.animate();
         this.setupInteractions();
@@ -136,6 +137,34 @@ class AgroTree {
         }
     }
 
+            this.leaves.push(leaf);
+        }
+    }
+
+    addCrows() {
+        this.crows = [];
+        for (let i = 0; i < 5; i++) {
+            const crowGroup = new THREE.Group();
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 0.1, 0.5),
+                new THREE.MeshStandardMaterial({ color: 0x000000 })
+            );
+            crowGroup.add(body);
+            const wingGeom = new THREE.BoxGeometry(0.6, 0.02, 0.3);
+            const wingMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const leftWing = new THREE.Mesh(wingGeom, wingMat);
+            leftWing.position.x = -0.3;
+            crowGroup.add(leftWing);
+            const rightWing = new THREE.Mesh(wingGeom, wingMat);
+            rightWing.position.x = 0.3;
+            crowGroup.add(rightWing);
+
+            crowGroup.position.set((Math.random()-0.5)*20, 5+Math.random()*5, (Math.random()-0.5)*10);
+            this.crows.push({ group: crowGroup, wings: [leftWing, rightWing], offset: Math.random()*Math.PI*2, speed: 0.02+Math.random()*0.03 });
+            this.scene.add(crowGroup);
+        }
+    }
+
     addEnvironment() {
         // Grassy mound
         const moundGeom = new THREE.CircleGeometry(4, 32);
@@ -200,6 +229,14 @@ class AgroTree {
             const flutter = Math.sin(time * 5 + leaf.userData.phase) * 0.12;
             leaf.rotation.x = leaf.userData.baseRot.x + flutter;
             leaf.rotation.y = leaf.userData.baseRot.y + flutter;
+        });
+
+        this.crows.forEach(crow => {
+            crow.group.position.x += crow.speed;
+            if (crow.group.position.x > 15) crow.group.position.x = -15;
+            const flap = Math.sin(time * 12 + crow.offset) * 0.6;
+            crow.wings[0].rotation.z = flap;
+            crow.wings[1].rotation.z = -flap;
         });
 
         this.fireflies.forEach(f => {
