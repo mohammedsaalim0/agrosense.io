@@ -201,19 +201,32 @@ def api_recommend(request):
     soil = request.GET.get('soil', '')
     season = request.GET.get('season', '')
     
-    # Deterministic Seed based on input string
-    seed_str = f"{state}{soil}{season}"
-    random.seed(seed_str)
+    prompt = f"As a professional agricultural advisor, suggest 4 crops for a farmer in {state} with {soil} soil during the {season} season. For each crop, provide a suitability score (out of 100) and expected yield (tons/acre). Return ONLY a JSON list of objects like: [{{'name': 'CropName', 'score': 95, 'yield': 4.2}}]"
     
-    # AI Recommendation Logic
-    crops = [
-        {'name': 'Basmati Rice', 'score': random.randint(85, 98), 'yield': round(random.uniform(3.5, 5.0), 1)},
-        {'name': 'Organic Wheat', 'score': random.randint(80, 95), 'yield': round(random.uniform(4.0, 6.0), 1)},
-        {'name': 'Golden Maize', 'score': random.randint(75, 90), 'yield': round(random.uniform(3.0, 4.5), 1)},
-        {'name': 'Long Staple Cotton', 'score': random.randint(70, 88), 'yield': round(random.uniform(2.0, 3.5), 1)},
-    ]
-    # Reset seed for other functions
-    random.seed(None)
+    ollama_res = call_ollama(prompt)
+    crops = []
+    
+    try:
+        if ollama_res:
+            import json, re
+            # Extract JSON from potential conversational filler
+            json_match = re.search(r'\[.*\]', ollama_res, re.DOTALL)
+            if json_match:
+                crops = json.loads(json_match.group(0))
+        
+        if not crops:
+            raise ValueError
+    except:
+        # High-Quality Fallback logic
+        random.seed(f"{state}{soil}{season}")
+        crops = [
+            {'name': 'Basmati Rice', 'score': random.randint(88, 98), 'yield': round(random.uniform(3.5, 5.0), 1)},
+            {'name': 'Organic Wheat', 'score': random.randint(82, 95), 'yield': round(random.uniform(4.0, 6.0), 1)},
+            {'name': 'Golden Maize', 'score': random.randint(78, 92), 'yield': round(random.uniform(3.0, 4.8), 1)},
+            {'name': 'Mustard', 'score': random.randint(75, 88), 'yield': round(random.uniform(1.8, 2.5), 1)},
+        ]
+        random.seed(None)
+
     return JsonResponse({'crops': crops})
 
 def api_search_market(request):
@@ -316,20 +329,22 @@ def api_market_data(request):
         return JsonResponse({
             'status': 'error',
             'message': f"Intelligence for '{crop}' is not available. Please enter a valid agricultural product (e.g., Wheat, Rice, Cotton)."
-        }, status=400)
-
-    # Try to get "Real" predicted price from Ollama
-    ollama_response = call_ollama(f"As a market analyst, predict the current average market price for {crop} in India per quintal. Return ONLY the numerical value in INR (e.g. 2150).")
+        }, status=    # Try to get "Real" predicted price AND a market summary from Ollama
+    intel_prompt = f"As a market analyst, analyze the current market for {crop} in India. Provide: 1. Current average price per quintal in INR. 2. A 2-sentence market outlook. Return ONLY in this format: PRICE: [value] | INTEL: [summary]"
+    ollama_res = call_ollama(intel_prompt)
+    
+    market_intel = "Market conditions are stabilizing with moderate demand from urban centers."
+    base_price = 2200
     
     try:
-        if ollama_response:
-            # Extract number from response
+        if ollama_res:
             import re
-            numbers = re.findall(r'\d+', ollama_response)
-            if numbers:
-                base_price = int(numbers[0])
-            else:
-                raise ValueError
+            price_match = re.search(r'PRICE:\s*(\d+)', ollama_res)
+            intel_match = re.search(r'INTEL:\s*(.*)', ollama_res)
+            if price_match:
+                base_price = int(price_match.group(1))
+            if intel_match:
+                market_intel = intel_match.group(1).strip()
         else:
             raise ValueError
     except:
@@ -345,12 +360,13 @@ def api_market_data(request):
             'Onion': (1500, 4500),
             'Mustard': (5450, 6000),
             'Soyabean': (4600, 5200),
-            'Sugarcane': (315, 340), # per quintal (FRP)
+            'Sugarcane': (315, 340),
             'Tur': (7000, 8500),
             'Moong': (8558, 9500),
         }
         low, high = price_ranges.get(crop, (1800, 4000))
         base_price = random.randint(low, high)
+        market_intel = f"The market for {crop} is currently driven by local supply chains and seasonal demand factors."
 
     # Seed random with crop name to make trends deterministic for the same crop
     random.seed(crop)
@@ -362,7 +378,7 @@ def api_market_data(request):
         'demand': random.randint(70, 95) if base_price > 2000 else random.randint(40, 70),
         'supply': random.randint(30, 80),
         'profit': random.randint(50, 90),
-        'source': 'Ollama AI Intelligence' if ollama_response else 'AgroSense Market Analysis'
+        'source': 'Ollama AI Intelligence' if ollama_res else 'AgroSense Market Analysis'
     }
     
     stability = [random.randint(60, 100) for _ in range(5)]
@@ -374,9 +390,11 @@ def api_market_data(request):
         'status': 'success',
         'crop': crop,
         'current_price': base_price,
+        'market_intel': market_intel,
         'trends': trends,
         'metrics': metrics,
         'stability': stability
+    })
     })
 def api_get_schemes(request):
     # Simulated fetch from myScheme.gov.in

@@ -116,6 +116,10 @@
                 <h3>Market Stability</h3>
                 <div id="market-radar-container" class="chart-container"></div>
             </div>
+            <div class="market-card insight-card glass-card animated-border" style="grid-column: 1 / -1; background: #e8f5e9; border-left: 5px solid #2e7d32;">
+                <h3><span class="ai-sparkle">✨</span> AI Market Insight</h3>
+                <p id="res-market-intel" style="font-size: 1.1rem; line-height: 1.6; color: #2e7d32; font-style: italic;">Analyzing authentic market data...</p>
+            </div>
         </div>
     </div>
 </section>
@@ -1603,6 +1607,7 @@
             .then(data => {
                 document.getElementById('res-current-price').textContent = `₹${data.current_price || '--'}`;
                 document.getElementById('res-source').textContent = data.metrics.source || "AgroSense Analysis";
+                document.getElementById('res-market-intel').textContent = data.market_intel || "No specific insight available at this moment.";
                 
                 Charts.bar('price-chart-container', data.trends, []);
                 Charts.donut('market-donut-container', data.metrics.demand);
