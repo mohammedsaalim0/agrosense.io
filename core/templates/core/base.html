@@ -25,6 +25,7 @@
             --glass-border: rgba(255, 255, 255, 0.2);
             --transition: all 0.3s ease;
             --bg-gradient: linear-gradient(-45deg, #FAF9F6, #F5DEB3, #E8F5E9, #FAF9F6);
+            --nav-height: 80px;
         }
 
         [data-theme="dark"] {
@@ -102,6 +103,7 @@
             z-index: 10000;
             border-bottom: 1px solid var(--glass-border);
             box-sizing: border-box;
+            height: var(--nav-height);
         }
 
         .status-tracker-container { position: relative; margin-right: 1.5rem; }
@@ -174,9 +176,9 @@
 
         .nav-links {
             display: flex;
-            gap: 1.5rem; /* Reduced gap for better fit */
+            gap: 1rem;
             align-items: center;
-            flex-wrap: wrap; /* Allow wrapping on medium screens */
+            flex-wrap: nowrap;
             justify-content: flex-end;
         }
 
