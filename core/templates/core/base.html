@@ -1064,19 +1064,31 @@ function startAutomatedInstall() {
     }, 80);
 }
 
-    // FORCE RESET: Unregister all service workers to fix ERR_FAILED cache issues
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-            registration.unregister();
-            console.log('Service Worker nuked!');
-        }
-    });
+    // ULTIMATE RESET: Unregister all service workers and clear ALL storage to fix ERR_FAILED/403 issues
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+                console.log('SW Unregistered');
+            }
+        });
+    }
+    
+    // Increment version in localStorage to trigger a one-time storage wipe
+    const currentPwaVer = '6'; // Increment this to force a reset for all users
+    if (localStorage.getItem('pwa_reset_ver') !== currentPwaVer) {
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem('pwa_reset_ver', currentPwaVer);
+        console.log('Local Storage Wiped for Update');
+        window.location.reload(); // Reload once to apply changes
+    }
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            // Registering v5 (Clean Slate)
-            navigator.serviceWorker.register('/service-worker.js?v=5')
-                .then(reg => console.log('Service Worker registered!'))
+            // Registering v6 (Ultimate Clean Slate)
+            navigator.serviceWorker.register('/service-worker.js?v=6')
+                .then(reg => console.log('Service Worker v6 registered!'))
                 .catch(err => console.log('Service Worker registration failed: ', err));
         });
     }

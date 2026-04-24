@@ -38,6 +38,7 @@ ALLOWED_HOSTS = ['agrosense-io-1.onrender.com', 'localhost', '127.0.0.1', '*']
 CSRF_TRUSTED_ORIGINS = [
     'https://agrosense-io-1.onrender.com',
     'https://*.onrender.com',
+    'https://*.gitpod.io',
     'http://127.0.0.1:53545',
     'http://localhost:53545',
     'http://127.0.0.1:8000',
@@ -159,15 +160,16 @@ SESSION_SAVE_EVERY_REQUEST = True
 if not DEBUG or os.environ.get('RENDER'):
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'None' # Changed from Lax to None for better cross-origin stability if needed
+    CSRF_COOKIE_SAMESITE = 'None'
     # Required for Render/Load Balancers
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    # SECURE_SSL_REDIRECT is handled by Render's dashboard
     SECURE_SSL_REDIRECT = False
 else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
     SECURE_SSL_REDIRECT = False
 
 # Razorpay Payment Gateway
