@@ -1417,3 +1417,39 @@ def admin_analytics(request):
         'scheme_stats': list(scheme_stats),
     }
     return render(request, 'core/admin_dashboard.html', context)
+
+
+def api_submit_grievance(request):
+    if request.method == 'POST' and request.user.is_authenticated:
+        title = request.POST.get('title')
+        category = request.POST.get('category')
+        details = request.POST.get('details')
+        image = request.FILES.get('image')
+        report_id = f"AGS-GRV-{random.randint(1000, 9999)}"
+
+        # 1. Send Email to Submitter
+        user_subject = f"Grievance Received: {report_id}"
+        user_msg = f"Namaste {request.user.username}, we have received your report regarding '{title}'. Our team is reviewing it and will get back to you soon."
+        user_html = get_premium_email_html(
+            title="Grievance Registered",
+            message=user_msg,
+            items_html=f"<tr><td style='padding:12px;'>Report ID</td><td style='padding:12px;text-align:right;'>{report_id}</td></tr>"
+                       f"<tr><td style='padding:12px;'>Category</td><td style='padding:12px;text-align:right;'>{category}</td></tr>",
+            button_text="View Status",
+            button_url=f"{request.scheme}://{request.get_host()}"
+        )
+        send_agro_email(request.user.email, user_subject, user_msg, user_html)
+
+        # 2. Send Email to Admin (tumakurecity@gmail.com)
+        admin_subject = f"NEW FARM GRIEVANCE: {report_id} - {category}"
+        admin_msg = f"New issue reported by {request.user.username} ({request.user.email}).\n\nTitle: {title}\nCategory: {category}\nDetails: {details}"
+        
+        # In a real setup, you'd attach the image. For now, we'll mention it.
+        if image:
+            admin_msg += f"\n\n[Image Attached: {image.name}]"
+
+        send_agro_email("tumakurecity@gmail.com", admin_subject, admin_msg)
+
+        return JsonResponse({'status': 'success', 'report_id': report_id})
+    
+    return JsonResponse({'status': 'error'}, status=400)

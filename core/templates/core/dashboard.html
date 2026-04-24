@@ -333,6 +333,10 @@
                 <label>Details</label>
                 <textarea id="grievance-details" rows="4" placeholder="Provide more context..." style="width: 100%; border-radius: 10px; border: 1px solid #ddd; padding: 0.8rem; font-family: inherit;"></textarea>
             </div>
+            <div class="form-group">
+                <label>Upload Image (Optional)</label>
+                <input type="file" id="grievance-image" accept="image/*" class="form-control" style="width: 100%; padding: 0.5rem; background: #fff; border-radius: 8px;">
+            </div>
             <button onclick="submitGrievance()" class="btn btn-primary" style="width: 100%;">Submit Report</button>
         </div>
     </div>
@@ -2160,16 +2164,36 @@
         const title = document.getElementById('grievance-title').value;
         const cat = document.getElementById('grievance-category').value;
         const details = document.getElementById('grievance-details').value;
+        const imageFile = document.getElementById('grievance-image').files[0];
 
         if (!title || !details) {
             showToast("Please fill in all fields.");
             return;
         }
 
-        showToast(`Report Submitted! ID: AGS-GRV-${Math.floor(Math.random()*9000)+1000}`);
-        document.getElementById('grievance-title').value = '';
-        document.getElementById('grievance-details').value = '';
-        document.getElementById('ai-suggestion').style.display = 'none';
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('category', cat);
+        formData.append('details', details);
+        if (imageFile) formData.append('image', imageFile);
+
+        fetch('/api/submit-grievance/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(`Report Submitted! ID: ${data.report_id}. Check your email! 🤝`);
+                document.getElementById('grievance-title').value = '';
+                document.getElementById('grievance-details').value = '';
+                document.getElementById('grievance-image').value = '';
+                document.getElementById('ai-suggestion').style.display = 'none';
+            } else {
+                showToast("Error submitting report. Please try again.");
+            }
+        });
     }
 
     function joinVolunteer(taskId, title) {
