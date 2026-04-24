@@ -329,7 +329,9 @@ def api_market_data(request):
         return JsonResponse({
             'status': 'error',
             'message': f"Intelligence for '{crop}' is not available. Please enter a valid agricultural product (e.g., Wheat, Rice, Cotton)."
-        }, status=    # Try to get "Real" predicted price AND a market summary from Ollama
+        }, status=400)
+
+    # Try to get "Real" predicted price AND a market summary from Ollama
     intel_prompt = f"As a market analyst, analyze the current market for {crop} in India. Provide: 1. Current average price per quintal in INR. 2. A 2-sentence market outlook. Return ONLY in this format: PRICE: [value] | INTEL: [summary]"
     ollama_res = call_ollama(intel_prompt)
     
@@ -394,7 +396,6 @@ def api_market_data(request):
         'trends': trends,
         'metrics': metrics,
         'stability': stability
-    })
     })
 def api_get_schemes(request):
     # Simulated fetch from myScheme.gov.in
