@@ -1067,7 +1067,7 @@ function startAutomatedInstall() {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         // Cache-busting service worker registration
-        navigator.serviceWorker.register('/service-worker.js?v=2')
+        navigator.serviceWorker.register('/service-worker.js?v=3')
             .then(reg => console.log('Service Worker registered!'))
             .catch(err => console.log('Service Worker registration failed: ', err));
     });

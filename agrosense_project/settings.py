@@ -29,12 +29,13 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-^2ull9h=yx&ydf1hlo6#l6wfhf!$@!^41_0wou_bgl5=w^7&=$')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*'] # In production, replace '*' with your actual domain
+ALLOWED_HOSTS = ['agrosense-io-1.onrender.com', 'localhost', '127.0.0.1', '*']
 
 # CSRF Trusted Origins for browser preview
 CSRF_TRUSTED_ORIGINS = [
+    'https://agrosense-io-1.onrender.com',
     'http://127.0.0.1:53545',
     'http://localhost:53545',
     'http://127.0.0.1:8000',
