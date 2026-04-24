@@ -153,17 +153,21 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True
 
 # Security Settings for Production (Render/HTTPS)
-if not DEBUG:
+# Production Security Settings
+if not DEBUG or os.environ.get('RENDER'):
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     # Required for Render/Load Balancers
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    # SECURE_SSL_REDIRECT is handled by Render's dashboard
     SECURE_SSL_REDIRECT = False
 else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_SAMESITE = 'Lax'
+    SECURE_SSL_REDIRECT = False
+
 # Razorpay Payment Gateway
 # Get your keys from: https://dashboard.razorpay.com/app/keys
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_ShKGWsYI9YNXmO')
