@@ -71,50 +71,57 @@ EDU_COURSES = [
 
 @login_required
 def dashboard(request):
-    schemes = SupportScheme.objects.all()[:6]
-    listings = MarketListing.objects.all().order_by('-created_at')[:5]
-    applications = SchemeApplication.objects.filter(user=request.user).order_by('-applied_at')
     try:
-        progress_map = {item.course_key: item for item in LearningProgress.objects.filter(user=request.user)}
-        cert_map = {item.course_key: item for item in CourseCertificate.objects.filter(user=request.user)}
-        assess_map = {item.course_key: item for item in CourseAssessment.objects.filter(user=request.user)}
-    except (OperationalError, ProgrammingError):
-        # Keep dashboard usable even if migrations were not applied yet.
-        progress_map = {}
-        cert_map = {}
-        assess_map = {}
-    edu_courses = []
-    origin = f"{request.scheme}://{request.get_host()}"
-    for course in EDU_COURSES:
-        progress_entry = progress_map.get(course['course_key'])
-        certificate = cert_map.get(course['course_key'])
-        parsed = urlparse(course['embed_url'])
-        query = dict(parse_qsl(parsed.query))
-        query['origin'] = origin
-        query['enablejsapi'] = '1'
-        query['playsinline'] = '1'
-        embed_with_origin = urlunparse(parsed._replace(query=urlencode(query)))
-        edu_courses.append({
-            **course,
-            'embed_url': embed_with_origin,
-            'progress': progress_entry.progress if progress_entry else 0,
-            'completed': progress_entry.completed if progress_entry else False,
-            'certificate_code': certificate.certificate_code if certificate else '',
-            'assessment_passed': assess_map.get(course['course_key']).passed if assess_map.get(course['course_key']) else False,
-            'assessment_score': assess_map.get(course['course_key']).score if assess_map.get(course['course_key']) else 0,
-        })
+        schemes = SupportScheme.objects.all()[:6]
+        listings = MarketListing.objects.all().order_by('-created_at')[:5]
+        
+        # Check if user is authenticated and has profile data
+        applications = SchemeApplication.objects.filter(user=request.user).order_by('-applied_at')
+        
+        try:
+            progress_map = {item.course_key: item for item in LearningProgress.objects.filter(user=request.user)}
+            cert_map = {item.course_key: item for item in CourseCertificate.objects.filter(user=request.user)}
+            assess_map = {item.course_key: item for item in CourseAssessment.objects.filter(user=request.user)}
+        except (OperationalError, ProgrammingError):
+            progress_map = {}
+            cert_map = {}
+            assess_map = {}
+            
+        edu_courses = []
+        for course in EDU_COURSES:
+            course_key = course['course_key']
+            prog = progress_map.get(course_key)
+            cert = cert_map.get(course_key)
+            assess = assess_map.get(course_key)
+            
+            completed = prog.completed if prog else False
+            progress_val = prog.progress if prog else 0
+            cert_code = cert.certificate_code if cert else None
+            
+            course_data = course.copy()
+            course_data.update({
+                'completed': completed,
+                'progress': progress_val,
+                'certificate_code': cert_code,
+                'has_assessment': assess is not None
+            })
+            edu_courses.append(course_data)
 
-    from .models import VolunteerTask
-    volunteer_tasks = VolunteerTask.objects.filter(is_active=True).order_by('-created_at')[:3]
+        from .models import VolunteerTask
+        volunteer_tasks = VolunteerTask.objects.filter(is_active=True).order_by('-created_at')[:3]
 
-    context = {
-        'schemes': schemes,
-        'listings': listings,
-        'applications': applications,
-        'edu_courses': edu_courses,
-        'volunteer_tasks': volunteer_tasks,
-    }
-    return render(request, 'core/dashboard.html', context)
+        context = {
+            'schemes': schemes,
+            'listings': listings,
+            'applications': applications,
+            'edu_courses': edu_courses,
+            'volunteer_tasks': volunteer_tasks,
+        }
+        return render(request, 'core/dashboard.html', context)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return HttpResponse(f"<h1>Dashboard Error</h1><p>The dashboard failed to load. This is likely a database or configuration issue.</p><pre>{error_details}</pre>", status=500)
 
 def api_apply_scheme(request):
     if request.method == 'POST' and request.user.is_authenticated:
