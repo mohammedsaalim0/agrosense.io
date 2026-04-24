@@ -851,13 +851,14 @@
             }, 1500);
         });
 
-// PWA Logic
+// PWA Logic - Enhanced for "Automatic Download" feel
 let deferredPrompt;
 const installBtn = document.getElementById('pwa-install-btn');
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
+    // Optionally show the button now if it was hidden
 });
 
 installBtn.addEventListener('click', async () => {
@@ -865,12 +866,19 @@ installBtn.addEventListener('click', async () => {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
-            console.log('User accepted the AgroSense install prompt');
+            showToast("Installing AgroSense... 🚀");
+            installBtn.style.display = 'none';
         }
         deferredPrompt = null;
-        installBtn.style.display = 'none';
     } else {
-        showToast("To install: Click 'Add to Home Screen' in your browser menu! 📱");
+        // Create a fake "Download" experience for better UX if native prompt is blocked/missing
+        showToast("Starting secure download... 📦");
+        setTimeout(() => {
+            showToast("Finalizing installation... ⚙️");
+            setTimeout(() => {
+                showToast("To complete: Click 'Add to Home Screen' in your browser menu! 📱");
+            }, 1500);
+        }, 1500);
     }
 });
 
