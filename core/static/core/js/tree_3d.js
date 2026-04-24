@@ -48,10 +48,10 @@ class AgroTree {
         this.treeGroup = new THREE.Group();
         this.scene.add(this.treeGroup);
 
-        // Create Majestic Tree
-        this.createBranch(this.treeGroup, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), 2.5, 0.4, 5);
+        // Create Majestic Tree (Shortened stem)
+        this.createBranch(this.treeGroup, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), 1.8, 0.4, 5);
 
-        // Add Glowing Insects (Fireflies)
+        // Add Glowing Insects (Fireflies) - Slower speed
         const ffGeom = new THREE.SphereGeometry(0.06, 8, 8);
         const ffMat = new THREE.MeshBasicMaterial({ color: 0xffe082 });
         for (let i = 0; i < 30; i++) {
@@ -65,13 +65,13 @@ class AgroTree {
                 angle: angle,
                 radius: radius,
                 y: ff.position.y,
-                speed: 0.01 + Math.random() * 0.02,
+                speed: 0.004 + Math.random() * 0.008, // Slower
                 phase: Math.random() * 10
             });
         }
 
-        this.camera.position.set(0, 5, 12);
-        this.camera.lookAt(0, 4, 0);
+        this.camera.position.set(0, 4, 11);
+        this.camera.lookAt(0, 3, 0);
     }
 
     createBranch(parent, start, direction, length, radius, depth) {
