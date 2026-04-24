@@ -137,10 +137,6 @@ class AgroTree {
         }
     }
 
-            this.leaves.push(leaf);
-        }
-    }
-
     addCrows() {
         this.crows = [];
         for (let i = 0; i < 5; i++) {
