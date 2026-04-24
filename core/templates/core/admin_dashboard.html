@@ -1,0 +1,120 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <div class="admin-header">
+        <h1>Admin Analytics Dashboard</h1>
+        <p>Insights into AgroSense performance and user activity.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card glass-card">
+            <h3>Total Sales</h3>
+            <p class="stat-value">₹{{ total_sales }}</p>
+        </div>
+        <div class="stat-card glass-card">
+            <h3>Total Orders</h3>
+            <p class="stat-value">{{ total_orders }}</p>
+        </div>
+        <div class="stat-card glass-card">
+            <h3>Active Users</h3>
+            <p class="stat-value">{{ total_users }}</p>
+        </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="charts-row">
+        <div class="chart-container glass-card">
+            <h3>Monthly Sales Trend</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        <div class="chart-container glass-card">
+            <h3>Product Categories</h3>
+            <canvas id="catChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="charts-row">
+        <div class="chart-container glass-card">
+            <h3>Scheme Application Status</h3>
+            <canvas id="schemeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<style>
+    .admin-dashboard { padding: 80px 5%; min-height: 100vh; background: var(--off-white); }
+    .admin-header { margin-bottom: 3rem; text-align: center; }
+    .admin-header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--soil-brown); }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 3rem; }
+    .stat-card { text-align: center; padding: 2rem; border-top: 4px solid var(--harvest-gold); }
+    .stat-value { font-size: 2.5rem; font-weight: 900; color: var(--moss-green); margin-top: 1rem; }
+
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
+    .chart-container { padding: 2rem; min-height: 400px; }
+    
+    [data-theme="dark"] .admin-dashboard { background: #0a0a0a; }
+    [data-theme="dark"] .admin-header h1 { color: #fff; }
+    [data-theme="dark"] .admin-header p { color: #aaa; }
+
+    @media (max-width: 768px) {
+        .charts-row { grid-template-columns: 1fr; }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sales Trend
+        const salesData = {{ monthly_sales|safe }};
+        new Chart(document.getElementById('salesChart'), {
+            type: 'line',
+            data: {
+                labels: salesData.map(d => new Date(d.month).toLocaleDateString('default', { month: 'short', year: '2-digit' })),
+                datasets: [{
+                    label: 'Revenue (₹)',
+                    data: salesData.map(d => d.total),
+                    borderColor: '#DAA520',
+                    backgroundColor: 'rgba(218, 165, 32, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Category Pie
+        const catData = {{ cat_stats|safe }};
+        new Chart(document.getElementById('catChart'), {
+            type: 'doughnut',
+            data: {
+                labels: catData.map(d => d.category),
+                datasets: [{
+                    data: catData.map(d => d.count),
+                    backgroundColor: ['#4E6E5D', '#DAA520', '#3E2723', '#795548', '#2E7D32']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // Scheme Status
+        const schemeData = {{ scheme_stats|safe }};
+        new Chart(document.getElementById('schemeChart'), {
+            type: 'bar',
+            data: {
+                labels: schemeData.map(d => d.status),
+                datasets: [{
+                    label: 'Applications',
+                    data: schemeData.map(d => d.count),
+                    backgroundColor: '#4E6E5D'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    });
+</script>
+{% endblock %}

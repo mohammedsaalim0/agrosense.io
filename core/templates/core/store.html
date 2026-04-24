@@ -1571,9 +1571,36 @@
         });
     });
 
+    // Function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
     async function handleCheckout(event) {
         event.preventDefault();
         console.log("Form submission triggered");
+        
+        // Check if user is authenticated
+        const response = await fetch('/api/check-auth/');
+        const authData = await response.json();
+        
+        if (!authData.authenticated) {
+            alert('Please login to proceed with payment. Redirecting to login page...');
+            window.location.href = '/accounts/login/?next=/store/';
+            return;
+        }
+        
         const formData = new FormData(event.target);
         
         let total;
@@ -1593,7 +1620,8 @@
             // Close checkout form cleanly first
             closeCheckout();
 
-            const csrfToken = formData.get('csrfmiddlewaretoken');
+            // Get CSRF token properly
+            const csrfToken = formData.get('csrfmiddlewaretoken') || getCookie('csrftoken');
 
             // Step 1: Create a real Razorpay order on the backend
             const orderPayload = new FormData();
@@ -1605,11 +1633,21 @@
                 const resp = await fetch('/api/create-razorpay-order/', {
                     method: 'POST',
                     body: orderPayload,
-                    headers: { 'X-CSRFToken': csrfToken }
+                    headers: { 
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
                 });
+                
+                if (!resp.ok) {
+                    throw new Error(`HTTP error! status: ${resp.status}`);
+                }
+                
                 orderInfo = await resp.json();
             } catch (err) {
-                alert('Could not connect to payment server. Please check your internet and try again.');
+                console.error('Order creation error:', err);
+                alert('Could not connect to payment server. Please check your internet and try again. Error: ' + err.message);
                 return;
             }
 
@@ -1618,8 +1656,7 @@
                 return;
             }
 
-            // Step 2: Open Razorpay's official checkout popup
-            // This popup handles UPI QR, UPI ID, Cards, NetBanking — everything
+            // Step 2: Open Razorpay checkout — UPI/Netbanking/Wallet only (no international cards)
             const options = {
                 key: orderInfo.key,
                 amount: orderInfo.amount,          // in paise
@@ -1629,6 +1666,17 @@
                 order_id: orderInfo.razorpay_order_id,
                 image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=80&h=80&fit=crop',
                 theme: { color: '#2d5a27' },
+                // IMPORTANT: Disable card payments to prevent "international card" errors.
+                // Only domestic Indian payment methods are shown.
+                method: {
+                    upi:        true,
+                    netbanking: true,
+                    wallet:     true,
+                    card:       false,   // disabled — avoids "international card not supported" error
+                    emi:        false,
+                    paylater:   false
+                },
+                retry: { enabled: true, max_count: 3 },
                 prefill: {
                     name:    formData.get('full_name'),
                     contact: formData.get('phone'),
@@ -1651,8 +1699,17 @@
                         const verifyResp = await fetch('/api/verify-razorpay-payment/', {
                             method: 'POST',
                             body: verifyData,
-                            headers: { 'X-CSRFToken': csrfToken }
+                            headers: { 
+                                'X-CSRFToken': csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            credentials: 'same-origin'
                         });
+                        
+                        if (!verifyResp.ok) {
+                            throw new Error(`HTTP error! status: ${verifyResp.status}`);
+                        }
+                        
                         const result = await verifyResp.json();
 
                         if (result.status === 'success') {

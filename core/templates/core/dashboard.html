@@ -70,7 +70,7 @@
 </section>
 
 <!-- Market Intelligence -->
-<section class="section" id="intelligence" style="background: #efeee8;">
+<section class="section" id="intelligence" style="background: var(--off-white); border-top: 1px solid var(--glass-border);">
     <div class="section-header">
         <h2>Market Intelligence</h2>
         <p>Real-time price trends and demand forecasting for your produce.</p>
@@ -181,6 +181,27 @@
     <div class="schemes-grid" id="schemes-grid">
         <!-- Schemes will be dynamically injected here -->
         <div style="grid-column: 1/-1; text-align: center;">Fetching latest government schemes...</div>
+    </div>
+</section>
+
+<!-- Community Service / Volunteer -->
+<section class="section" id="volunteer" style="background: #fdfdfd; border-top: 1px solid var(--glass-border);">
+    <div class="section-header">
+        <h2>Community Service</h2>
+        <p>Volunteer for local farm-related or community tasks and earn <strong>AgroPoints</strong>!</p>
+    </div>
+    <div class="volunteer-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+        {% for task in volunteer_tasks %}
+        <div class="volunteer-card glass-card" style="padding: 2rem; border-left: 5px solid var(--moss-green);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <span class="points-badge" style="background: var(--harvest-gold); color: #3E2723; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 0.8rem;">+{{ task.points }} pts</span>
+                <span class="loc-tag" style="font-size: 0.7rem; color: #666; text-transform: uppercase;">📍 {{ task.location }}</span>
+            </div>
+            <h3 style="margin: 1rem 0 0.5rem; color: var(--soil-brown);">{{ task.title }}</h3>
+            <p style="font-size: 0.9rem; color: #555; margin-bottom: 1.5rem;">{{ task.description }}</p>
+            <button onclick="joinVolunteer('{{ task.id }}', '{{ task.title }}')" class="btn btn-primary" style="width: 100%;">Volunteer Now</button>
+        </div>
+        {% endfor %}
     </div>
 </section>
 
@@ -300,6 +321,40 @@
                 <!-- Farmer listings will appear here dynamically -->
             </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- AI Grievance Redressal -->
+<section class="section" id="grievance" style="background: var(--off-white); border-top: 1px solid var(--glass-border);">
+    <div class="section-header">
+        <h2>AI Farm Support</h2>
+        <p>Report farm issues or grievances. Our AI will automatically route your request to the correct department.</p>
+    </div>
+    <div class="grievance-container">
+        <div class="grievance-form glass-card">
+            <div class="form-group">
+                <label>Issue Title</label>
+                <input type="text" id="grievance-title" placeholder="Describe the issue (e.g. Locust attack in north field)" oninput="suggestCategory()">
+                <div id="ai-suggestion" class="ai-suggestion-box" style="display: none;">
+                    <span class="ai-sparkle">✨ AI Suggestion:</span> <strong id="suggested-cat">Pest Control</strong>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="grievance-category">
+                    <option value="General">General Inquiry</option>
+                    <option value="Pest">Pest & Disease Control</option>
+                    <option value="Water">Water & Irrigation</option>
+                    <option value="Soil">Soil Health & Fertilizers</option>
+                    <option value="Finance">Subsidies & Finance</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Details</label>
+                <textarea id="grievance-details" rows="4" placeholder="Provide more context..." style="width: 100%; border-radius: 10px; border: 1px solid #ddd; padding: 0.8rem; font-family: inherit;"></textarea>
+            </div>
+            <button onclick="submitGrievance()" class="btn btn-primary" style="width: 100%;">Submit Report</button>
         </div>
     </div>
 </section>
@@ -493,7 +548,7 @@
     .welcome-overlay {
         position: fixed;
         top: 0; left: 0; width: 100%; height: 100%;
-        background: var(--soil-brown);
+        background: #3E2723; /* Hardcoded Soil Brown for consistency */
         z-index: 10000;
         display: flex;
         justify-content: center;
@@ -1224,6 +1279,44 @@
     .ai-scanning-dots span:nth-child(2) { animation-delay: .2s; }
     .ai-scanning-dots span:nth-child(3) { animation-delay: .4s; }
     @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
+
+    /* Dark Mode Overrides for Dashboard Components */
+    [data-theme="dark"] .ai-price-box { background: #1e1e1e !important; border-color: #333; }
+    [data-theme="dark"] .price-summary { background: #263238; color: #fff; }
+    [data-theme="dark"] .price-summary p { color: #ffe0b2; }
+    [data-theme="dark"] .quality-score { color: #aaa; }
+    [data-theme="dark"] .report-list li { color: #ccc; }
+    [data-theme="dark"] .hero h1 { color: #fff; }
+    [data-theme="dark"] .section-header h2 { color: var(--harvest-gold); }
+    [data-theme="dark"] .section-header p { color: #ddd; }
+    [data-theme="dark"] .glass-card { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: #fff; }
+    [data-theme="dark"] .advisor-container label { color: #aaa; }
+    [data-theme="dark"] .edu-section { background: #0a0a0a !important; }
+    [data-theme="dark"] .edu-card h3 { color: var(--harvest-gold); }
+    [data-theme="dark"] .edu-card p { color: #ccc; }
+    [data-theme="dark"] .edu-meta { color: #999; }
+    [data-theme="dark"] .edu-meta a { color: var(--harvest-gold); }
+    [data-theme="dark"] #sell { background: #121212 !important; }
+    [data-theme="dark"] #listing-form h3 { color: var(--harvest-gold); }
+    [data-theme="dark"] .active-listings h3 { color: var(--harvest-gold); }
+    [data-theme="dark"] .section-header p { color: #FFE0B2; } /* Make section header subtext visible */
+
+    /* Grievance Styles */
+    .grievance-container { max-width: 800px; margin: 0 auto; }
+    .ai-suggestion-box { 
+        margin-top: 10px; padding: 10px 15px; background: #e3f2fd; border-radius: 8px; 
+        border-left: 4px solid #1976d2; font-size: 0.9rem; color: #1565c0; 
+        animation: slideDown 0.3s ease;
+    }
+    [data-theme="dark"] .ai-suggestion-box { background: #1a237e; border-color: #3949ab; color: #c5cae9; }
+    .ai-sparkle { font-weight: bold; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Volunteer Styles */
+    [data-theme="dark"] #volunteer { background: #080808 !important; }
+    [data-theme="dark"] .volunteer-card h3 { color: var(--harvest-gold); }
+    [data-theme="dark"] .volunteer-card p { color: #ccc; }
+    [data-theme="dark"] .loc-tag { color: #999 !important; }
 </style>
 {% endblock %}
 
@@ -1518,7 +1611,12 @@
         document.getElementById('market-grid').style.display = 'grid';
 
         fetch(`/api/market/?crop=${crop}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message); });
+                }
+                return res.json();
+            })
             .then(data => {
                 document.getElementById('res-current-price').textContent = `₹${data.current_price || '--'}`;
                 document.getElementById('res-source').textContent = data.metrics.source || "AgroSense Analysis";
@@ -1532,6 +1630,10 @@
                 setTimeout(() => bars[0].style.width = data.metrics.demand + '%', 100);
                 setTimeout(() => bars[1].style.width = data.metrics.supply + '%', 300);
                 setTimeout(() => bars[2].style.width = data.metrics.profit + '%', 500);
+            })
+            .catch(err => {
+                showToast(err.message, "error");
+                document.getElementById('market-grid').style.display = 'none';
             });
     }
 
@@ -1578,7 +1680,11 @@
                         <span class="quality-score">AI Score: ${data.score}/100</span>
                     </div>
                     <div class="report-list">
+                        <p style="font-size: 0.75rem; color: #666; font-weight: 800; margin-bottom: 5px;">AI QUALITY SCAN:</p>
                         <ul>${reportHtml}</ul>
+                    </div>
+                    <div class="market-intel-box" style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #1976d2;">
+                        <p style="font-size: 0.8rem; color: #1565c0; margin: 0;"><strong>📈 Market Analysis:</strong> ${data.market_analysis}</p>
                     </div>
                     <div class="price-summary">
                         <p><strong>${data.summary}</strong></p>
@@ -1588,7 +1694,19 @@
             `;
             
             document.getElementById('hidden-price').value = data.fair_price;
-            document.getElementById('listing-quality').value = data.quality;
+            const qualitySelect = document.getElementById('listing-quality');
+            qualitySelect.value = data.quality;
+            
+            // Visual verification on the select box
+            const parent = qualitySelect.parentElement;
+            if(!parent.querySelector('.ai-verified-tag')) {
+                const tag = document.createElement('span');
+                tag.className = 'ai-verified-tag';
+                tag.style = 'font-size: 0.65rem; color: #2e7d32; font-weight: 800; margin-top: 5px; display: block;';
+                tag.textContent = '✅ Verified by AgroSense AI';
+                parent.appendChild(tag);
+            }
+            
             showToast("AI Quality Analysis Complete!");
         } catch (err) {
             results.innerHTML = '<p style="color:red">AI Scanner Connection Error.</p>';
@@ -1744,6 +1862,10 @@
         
         try {
             const res = await fetch(`/api/search-market/?crop=${encodeURIComponent(crop)}&location=${encodeURIComponent(loc)}`);
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message);
+            }
             const data = await res.json();
             
             document.getElementById('search-results').style.display = 'block';
@@ -1776,7 +1898,8 @@
             
             showToast("Real-time participants found!");
         } catch (err) {
-            showToast("Failed to connect to Book My Crop service.");
+            showToast(err.message, "error");
+            document.getElementById('search-results').style.display = 'none';
         }
     }
 
@@ -2018,7 +2141,64 @@
                 });
             });
 
-        // Only update if search has value (prevents auto-show)
+    // Grievance Logic
+    function suggestCategory() {
+        const title = document.getElementById('grievance-title').value.toLowerCase();
+        const suggestionBox = document.getElementById('ai-suggestion');
+        const suggestedCat = document.getElementById('suggested-cat');
+        const catSelect = document.getElementById('grievance-category');
+
+        if (title.length < 5) {
+            suggestionBox.style.display = 'none';
+            return;
+        }
+
+        let category = "General";
+        let color = "#1976d2";
+
+        if (title.includes('pest') || title.includes('insect') || title.includes('bug') || title.includes('disease') || title.includes('attack')) {
+            category = "Pest";
+        } else if (title.includes('water') || title.includes('irrigation') || title.includes('dry') || title.includes('well') || title.includes('pump')) {
+            category = "Water";
+        } else if (title.includes('soil') || title.includes('fertilizer') || title.includes('dung') || title.includes('manure') || title.includes('earth')) {
+            category = "Soil";
+        } else if (title.includes('money') || title.includes('loan') || title.includes('subsidy') || title.includes('bank') || title.includes('finance') || title.includes('kisan')) {
+            category = "Finance";
+        }
+
+        if (category !== "General") {
+            suggestedCat.textContent = category === "Pest" ? "Pest & Disease Control" : 
+                                      category === "Water" ? "Water & Irrigation" :
+                                      category === "Soil" ? "Soil Health" : "Subsidies & Finance";
+            suggestionBox.style.display = 'block';
+            catSelect.value = category;
+        } else {
+            suggestionBox.style.display = 'none';
+        }
+    }
+
+    function submitGrievance() {
+        const title = document.getElementById('grievance-title').value;
+        const cat = document.getElementById('grievance-category').value;
+        const details = document.getElementById('grievance-details').value;
+
+        if (!title || !details) {
+            showToast("Please fill in all fields.");
+            return;
+        }
+
+        showToast(`Report Submitted! ID: AGS-GRV-${Math.floor(Math.random()*9000)+1000}`);
+        document.getElementById('grievance-title').value = '';
+        document.getElementById('grievance-details').value = '';
+        document.getElementById('ai-suggestion').style.display = 'none';
+    }
+
+    function joinVolunteer(taskId, title) {
+        showToast(`Signed up for: ${title}! Check your email for next steps. 🤝`);
+        // In a real app, this would hit an API to save Participation
+    }
+
+    // Only update if search has value (prevents auto-show)
         if(document.getElementById('market-search').value) {
             updateMarketData();
         }

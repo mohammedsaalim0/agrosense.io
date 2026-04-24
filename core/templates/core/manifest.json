@@ -1,0 +1,22 @@
+{
+  "name": "AgroSense: Smart Farming",
+  "short_name": "AgroSense",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF9F6",
+  "theme_color": "#3E2723",
+  "description": "Empowering farmers with AI-driven market intelligence and smart crop management.",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/L8v8J1Z/agrosense-logo-white.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/L8v8J1Z/agrosense-logo-white.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

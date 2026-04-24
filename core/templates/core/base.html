@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3E2723">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -19,7 +23,19 @@
             --off-white: #FAF9F6;
             --glass: rgba(255, 255, 255, 0.1);
             --glass-border: rgba(255, 255, 255, 0.2);
-            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: all 0.3s ease;
+            --bg-gradient: linear-gradient(-45deg, #FAF9F6, #F5DEB3, #E8F5E9, #FAF9F6);
+        }
+
+        [data-theme="dark"] {
+            --soil-brown: #FAF9F6;
+            --moss-green: #81c784;
+            --harvest-gold: #FFD700;
+            --wheat: #FFE0B2; /* Light wheat color for dark mode readability */
+            --off-white: #121212;
+            --glass: rgba(0, 0, 0, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-gradient: linear-gradient(-45deg, #0a0a0a, #121212, #1a1a1a, #0a0a0a);
         }
 
         * {
@@ -30,13 +46,14 @@
 
         body {
             font-family: 'DM Sans', sans-serif;
-            background: linear-gradient(-45deg, #FAF9F6, #F5DEB3, #E8F5E9, #FAF9F6);
+            background: var(--bg-gradient);
             background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+            animation: gradientBG 20s ease infinite; /* Slower for better performance */
             color: var(--soil-brown);
             line-height: 1.6;
             overflow-x: hidden;
             min-height: 100vh;
+            will-change: background-position; /* Optimization hint */
         }
 
         @keyframes gradientBG {
@@ -110,29 +127,63 @@
         .cancel-app-btn:hover { color: #d32f2f; }
 
         .logo {
-            color: var(--harvest-gold);
-            font-size: 1.8rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, var(--harvest-gold), #fff, var(--harvest-gold));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite, pulseSlow 4s ease-in-out infinite;
             text-decoration: none;
-            letter-spacing: 1px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 10px rgba(218, 165, 32, 0.5));
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        @keyframes pulseSlow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
 
         .nav-links {
             display: flex;
-            gap: 2.5rem;
+            gap: 1.5rem; /* Reduced gap for better fit */
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on medium screens */
+            justify-content: flex-end;
         }
 
         .nav-links a {
             color: var(--off-white);
             text-decoration: none;
-            font-weight: 500;
-            font-size: 0.95rem;
+            font-weight: 600;
+            font-size: 0.85rem; /* Slightly smaller for better fit */
             transition: var(--transition);
-            opacity: 0.8;
+            opacity: 0.9;
+            white-space: nowrap;
         }
 
         .nav-links a:hover {
             color: var(--harvest-gold);
             opacity: 1;
+        }
+
+        [data-theme="dark"] .nav-links a {
+            color: #ffffff; /* Explicit white for dark mode links */
+        }
+        
+        [data-theme="dark"] nav {
+            background: rgba(10, 10, 10, 0.95) !important;
         }
 
         main {
@@ -432,8 +483,31 @@
             {% else %}
                 <a href="{% url 'login' %}" class="btn btn-primary login-btn">Login</a>
             {% endif %}
+            
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()" class="btn" style="background: var(--glass); border: 1px solid var(--glass-border); color: var(--soil-brown); padding: 0.5rem 1rem; margin-left: 10px;">
+                <span id="theme-icon">🌙</span>
+            </button>
+
+            <!-- Animated PWA Button -->
+            <button id="pwa-install-btn" class="btn pwa-bounce" style="background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); color: white; margin-left: 10px; border: 1px solid #4caf50; display: flex; align-items: center; gap: 5px; padding: 0.5rem 1.2rem;">
+                <span style="font-size: 1.2rem;">📥</span> Get App
+            </button>
         </div>
     </nav>
+
+    <style>
+        .pwa-bounce {
+            animation: bounceBtn 2.5s infinite;
+        }
+        @keyframes bounceBtn {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-5px);}
+            60% {transform: translateY(-3px);}
+        }
+        [data-theme="dark"] nav { background: rgba(0, 0, 0, 0.9); }
+        [data-theme="dark"] .logo { color: var(--harvest-gold); }
+    </style>
 
     <main>
         {% block content %}{% endblock %}
@@ -450,7 +524,7 @@
                     <h4>Company</h4>
                     <ul>
                         <li><a href="{% url 'contact' %}">Contact Us</a></li>
-                        <li><a href="{% url 'dashboard' %}#advisor">About Us</a></li>
+                        <li><a href="{% url 'dashboard' %}#developers">About Us</a></li>
                         <li><a href="{% url 'agro_store' %}">AgroStore</a></li>
                     </ul>
                 </div>
@@ -465,8 +539,8 @@
                 </div>
                 <div class="footer-contact">
                     <h4>Contact</h4>
-                    <p>📧 support@agrosense.io</p>
-                    <p>📞 1800-123-4567</p>
+                    <p>📧 agrosensetumkur@gmail.com</p>
+                    <p>📞 7975685763 / 94488 77371</p>
                     <div class="social-icons">
                         <!-- Add social icons if needed -->
                     </div>
@@ -663,6 +737,8 @@
                 response = "Namaste! I am AgroBot, your digital farm assistant. How is your harvest going today?";
             } else if(lowText.includes('price') || lowText.includes('market')) {
                 response = "Current market trends show a 5% increase in Basmati rice demand. Check the 'Market Intel' section for real-time prices!";
+            } else if(lowText.includes('status') || lowText.includes('report') || lowText.includes('grievance')) {
+                response = "To check your report status, please provide your Report ID (e.g., AGS-GRV-XXXX). Our AI is tracking all grievances in real-time.";
             } else if(lowText.includes('tomato') || lowText.includes('leaf') || lowText.includes('disease')) {
                 response = "I see you're concerned about your tomatoes. Based on recent scans, ensure there's no stagnant water around the roots to prevent blight.";
             } else if(lowText.includes('help') || lowText.includes('how to')) {
@@ -754,15 +830,15 @@
 
         function initParticles() {
             const container = document.getElementById('ambient-particles');
-            for(let i=0; i<20; i++) {
+            for(let i=0; i<20; i++) { // Restored to 20
                 const p = document.createElement('div');
                 p.className = 'particle';
-                p.style.width = Math.random() * 50 + 20 + 'px';
+                p.style.width = Math.random() * 40 + 20 + 'px';
                 p.style.height = p.style.width;
                 p.style.left = Math.random() * 100 + 'vw';
                 p.style.top = Math.random() * 100 + 'vh';
-                p.style.animationDelay = Math.random() * 20 + 's';
-                p.style.animationDuration = Math.random() * 10 + 20 + 's';
+                p.style.animationDelay = Math.random() * 10 + 's';
+                p.style.animationDuration = Math.random() * 15 + 15 + 's';
                 container.appendChild(p);
             }
         }
@@ -771,9 +847,63 @@
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const bootScreen = document.getElementById('boot-screen');
-                if(bootScreen) bootScreen.classList.add('hidden');
-            }, 2500); 
+                if (bootScreen) bootScreen.classList.add('hidden');
+            }, 1500);
         });
+
+// PWA Logic
+let deferredPrompt;
+const installBtn = document.getElementById('pwa-install-btn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User accepted the AgroSense install prompt');
+        }
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+    } else {
+        showToast("To install: Click 'Add to Home Screen' in your browser menu! 📱");
+    }
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('Service Worker registered!'))
+            .catch(err => console.log('Service Worker registration failed: ', err));
+    });
+}
+
+// Theme Toggle Logic
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const icon = document.getElementById('theme-icon');
+    
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    icon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    showToast(`${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)} Mode Activated!`);
+}
+
+// Persist Theme on Load
+(function() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    window.addEventListener('load', () => {
+        const icon = document.getElementById('theme-icon');
+        if(icon) icon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    });
+})();
 
         function showToast(message) {
             const container = document.getElementById('toast-container');

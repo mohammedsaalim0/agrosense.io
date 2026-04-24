@@ -1,14 +1,20 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncMonth
+import datetime
 from django.contrib.auth import login as auth_login, authenticate
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.urls import reverse, reverse_lazy
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment
 import random
 import io
 import base64
+from django.core.mail import send_mail
+from django.conf import settings
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -98,11 +104,15 @@ def dashboard(request):
             'assessment_score': assess_map.get(course['course_key']).score if assess_map.get(course['course_key']) else 0,
         })
 
+    from .models import VolunteerTask
+    volunteer_tasks = VolunteerTask.objects.filter(is_active=True).order_by('-created_at')[:3]
+
     context = {
         'schemes': schemes,
         'listings': listings,
         'applications': applications,
         'edu_courses': edu_courses,
+        'volunteer_tasks': volunteer_tasks,
     }
     return render(request, 'core/dashboard.html', context)
 
@@ -128,6 +138,64 @@ def api_cancel_application(request):
         return JsonResponse({'status': 'error', 'message': 'Application not found'}, status=404)
     return JsonResponse({'status': 'error'}, status=400)
 
+def get_premium_email_html(title, message, items_html="", total=None, logo_url=None, bg_url=None, button_text="Visit Dashboard", button_url="http://agrosense.io"):
+    """Generates a premium Glassmorphism-inspired HTML email template"""
+    logo = logo_url if logo_url else "https://i.ibb.co/L8v8J1Z/agrosense-logo-white.png"
+    # User's custom background from Behance
+    bg = bg_url if bg_url else "https://mir-s3-cdn-cf.behance.net/projects/404/704b45151950331.Y3JvcCwxMzA5LDEwMjQsMzY5LDA.jpg"
+    
+    total_section = f'<div style="text-align: right; margin-top: 20px; font-size: 1.2rem; color: #2d5a27;"><strong>Total: ₹{total}</strong></div>' if total else ""
+    invoice_section = f"""
+        <div style="margin-top: 30px; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px);">
+            <table style="width: 100%; border-collapse: collapse; font-family: sans-serif;">
+                <tr style="background: #f1f8e9;">
+                    <th style="padding: 12px; text-align: left; color: #2d5a27; font-size: 0.9rem;">Description</th>
+                    <th style="padding: 12px; text-align: right; color: #2d5a27; font-size: 0.9rem;">Amount</th>
+                </tr>
+                {items_html}
+            </table>
+        </div>
+        {total_section}
+    """ if items_html else ""
+
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+            body {{ font-family: 'Outfit', sans-serif; margin: 0; padding: 0; background-color: #f0f2f0; }}
+            .wrapper {{ background-image: url('{bg}'); background-size: cover; background-position: center; padding: 40px 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.9); border-radius: 32px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.5); }}
+            .header {{ background: linear-gradient(135deg, rgba(45, 90, 39, 0.9) 0%, rgba(76, 175, 80, 0.9) 100%); padding: 50px 40px; text-align: center; color: white; }}
+            .content {{ padding: 40px; line-height: 1.7; color: #333; }}
+            .footer {{ background: rgba(241, 248, 233, 0.9); padding: 25px; text-align: center; color: #2d5a27; font-size: 0.85rem; font-weight: 600; }}
+            .btn {{ display: inline-block; padding: 14px 30px; background: #2d5a27; color: white !important; text-decoration: none; border-radius: 15px; font-weight: 600; margin-top: 25px; box-shadow: 0 4px 15px rgba(45,90,39,0.3); }}
+            .badge {{ display: inline-block; padding: 5px 15px; background: #e8f5e9; color: #2d5a27; border-radius: 20px; font-size: 0.8rem; font-weight: 800; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }}
+        </style>
+    </head>
+    <body>
+        <div class="wrapper">
+            <div class="container">
+                <div class="header">
+                    <img src="{logo}" alt="AgroSense Logo" style="max-height: 60px; margin-bottom: 20px;">
+                    <h1 style="margin: 0; font-size: 2rem; letter-spacing: -1px; font-weight: 600;">{title}</h1>
+                </div>
+                <div class="content">
+                    <span class="badge">Verified Merchant</span>
+                    <p style="font-size: 1.15rem; color: #2c3e50;">{message}</p>
+                    {invoice_section}
+                    <center><a href="{button_url}" class="btn">{button_text}</a></center>
+                </div>
+                <div class="footer">
+                    © 2026 AgroSense Tumkur • The Future of Smart Farming 🌾
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
 def api_recommend(request):
     state = request.GET.get('state', '')
     soil = request.GET.get('soil', '')
@@ -151,6 +219,19 @@ def api_recommend(request):
 def api_search_market(request):
     crop = request.GET.get('crop', 'Wheat').capitalize()
     location = request.GET.get('location', 'India').capitalize()
+    
+    known_crops = {
+        'wheat', 'rice', 'paddy', 'cotton', 'maize', 'tomato', 'potato', 'onion', 
+        'mustard', 'soyabean', 'sugarcane', 'tur', 'moong', 'urad', 'jowar', 'bajra', 
+        'ragi', 'groundnut', 'sunflower', 'sesamum', 'nigerseed', 'barley', 'gram',
+        'lentil'
+    }
+    
+    if crop.lower() not in known_crops and not any(k in crop.lower() for k in known_crops):
+        return JsonResponse({
+            'status': 'error',
+            'message': f"No market participants found for '{crop}'. Try Wheat, Rice, or Cotton."
+        }, status=400)
     
     # Realistic profiles based on common regions
     sellers = [
@@ -190,9 +271,49 @@ def call_ollama(prompt):
         pass
     return None
 
+def send_agro_email(user_email, subject, text_content, html_content=None):
+    """Helper to send pretty HTML emails with terminal logging"""
+    if not user_email:
+        print(f"DEBUG: No email address provided for subject: {subject}")
+        return
+    try:
+        print(f"DEBUG: Attempting to send premium email to {user_email}...")
+        from django.core.mail import EmailMultiAlternatives
+        
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user_email],
+        )
+        if html_content:
+            msg.attach_alternative(html_content, "text/html")
+            
+        msg.send(fail_silently=False)
+        print(f"DEBUG: Premium Email sent successfully to {user_email}!")
+    except Exception as e:
+        print(f"DEBUG: Failed to send premium email. Error: {str(e)}")
+
 def api_market_data(request):
     crop = request.GET.get('crop', 'Wheat').capitalize()
     
+    # Strict Validation: Check if the input is a valid crop
+    known_crops = {
+        'wheat', 'rice', 'paddy', 'cotton', 'maize', 'tomato', 'potato', 'onion', 
+        'mustard', 'soyabean', 'sugarcane', 'tur', 'moong', 'urad', 'jowar', 'bajra', 
+        'ragi', 'groundnut', 'sunflower', 'sesamum', 'nigerseed', 'barley', 'gram',
+        'lentil', 'jute', 'coffee', 'tea', 'rubber', 'tobacco', 'chilli', 'garlic',
+        'ginger', 'turmeric', 'coriander', 'cumin', 'pepper'
+    }
+    
+    # Fuzzy match or simple check
+    search_term = crop.lower()
+    if search_term not in known_crops and not any(k in search_term for k in known_crops):
+        return JsonResponse({
+            'status': 'error',
+            'message': f"Intelligence for '{crop}' is not available. Please enter a valid agricultural product (e.g., Wheat, Rice, Cotton)."
+        }, status=400)
+
     # Try to get "Real" predicted price from Ollama
     ollama_response = call_ollama(f"As a market analyst, predict the current average market price for {crop} in India per quintal. Return ONLY the numerical value in INR (e.g. 2150).")
     
@@ -208,18 +329,28 @@ def api_market_data(request):
         else:
             raise ValueError
     except:
-        # Fallback to realistic ranges based on crop
+        # Fallback to realistic Indian market ranges (per quintal)
         price_ranges = {
-            'Wheat': (2100, 2400),
-            'Rice': (2000, 2500),
-            'Cotton': (6000, 8000),
-            'Maize': (1800, 2100),
-            'Tomato': (1500, 4000),
-            'Potato': (1200, 1800),
+            'Wheat': (2275, 2550),
+            'Rice': (2183, 2800),
+            'Paddy': (2183, 2300),
+            'Cotton': (6620, 7500),
+            'Maize': (2090, 2350),
+            'Tomato': (1200, 3500),
+            'Potato': (1000, 2200),
+            'Onion': (1500, 4500),
+            'Mustard': (5450, 6000),
+            'Soyabean': (4600, 5200),
+            'Sugarcane': (315, 340), # per quintal (FRP)
+            'Tur': (7000, 8500),
+            'Moong': (8558, 9500),
         }
-        low, high = price_ranges.get(crop, (2000, 3000))
+        low, high = price_ranges.get(crop, (1800, 4000))
         base_price = random.randint(low, high)
 
+    # Seed random with crop name to make trends deterministic for the same crop
+    random.seed(crop)
+    
     # Generate realistic trends around the base price
     trends = [int(base_price * (1 + random.uniform(-0.05, 0.05))) for _ in range(12)]
     
@@ -232,6 +363,17 @@ def api_market_data(request):
     
     stability = [random.randint(60, 100) for _ in range(5)]
     
+    # Reset seed
+    random.seed(None)
+    
+    return JsonResponse({
+        'status': 'success',
+        'crop': crop,
+        'current_price': base_price,
+        'trends': trends,
+        'metrics': metrics,
+        'stability': stability
+    })
 def api_get_schemes(request):
     # Simulated fetch from myScheme.gov.in
     schemes = [
@@ -381,39 +523,49 @@ def api_scan(request):
                 'message': 'AI Vision: Non-plant object detected. Please upload a real crop or plant photo (it seems there is not enough green foliage).'
             }, status=400)
 
-        # Identification Logic based on green ratio and randomness
-        # This is still a simulation but now it's grounded in the image data
-        random.seed(f"{image_file.name}{date_str}")
+        # Identification Logic grounded in image color data
+        detected_plant = 'Unknown Crop'
+        confidence_val = int(70 + (green_ratio * 20))
         
-        detected_plant = 'Rice (Oryza sativa)'
-        confidence_val = int(85 + (green_ratio * 10)) # Higher green ratio = more confidence
-        if confidence_val > 99: confidence_val = 99
+        # Color profile analysis
+        r_avg = sum(p[0] for p in pixels) / len(pixels)
+        g_avg = sum(p[1] for p in pixels) / len(pixels)
+        b_avg = sum(p[2] for p in pixels) / len(pixels)
         
-        # Heuristics based on filename if available (as a fallback/supplement)
+        if g_avg > r_avg * 1.3:
+            detected_plant = 'Healthy Foliage (Vegetable/Leafy)'
+        elif r_avg > g_avg * 1.1 and r_avg > 150:
+            detected_plant = 'Wheat/Cereal (Mature)'
+        elif b_avg > 150:
+            detected_plant = 'Blue/Violet Flower Species'
+        
+        # Filename heuristics as supplement
         filename = image_file.name.lower()
-        if 'wheat' in filename: 
-            detected_plant = 'Wheat (Triticum aestivum)'
-        elif 'maize' in filename: 
-            detected_plant = 'Maize (Zea mays)'
-        elif 'cotton' in filename: 
-            detected_plant = 'Cotton (Gossypium)'
-        elif 'tomato' in filename: 
-            detected_plant = 'Tomato (Solanum lycopersicum)'
-        else:
+        if 'wheat' in filename: detected_plant = 'Wheat (Triticum aestivum)'
+        elif 'rice' in filename: detected_plant = 'Rice (Oryza sativa)'
+        elif 'paddy' in filename: detected_plant = 'Paddy (Oryza sativa)'
+        elif 'maize' in filename: detected_plant = 'Maize (Zea mays)'
+        elif 'cotton' in filename: detected_plant = 'Cotton (Gossypium)'
+        elif 'tomato' in filename: detected_plant = 'Tomato (Solanum lycopersicum)'
+        elif 'potato' in filename: detected_plant = 'Potato (Solanum tuberosum)'
+        elif 'mustard' in filename: detected_plant = 'Mustard (Brassica)'
+        
+        if detected_plant == 'Unknown Crop':
             detected_plant = random.choice(['High-Yield Rice', 'Resilient Wheat', 'Hybrid Maize'])
+        
+        confidence_val = min(99, confidence_val + random.randint(0, 5))
 
         results = {
             'status': 'success',
             'plant': detected_plant,
-            'health': 'Healthy' if green_ratio > 0.4 else 'Needs Attention',
+            'health': 'Thriving' if green_ratio > 0.6 else ('Healthy' if green_ratio > 0.35 else 'Needs Care'),
             'confidence': f"{confidence_val}%",
-            'growth': int(70 + (green_ratio * 30)),
+            'growth': int(60 + (green_ratio * 40)),
             'health_radar': [random.randint(70, 100) for _ in range(5)],
-            'disease_risk': random.randint(1, 5) if green_ratio > 0.4 else random.randint(5, 15),
-            'chlorophyll': [int(50 + (green_ratio * 50) + random.randint(-5, 5)) for _ in range(7)]
+            'disease_risk': random.randint(0, 3) if green_ratio > 0.5 else random.randint(4, 12),
+            'chlorophyll': [int(40 + (green_ratio * 60) + random.randint(-5, 5)) for _ in range(7)]
         }
 
-        random.seed(None)
         return JsonResponse(results)
 
     except Exception as e:
@@ -430,12 +582,13 @@ def api_predict_fair_price(request):
         return JsonResponse({'status': 'error', 'message': 'No image uploaded for scanning.'}, status=400)
 
     try:
-        # Real-time MSP Data
+        # Real-time MSP Data (2024-25 Latest)
         msps = {
             'Wheat': 2275, 'Paddy': 2183, 'Maize': 2090, 'Cotton': 6620, 'Jowar': 3180, 
             'Bajra': 2500, 'Ragi': 3846, 'Arhar': 7000, 'Moong': 8558, 'Urad': 6950,
             'Groundnut': 6377, 'Sunflower': 6760, 'Soyabean': 4600, 'Sesamum': 8635,
-            'Nigerseed': 7734, 'Sugarcane': 315, 'Tomato': 2500, 'Potato': 1500, 'Onion': 2200
+            'Nigerseed': 7734, 'Sugarcane': 315, 'Tomato': 2500, 'Potato': 1500, 'Onion': 2200,
+            'Mustard': 5450, 'Tur': 7000, 'Rice': 2183
         }
         base_msp = msps.get(crop, 2000)
 
@@ -456,44 +609,71 @@ def api_predict_fair_price(request):
         quality_score = 0
         report_points = []
         
-        # 1. Brightness (Lustre)
-        if brightness > 180:
-            quality_score += 40
-            report_points.append("High Grain Lustre: Excellent surface shine detected.")
+        # 1. Brightness (Lustre/Shine) - Indicator of freshness and moisture content
+        if brightness > 170:
+            quality_score += 35
+            report_points.append("High Lustre: Grains show excellent natural shine, indicative of proper drying and storage.")
         elif brightness > 100:
-            quality_score += 25
-            report_points.append("Standard Appearance: Normal color saturation.")
+            quality_score += 20
+            report_points.append("Standard Lustre: Normal appearance, meets local market expectations.")
         else:
-            quality_score += 10
-            report_points.append("Dull Texture: Sample appears slightly dark or moisture-heavy.")
+            quality_score += 5
+            report_points.append("Dull Texture: Potential high moisture or weathering detected. Reduces market premium.")
             
-        # 2. Color Uniformity (Crops are usually warm/yellowish)
-        if r_avg > g_avg and r_avg > 120:
+        # 2. Color Maturation (Hue Analysis)
+        # Healthy crops (Wheat, Paddy, Maize) are usually in the Red/Yellow spectrum
+        if r_avg > g_avg * 1.15 and r_avg > 130:
             quality_score += 30
-            report_points.append("Golden Hue: Indicative of healthy, ripe harvest.")
-        elif g_avg > r_avg:
+            report_points.append("Golden Maturation: Ideal color profile detected, indicating peak ripeness and nutrient density.")
+        elif g_avg > r_avg * 1.05:
+            quality_score += 10
+            report_points.append("Immature Tinge: Greenish undertones detected. Likely early harvest, which may affect weight and storage life.")
+        else:
             quality_score += 15
-            report_points.append("Greenish Tinge: Might indicate early harvest or moisture.")
+            report_points.append("Neutral Profile: Standard color consistency.")
             
-        # 3. Density (Heuristic based on pixel variance)
-        quality_score += random.randint(10, 30) # Final variance
+        # 3. Density/Uniformity (Heuristic based on pixel variance)
+        r_var = sum((p[0] - r_avg)**2 for p in pixels) / len(pixels)
+        g_var = sum((p[1] - g_avg)**2 for p in pixels) / len(pixels)
+        
+        uniformity_bonus = max(0, 35 - int((r_var + g_var) ** 0.5 / 4))
+        quality_score += uniformity_bonus
+        if uniformity_bonus > 25:
+            report_points.append("Superior Uniformity: Minimal grain variance detected. High millability and premium sorting.")
+        elif uniformity_bonus > 12:
+            report_points.append("Consistent Sample: Majority of grains show uniform size and maturity.")
+        else:
+            report_points.append("Mixed Quality: High variance in sample. May require additional sorting before sale.")
+
+        # 4. Market Trend Analysis (Heuristic based on current "market season")
+        current_month = timezone.now().month
+        # Assume peak harvest months (3,4, 10,11) have slightly higher supply pressure
+        is_harvest_season = current_month in [3, 4, 10, 11]
+        market_analysis = ""
         
         if quality_score > 85:
             quality = 'Premium'
-            multiplier = 1.15
-            summary = "Top Tier Quality. Highly recommended for export."
+            multiplier = 1.18
+            market_analysis = "Market Trend: High demand for export-quality produce. Current supply is tight for this grade."
+            summary = "Premium Grade detected. This sample qualifies for the highest market bracket due to its superior lustre and uniformity."
         elif quality_score > 65:
             quality = 'A-Grade'
-            multiplier = 1.08
-            summary = "Superior Quality. Above market average."
+            multiplier = 1.10
+            market_analysis = "Market Trend: Steady demand from institutional buyers and retail chains."
+            summary = "A-Grade Quality. Above average results. Well-matured sample with good marketability."
         elif quality_score > 40:
             quality = 'Standard'
             multiplier = 1.00
-            summary = "Fair Market Quality. Meets standard requirements."
+            market_analysis = "Market Trend: Normal liquidity. Price aligns perfectly with current Government MSP."
+            summary = "Standard Grade. Reliable market quality that meets all basic procurement requirements."
         else:
             quality = 'Low'
-            multiplier = 0.85
-            summary = "Below Standard. Suitable for processing/feed."
+            multiplier = 0.82
+            market_analysis = "Market Trend: Oversupply of lower grades. Suggesting processing for value-addition."
+            summary = "Low Grade. Visual defects or high moisture detected. Best suited for animal feed or industrial processing."
+
+        if is_harvest_season:
+            market_analysis += " (Note: Harvest season pressure may cause slight price volatility)."
 
         fair_price = int(base_msp * multiplier)
         
@@ -502,8 +682,9 @@ def api_predict_fair_price(request):
             'msp': base_msp,
             'fair_price': fair_price,
             'quality': quality,
-            'score': quality_score,
+            'score': min(100, quality_score),
             'report': report_points,
+            'market_analysis': market_analysis,
             'summary': summary,
             'message': f"AI Analysis Complete: {quality} grade detected."
         })
@@ -768,6 +949,7 @@ def register(request):
         form = UserCreationForm(request.POST)
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
         dob = request.POST.get('dob')
         profession = request.POST.get('profession')
         
@@ -775,11 +957,23 @@ def register(request):
             user = form.save()
             user.first_name = first_name
             user.last_name = last_name
+            user.email = email
             user.save()
+            print(f"DEBUG: User registered with email: {user.email}")
             
             # Create profile
             Profile.objects.create(user=user, dob=dob, profession=profession)
             
+            # Send Welcome Email
+            if user.email:
+                subject = "Namaste! Welcome to AgroSense"
+                message = f"Welcome to the AgroSense family, {user.first_name or user.username}! We are excited to have you onboard. AgroSense is your all-in-one digital ecosystem for smart farming."
+                html_content = get_premium_email_html(
+                    "Welcome to AgroSense",
+                    f"Namaste {user.first_name or user.username},<br><br>We are excited to have you onboard! AgroSense is your all-in-one digital ecosystem for smart farming, market intelligence, and sustainable agriculture. Start exploring your dashboard to see what's new in the fields!"
+                )
+                send_agro_email(user.email, subject, message, html_content)
+
             auth_login(request, user)
             return redirect('dashboard')
     else:
@@ -792,6 +986,18 @@ def custom_login(request):
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
+            print(f"DEBUG: User logged in: {user.username}, Email: {user.email}")
+            
+            # Send Login Alert
+            if user.email:
+                subject = "AgroSense: New Login Alert"
+                time_str = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+                message = f"A new login was detected on your account at {time_str}."
+                html_content = get_premium_email_html(
+                    "Security Alert: New Login",
+                    f"Namaste {user.first_name or user.username},<br><br>A new login was detected on your AgroSense account at <strong>{time_str}</strong>. If this wasn't you, please change your password immediately to secure your harvest data."
+                )
+                send_agro_email(user.email, subject, message, html_content)
             
             # Remember Me logic
             if request.POST.get('remember'):
@@ -806,6 +1012,17 @@ def custom_login(request):
         form = AuthenticationForm()
     return render(request, 'registration/login.html', {'form': form})
 
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def api_check_auth(request):
+    """Check if user is authenticated"""
+    return JsonResponse({
+        'authenticated': request.user.is_authenticated,
+        'username': request.user.username if request.user.is_authenticated else None
+    })
+
+@csrf_exempt
 def api_create_razorpay_order(request):
     """Step 1: Create a Razorpay order and return credentials to frontend."""
     if not request.user.is_authenticated:
@@ -838,6 +1055,7 @@ def api_create_razorpay_order(request):
         return JsonResponse({'status': 'error', 'message': f'Could not create payment order: {str(e)}'}, status=500)
 
 
+@csrf_exempt
 def api_verify_razorpay_payment(request):
     """Step 2: Verify Razorpay payment signature and place order."""
     if not request.user.is_authenticated:
@@ -890,6 +1108,28 @@ def api_verify_razorpay_payment(request):
     )
 
     delivery_date = (timezone.now() + timezone.timedelta(days=3)).strftime('%d %b %Y')
+    
+    # Send Thank You Email
+    if request.user.email:
+        subject = "AgroSense: Order Confirmed! (ID: " + order_id + ")"
+        message = f"Thank you for your purchase! Your order {order_id} has been placed successfully."
+        
+        items_html = f"""
+            <tr>
+                <td style="padding: 12px; border-bottom: 1px solid #eee;">AgroStore Purchase (Order ID: {order_id})</td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;">₹{total_amount}</td>
+            </tr>
+        """
+        html_content = get_premium_email_html(
+            "Payment Confirmed!",
+            f"Namaste {request.user.first_name or request.user.username},<br><br>Your payment of <strong>₹{total_amount}</strong> has been verified. We are preparing your items for shipment. Your tracking ID will be generated shortly.",
+            items_html,
+            total_amount,
+            button_text="Download Invoice",
+            button_url=request.build_absolute_uri(reverse('download_invoice', args=[order_id]))
+        )
+        send_agro_email(request.user.email, subject, message, html_content)
+
     return JsonResponse({
         'status': 'success',
         'order_id': order_id,
@@ -941,6 +1181,27 @@ def api_place_order(request):
         
         delivery_date = (timezone.now() + timezone.timedelta(days=3)).strftime('%d %b %Y')
         
+        # Send Thank You Email (COD)
+        if request.user.email:
+            subject = "AgroSense: Order Placed! (ID: " + order_id + ")"
+            message = f"Your order {order_id} has been placed successfully via {payment_method}."
+            
+            items_html = f"""
+                <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee;">AgroStore Purchase (COD/UPI)</td>
+                    <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;">₹{total_amount}</td>
+                </tr>
+            """
+            html_content = get_premium_email_html(
+                "Order Placed Successfully",
+                f"Namaste {request.user.first_name or request.user.username},<br><br>Your order <strong>{order_id}</strong> has been received via {payment_method}. We will notify you once it's out for delivery! Please keep ₹{total_amount} ready if it's a Cash on Delivery order.",
+                items_html,
+                total_amount,
+                button_text="Download Invoice",
+                button_url=request.build_absolute_uri(reverse('download_invoice', args=[order_id]))
+            )
+            send_agro_email(request.user.email, subject, message, html_content)
+
         return JsonResponse({
             'status': 'success',
             'order_id': order_id,
@@ -973,6 +1234,15 @@ def api_cancel_order(request):
             if order.status in ['PENDING', 'PAID']:
                 order.status = 'CANCELLED'
                 order.save()
+                
+                # Send Cancellation Email
+                if request.user.email:
+                    send_agro_email(
+                        request.user.email,
+                        "AgroSense: Order Cancelled (ID: " + order_id + ")",
+                        f"Namaste {request.user.first_name or request.user.username},\n\nAs per your request, your order {order_id} has been cancelled successfully. If any amount was paid, it will be refunded within 5-7 business days."
+                    )
+                
                 return JsonResponse({'status': 'success'})
             return JsonResponse({'status': 'error', 'message': f'Cannot cancel order in {order.status} status.'}, status=400)
         return JsonResponse({'status': 'error', 'message': 'Order not found.'}, status=404)
@@ -1015,6 +1285,93 @@ def api_generate_bill(request):
     """
     return JsonResponse({'status': 'success', 'html': html})
 
+def download_invoice(request, order_id):
+    """Public view to see/print the invoice"""
+    order = Order.objects.filter(order_id=order_id).first()
+    if not order:
+        return HttpResponse("Order not found", status=404)
+    
+    context = {
+        'order': order,
+        'date': order.created_at.strftime('%d %b %Y %H:%M'),
+    }
+    # Re-using the logic from api_generate_bill but returning as full HTML page
+    html_content = f"""
+    <html>
+    <head>
+        <title>Invoice {order.order_id}</title>
+        <style>
+            body {{ font-family: sans-serif; background: #f4f7f6; padding: 50px; }}
+            .invoice-card {{ background: white; padding: 50px; border-radius: 20px; max-width: 800px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #eee; }}
+            .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2d5a27; padding-bottom: 20px; margin-bottom: 30px; }}
+            .logo {{ color: #2d5a27; font-size: 2rem; font-weight: 800; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 30px; }}
+            th {{ background: #f8fafc; padding: 15px; text-align: left; border-bottom: 2px solid #ddd; }}
+            td {{ padding: 15px; border-bottom: 1px solid #eee; }}
+            .total-row {{ font-weight: bold; font-size: 1.2rem; background: #f1f8e9; }}
+            .footer {{ margin-top: 50px; text-align: center; color: #666; font-size: 0.9rem; }}
+            @media print {{
+                body {{ background: white; padding: 0; }}
+                .invoice-card {{ box-shadow: none; border: none; }}
+                .no-print {{ display: none; }}
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="invoice-card">
+            <div class="header">
+                <div class="logo">AgroSense</div>
+                <div style="text-align: right;">
+                    <h2 style="margin: 0; color: #2d5a27;">INVOICE</h2>
+                    <p style="margin: 5px 0; color: #666;">#{order.order_id}</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between;">
+                <div>
+                    <h4 style="margin-bottom: 5px; color: #2d5a27;">Billed To:</h4>
+                    <p style="margin: 0;"><strong>{order.full_name}</strong></p>
+                    <p style="margin: 0;">{order.address}</p>
+                    <p style="margin: 0;">{order.pincode}</p>
+                    <p style="margin: 0;">Phone: {order.phone}</p>
+                </div>
+                <div style="text-align: right;">
+                    <h4 style="margin-bottom: 5px; color: #2d5a27;">Order Details:</h4>
+                    <p style="margin: 0;">Date: {order.created_at.strftime('%d %b %Y')}</p>
+                    <p style="margin: 0;">Method: {order.payment_method}</p>
+                    <p style="margin: 0;">Status: {order.status}</p>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>AgroStore Purchase Items</td>
+                        <td style="text-align: right;">₹{order.total_amount}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Total Amount Paid</td>
+                        <td style="text-align: right;">₹{order.total_amount}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="footer">
+                <p>Thank you for shopping with AgroSense! For any queries, contact support@agrosense.io</p>
+                <button onclick="window.print()" class="no-print" style="padding: 10px 20px; background: #2d5a27; color: white; border: none; border-radius: 8px; cursor: pointer;">Print / Save as PDF</button>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html_content)
+
 
 def terms_and_conditions(request):
     return render(request, 'core/policies/terms.html')
@@ -1030,3 +1387,33 @@ def contact_us(request):
 
 def refund_policy(request):
     return render(request, 'core/policies/refunds.html')
+
+@user_passes_test(lambda u: u.is_superuser)
+def admin_analytics(request):
+    # Overall Metrics
+    total_sales = Order.objects.filter(status='PAID').aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_orders = Order.objects.count()
+    total_users = User.objects.count()
+    
+    # Monthly Trends
+    monthly_sales = Order.objects.filter(status='PAID').annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total=Sum('total_amount')
+    ).order_by('month')
+
+    # Category Performance
+    cat_stats = Product.objects.values('category').annotate(count=Count('id'))
+
+    # Scheme Stats
+    scheme_stats = SchemeApplication.objects.values('status').annotate(count=Count('id'))
+
+    context = {
+        'total_sales': total_sales,
+        'total_orders': total_orders,
+        'total_users': total_users,
+        'monthly_sales': list(monthly_sales),
+        'cat_stats': list(cat_stats),
+        'scheme_stats': list(scheme_stats),
+    }
+    return render(request, 'core/admin_dashboard.html', context)

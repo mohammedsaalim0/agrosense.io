@@ -1,134 +1,164 @@
 class AgroTree {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
+        if (!this.container) return;
+        
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(52, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.camera = new THREE.PerspectiveCamera(45, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
         
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.container.appendChild(this.renderer.domElement);
 
-        this.mouse = new THREE.Vector2();
-        this.targetRotation = new THREE.Vector2();
-        
+        this.mouse = new THREE.Vector2(0, 0);
+        this.windForce = 0.05;
         this.leaves = [];
+        this.branches = [];
+        
         this.init();
-        this.addCrows();
-        this.addFireflies();
+        this.addEnvironment();
         this.animate();
         this.setupInteractions();
     }
 
     init() {
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        // Advanced Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
         this.scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffe9b5, 1.2);
-        sunLight.position.set(8, 12, 6);
+        const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+        sunLight.position.set(10, 15, 10);
         sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 1024;
+        sunLight.shadow.mapSize.height = 1024;
         this.scene.add(sunLight);
-        this.rimLight = new THREE.PointLight(0xc6f7d4, 1.1, 18);
-        this.rimLight.position.set(-5, 7, 5);
-        this.scene.add(this.rimLight);
 
-        // Original AgroSense Colors
+        const fillLight = new THREE.PointLight(0x4E6E5D, 1.5, 20);
+        fillLight.position.set(-8, 5, -5);
+        this.scene.add(fillLight);
+
+        // Materials with high detail
         this.trunkMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x3E2723, // Original Deep Brown
-            roughness: 0.9
+            color: 0x3E2723, 
+            roughness: 0.9,
+            metalness: 0.1,
+            flatShading: false
         });
+
         this.leafMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x4E6E5D, // Original Moss Green
-            emissive: 0xDAA520, 
-            emissiveIntensity: 0.15
+            color: 0x2e7d32, 
+            roughness: 0.8,
+            metalness: 0.0,
+            side: THREE.DoubleSide
         });
 
         this.treeGroup = new THREE.Group();
-        this.createBranch(0, 0, 0, 1.2, 0, 6);
         this.scene.add(this.treeGroup);
 
-        this.camera.position.set(0, 4.8, 11);
-        this.camera.lookAt(0, 4.2, 0);
+        // Procedural realistic tree generation
+        this.generateTree(this.treeGroup, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), 2.5, 0.3, 5);
+
+        this.camera.position.set(0, 5, 12);
+        this.camera.lookAt(0, 4, 0);
     }
 
-    createBranch(x, y, z, height, angle, depth) {
-        if (depth === 0) {
-            const leafCount = 3;
-            for(let i=0; i<leafCount; i++) {
-                const leafGeom = new THREE.IcosahedronGeometry(0.4, 0);
-                const leaf = new THREE.Mesh(leafGeom, this.leafMaterial);
-                leaf.position.set(
-                    x + (Math.random() - 0.5) * 0.5,
-                    y + (Math.random() - 0.5) * 0.5,
-                    z + (Math.random() - 0.5) * 0.5
-                );
-                leaf.userData = {
-                    swayOffset: Math.random() * Math.PI * 2,
-                    swayAmp: 0.05 + Math.random() * 0.08,
-                    baseY: leaf.position.y,
-                };
-                this.leaves.push(leaf);
-                this.treeGroup.add(leaf);
-            }
+    generateTree(parentGroup, start, direction, length, radius, depth) {
+        const end = start.clone().add(direction.clone().multiplyScalar(length));
+        
+        // Create smooth branch geometry
+        const curve = new THREE.LineCurve3(new THREE.Vector3(0,0,0), new THREE.Vector3(0, length, 0));
+        const geometry = new THREE.TubeGeometry(curve, 8, radius, 8, false);
+        const branch = new THREE.Mesh(geometry, this.trunkMaterial);
+        branch.castShadow = true;
+        branch.receiveShadow = true;
+        
+        // Position at the start of the branch relative to parent
+        branch.position.copy(start);
+        
+        // Orient the branch
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+        branch.quaternion.copy(quaternion);
+
+        // Group to hold this branch and its children
+        const branchGroup = new THREE.Group();
+        branchGroup.position.copy(start);
+        branchGroup.quaternion.copy(quaternion);
+        branchGroup.add(branch);
+        branch.position.set(0,0,0); // Reset local pos since group is at start
+
+        parentGroup.add(branchGroup);
+        
+        // Store for physics
+        branchGroup.userData = {
+            depth: depth,
+            phase: Math.random() * Math.PI * 2,
+            originalQuat: branchGroup.quaternion.clone()
+        };
+        this.branches.push(branchGroup);
+
+        if (depth === 1) {
+            this.createLeafCloud(branchGroup, new THREE.Vector3(0, length, 0));
             return;
         }
 
-        const thickness = depth * 0.1;
-        const geometry = new THREE.CylinderGeometry(thickness * 0.7, thickness, height, 8);
-        const branch = new THREE.Mesh(geometry, this.trunkMaterial);
-        branch.position.set(x, y + height/2, z);
-        branch.rotation.z = angle;
-        this.treeGroup.add(branch);
-
-        const nextX = x - Math.sin(angle) * height;
-        const nextY = y + Math.cos(angle) * height;
-        const numBranches = depth > 3 ? 2 : 3;
-        for (let i = 0; i < numBranches; i++) {
-            const nextAngle = angle + (Math.random() - 0.5) * 0.8;
-            this.createBranch(nextX, nextY, z + (Math.random()-0.5), height * 0.8, nextAngle, depth - 1);
+        const numChildren = depth > 3 ? 2 : 3;
+        for (let i = 0; i < numChildren; i++) {
+            const newDir = new THREE.Vector3(
+                (Math.random() - 0.5) * 1.0,
+                1.0,
+                (Math.random() - 0.5) * 1.0
+            ).normalize();
+            
+            this.generateTree(branchGroup, new THREE.Vector3(0, length, 0), newDir, length * 0.75, radius * 0.65, depth - 1);
         }
     }
 
-    addCrows() {
-        this.crows = [];
-        for (let i = 0; i < 5; i++) {
-            const crowGroup = new THREE.Group();
-            const body = new THREE.Mesh(
-                new THREE.BoxGeometry(0.3, 0.1, 0.5),
-                new THREE.MeshStandardMaterial({ color: 0x000000 })
-            );
-            crowGroup.add(body);
-            const wingGeom = new THREE.BoxGeometry(0.6, 0.02, 0.3);
-            const wingMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-            const leftWing = new THREE.Mesh(wingGeom, wingMat);
-            leftWing.position.x = -0.3;
-            crowGroup.add(leftWing);
-            const rightWing = new THREE.Mesh(wingGeom, wingMat);
-            rightWing.position.x = 0.3;
-            crowGroup.add(rightWing);
-
-            crowGroup.position.set((Math.random()-0.5)*20, 5+Math.random()*5, (Math.random()-0.5)*10);
-            this.crows.push({ group: crowGroup, wings: [leftWing, rightWing], offset: Math.random()*Math.PI*2, speed: 0.02+Math.random()*0.03 });
-            this.scene.add(crowGroup);
-        }
-    }
-
-    addFireflies() {
-        this.fireflies = [];
-        const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xffe082 });
-        for (let i = 0; i < 18; i++) {
-            const dot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), glowMaterial);
-            dot.position.set((Math.random() - 0.5) * 8, 3 + Math.random() * 6, (Math.random() - 0.5) * 8);
-            this.fireflies.push({
-                dot,
-                ox: dot.position.x,
-                oy: dot.position.y,
-                oz: dot.position.z,
-                speed: 0.6 + Math.random() * 1.2,
+    createLeafCloud(parent, position) {
+        const leafGeom = new THREE.PlaneGeometry(0.3, 0.5);
+        for (let i = 0; i < 12; i++) {
+            const leaf = new THREE.Mesh(leafGeom, this.leafMaterial);
+            leaf.position.copy(position).add(new THREE.Vector3(
+                (Math.random() - 0.5) * 0.8,
+                (Math.random() - 0.5) * 0.8,
+                (Math.random() - 0.5) * 0.8
+            ));
+            leaf.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+            leaf.userData = {
                 phase: Math.random() * Math.PI * 2,
+                amp: 0.1 + Math.random() * 0.2,
+                baseRot: leaf.rotation.clone()
+            };
+            parent.add(leaf);
+            this.leaves.push(leaf);
+        }
+    }
+
+    addEnvironment() {
+        // Grassy mound
+        const moundGeom = new THREE.CircleGeometry(4, 32);
+        const moundMat = new THREE.MeshStandardMaterial({ color: 0x1b5e20, roughness: 1 });
+        const mound = new THREE.Mesh(moundGeom, moundMat);
+        mound.rotation.x = -Math.PI / 2;
+        mound.receiveShadow = true;
+        this.treeGroup.add(mound);
+
+        // Fireflies
+        this.fireflies = [];
+        const ffGeom = new THREE.SphereGeometry(0.04, 8, 8);
+        const ffMat = new THREE.MeshBasicMaterial({ color: 0xffe082 });
+        for (let i = 0; i < 25; i++) {
+            const ff = new THREE.Mesh(ffGeom, ffMat);
+            ff.position.set((Math.random() - 0.5) * 10, Math.random() * 8, (Math.random() - 0.5) * 10);
+            this.scene.add(ff);
+            this.fireflies.push({
+                mesh: ff,
+                phase: Math.random() * Math.PI * 2,
+                speed: 0.5 + Math.random() * 0.5,
+                base: ff.position.clone()
             });
-            this.scene.add(dot);
         }
     }
 
@@ -139,7 +169,6 @@ class AgroTree {
             this.mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
         };
         this.container.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
-        this.container.addEventListener('touchmove', (e) => handleMove(e.touches[0].clientX, e.touches[0].clientY));
         window.addEventListener('resize', () => {
             const width = this.container.clientWidth;
             const height = this.container.clientHeight;
@@ -151,35 +180,39 @@ class AgroTree {
 
     animate() {
         requestAnimationFrame(() => this.animate());
-        const time = Date.now() * 0.001;
+        const time = performance.now() * 0.001;
 
-        this.treeGroup.rotation.x += (this.mouse.y * 0.16 - this.treeGroup.rotation.x) * 0.04;
-        this.treeGroup.rotation.y += (this.mouse.x * 0.2 + Math.sin(time * 0.5) * 0.08 - this.treeGroup.rotation.y) * 0.04;
-        this.treeGroup.position.y = Math.sin(time * 0.75) * 0.08;
+        // Realistic Wind Physics
+        const windX = Math.sin(time * 0.5) * 0.02 + this.mouse.x * 0.05;
+        const windZ = Math.cos(time * 0.4) * 0.02 + this.mouse.y * 0.05;
 
-        this.leaves.forEach((leaf) => {
-            leaf.position.y = leaf.userData.baseY + Math.sin(time * 2 + leaf.userData.swayOffset) * leaf.userData.swayAmp;
-            leaf.rotation.y += 0.003;
+        this.branches.forEach(branchGroup => {
+            const d = branchGroup.userData.depth;
+            const swayX = Math.sin(time * 1.5 + branchGroup.userData.phase) * (0.008 * (6 - d));
+            const swayZ = Math.cos(time * 1.3 + branchGroup.userData.phase) * (0.008 * (6 - d));
+            
+            // Soft relative rotation
+            branchGroup.rotation.x = swayZ + windZ * (0.4 * (6 - d));
+            branchGroup.rotation.z = swayX + windX * (0.4 * (6 - d));
         });
 
-        this.crows.forEach(crow => {
-            crow.group.position.x += crow.speed;
-            if (crow.group.position.x > 15) crow.group.position.x = -15;
-            const flap = Math.sin(time * 12 + crow.offset) * 0.6;
-            crow.wings[0].rotation.z = flap;
-            crow.wings[1].rotation.z = -flap;
+        this.leaves.forEach(leaf => {
+            const flutter = Math.sin(time * 5 + leaf.userData.phase) * 0.12;
+            leaf.rotation.x = leaf.userData.baseRot.x + flutter;
+            leaf.rotation.y = leaf.userData.baseRot.y + flutter;
         });
 
-        this.fireflies.forEach((f) => {
-            f.dot.position.x = f.ox + Math.sin(time * f.speed + f.phase) * 0.8;
-            f.dot.position.y = f.oy + Math.cos(time * f.speed * 1.2 + f.phase) * 0.5;
-            f.dot.position.z = f.oz + Math.sin(time * f.speed * 0.9 + f.phase) * 0.7;
-            f.dot.scale.setScalar(0.6 + (Math.sin(time * 5 + f.phase) + 1) * 0.5);
+        this.fireflies.forEach(f => {
+            f.mesh.position.x = f.base.x + Math.sin(time * f.speed + f.phase) * 1.5;
+            f.mesh.position.y = f.base.y + Math.cos(time * f.speed * 1.2 + f.phase) * 1.2;
+            f.mesh.position.z = f.base.z + Math.sin(time * f.speed * 0.8 + f.phase) * 1.5;
+            f.mesh.scale.setScalar(0.5 + Math.sin(time * 4 + f.phase) * 0.5);
         });
 
-        this.rimLight.intensity = 0.8 + Math.sin(time * 1.2) * 0.2;
-        this.camera.position.x = Math.sin(time * 0.25) * 0.8;
-        this.camera.lookAt(0, 4.2, 0);
+        // Soft camera orbit
+        this.camera.position.x += (this.mouse.x * 2 - this.camera.position.x) * 0.02;
+        this.camera.position.y += (5 + this.mouse.y * 1 - this.camera.position.y) * 0.02;
+        this.camera.lookAt(0, 4, 0);
 
         this.renderer.render(this.scene, this.camera);
     }

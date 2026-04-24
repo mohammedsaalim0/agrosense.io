@@ -33,6 +33,14 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*'] # In production, replace '*' with your actual domain
 
+# CSRF Trusted Origins for browser preview
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:53545',
+    'http://localhost:53545',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
 
 # Application definition
 
@@ -43,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'core',
 ]
 
@@ -153,5 +162,19 @@ else:
     SESSION_COOKIE_SAMESITE = 'Lax'
 # Razorpay Payment Gateway
 # Get your keys from: https://dashboard.razorpay.com/app/keys
-RAZORPAY_KEY_ID = 'rzp_live_ShF4EYmo2bJ0Gf'
-RAZORPAY_KEY_SECRET = 'MGoV5yq67wDfjfZENfQxh3hR'
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', 'rzp_test_ShKGWsYI9YNXmO')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', 'DjQ7Y2WwJRt3UAI5tjKA50kU')
+
+# Email Configuration (Gmail)
+EMAIL_BACKEND = 'core.email_backend.UnverifiedEmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'agrosensetumkur@gmail.com')
+# IMPORTANT: Use an "App Password" from Google, not your regular password
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '') 
+if EMAIL_HOST_PASSWORD:
+    print(f"DEBUG: Email Password Loaded (Starts with: {EMAIL_HOST_PASSWORD[:4]}...)")
+else:
+    print("DEBUG: EMAIL_HOST_PASSWORD NOT FOUND!")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

@@ -150,3 +150,23 @@ class BankTransaction(models.Model):
     def __str__(self):
         return f"UTR {self.utr_id} - ₹{self.amount} ({'Used' if self.is_used else 'Available'})"
 
+class VolunteerTask(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    location = models.CharField(max_length=200)
+    points = models.IntegerField(default=10)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+class VolunteerParticipation(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    task = models.ForeignKey(VolunteerTask, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, default='JOINED') # JOINED, COMPLETED
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.task.title}"
+
