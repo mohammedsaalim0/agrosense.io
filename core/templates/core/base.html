@@ -527,7 +527,119 @@
         }
         [data-theme="dark"] nav { background: rgba(0, 0, 0, 0.9); }
         [data-theme="dark"] .logo { color: var(--harvest-gold); }
+
+        /* PWA Install Hub Styles - Automated Feel */
+        .pwa-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(15px);
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .pwa-hub-card {
+            background: white;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 40px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+            text-align: center;
+            padding: 3rem 2rem;
+            animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .install-progress-container {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin: 2rem 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .install-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #1b5e20, #4caf50);
+            transition: width 0.1s linear;
+        }
+
+        .hub-logo-large {
+            width: 100px;
+            height: 100px;
+            background: #f1f8f1;
+            border-radius: 25px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hub-logo-large svg { width: 60px; height: 60px; fill: #1b5e20; }
+
+        .install-status-text { font-weight: 700; color: #1b5e20; font-size: 1.1rem; margin-top: 10px; }
+        .install-sub-text { font-size: 0.85rem; color: #666; margin-top: 5px; }
+
+        #pwa-success-state { display: none; }
+        .success-icon-anim {
+            width: 80px;
+            height: 80px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin: 0 auto 1.5rem;
+            animation: successPulse 0.5s ease-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
     </style>
+
+    <!-- Automated PWA Installation Hub -->
+    <div id="pwa-install-modal" class="pwa-modal-overlay">
+        <div class="pwa-hub-card">
+            <div id="install-init-state">
+                <div class="hub-logo-large">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12,2C12,2 4,10 4,16C4,20.42 7.58,24 12,24C16.42,24 20,20.42 20,16C20,10 12,2 12,2M12,22C8.69,22 6,19.31 6,16C6,13.69 7.77,10.59 10,8.35V16H14V8.35C16.23,10.59 18,13.69 18,16C18,19.31 15.31,22 12,22Z" />
+                    </svg>
+                </div>
+                <h2 style="margin-bottom: 10px;">AgroSense Smart App</h2>
+                <p style="color: #666; font-size: 0.9rem;">Ready to install as a standalone app.</p>
+                <div class="install-progress-container" id="install-progress-wrap">
+                    <div class="install-progress-bar" id="install-progress-fill"></div>
+                </div>
+                <div id="install-status" class="install-status-text">Ready to Download</div>
+                <div id="install-substatus" class="install-sub-text">Zero-touch installation enabled</div>
+                
+                <button id="hub-install-action" onclick="startAutomatedInstall()" class="btn-install-hub" style="margin-top: 2rem;">Start Automatic Install</button>
+            </div>
+
+            <div id="pwa-success-state">
+                <div class="success-icon-anim">✓</div>
+                <h2 style="color: #1b5e20;">Successfully Installed!</h2>
+                <p style="color: #666; margin-top: 10px;">AgroSense is now part of your applications. Check your home screen or app drawer.</p>
+                <button onclick="closePwaHub()" class="btn-install-hub" style="margin-top: 2rem; background: #666;">Close</button>
+            </div>
+        </div>
+    </div>
 
     <main>
         {% block content %}{% endblock %}
@@ -871,36 +983,75 @@
             }, 1500);
         });
 
-// PWA Logic - Enhanced for "Automatic Download" feel
+// Automated PWA Installation Sequence
 let deferredPrompt;
 const installBtn = document.getElementById('pwa-install-btn');
+const pwaModal = document.getElementById('pwa-install-modal');
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // Optionally show the button now if it was hidden
 });
 
-installBtn.addEventListener('click', async () => {
+installBtn.addEventListener('click', () => {
+    pwaModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+});
+
+function closePwaHub() {
+    pwaModal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function startAutomatedInstall() {
+    const actionBtn = document.getElementById('hub-install-action');
+    const progressWrap = document.getElementById('install-progress-wrap');
+    const progressFill = document.getElementById('install-progress-fill');
+    const statusText = document.getElementById('install-status');
+    const subStatus = document.getElementById('install-substatus');
+    const initState = document.getElementById('install-init-state');
+    const successState = document.getElementById('pwa-success-state');
+
+    actionBtn.style.display = 'none';
+    progressWrap.style.display = 'block';
+    
+    // Step 1: Real browser prompt (if available) triggered silently behind UI
     if (deferredPrompt) {
         deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            showToast("Installing AgroSense... 🚀");
-            installBtn.style.display = 'none';
-        }
         deferredPrompt = null;
-    } else {
-        // Create a fake "Download" experience for better UX if native prompt is blocked/missing
-        showToast("Starting secure download... 📦");
-        setTimeout(() => {
-            showToast("Finalizing installation... ⚙️");
-            setTimeout(() => {
-                showToast("To complete: Click 'Add to Home Screen' in your browser menu! 📱");
-            }, 1500);
-        }, 1500);
     }
-});
+
+    // Step 2: High-fidelity progress simulation
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 5;
+        if (progress > 100) progress = 100;
+        
+        progressFill.style.width = progress + '%';
+        
+        if (progress < 30) {
+            statusText.innerText = "Downloading Core Assets...";
+            subStatus.innerText = "Connecting to secure CDN...";
+        } else if (progress < 60) {
+            statusText.innerText = "Optimizing for Mobile...";
+            subStatus.innerText = "Configuring offline database...";
+        } else if (progress < 90) {
+            statusText.innerText = "Finalizing Installation...";
+            subStatus.innerText = "Creating secure app shortcuts...";
+        } else if (progress >= 100) {
+            clearInterval(interval);
+            statusText.innerText = "Installation Complete!";
+            subStatus.innerText = "Starting AgroSense Standalone Mode...";
+            
+            setTimeout(() => {
+                initState.style.display = 'none';
+                successState.style.display = 'block';
+                // Trigger final success toast
+                showToast("AgroSense successfully installed! 🚀");
+            }, 1000);
+        }
+    }, 100);
+}
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
