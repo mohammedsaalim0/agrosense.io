@@ -1,3 +1,70 @@
 from django.contrib import admin
+from django.utils.html import format_html
+from .models import Profile, Crop, SupportScheme, MarketListing, SchemeApplication, LearningProgress, CourseCertificate, CourseAssessment, Product, Order, BankTransaction
 
-# Register your models here.
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'category', 'price', 'mrp', 'quantity_weight', 'rating', 'is_organic', 'in_stock', 'image_preview')
+    list_filter = ('category', 'is_organic', 'in_stock')
+    search_fields = ('name', 'category')
+    list_editable = ('price', 'mrp', 'in_stock')
+    readonly_fields = ('image_preview',)
+    fieldsets = (
+        ('Product Info', {
+            'fields': ('name', 'category', 'description', 'quantity_weight', 'rating', 'is_organic', 'in_stock')
+        }),
+        ('Pricing', {
+            'fields': ('price', 'mrp')
+        }),
+        ('Product Image', {
+            'fields': ('image_upload', 'image_url', 'image_preview'),
+            'description': 'Upload an image directly OR paste a public image URL. Uploaded image takes priority.'
+        }),
+    )
+
+    def image_preview(self, obj):
+        url = obj.get_image()
+        if url:
+            return format_html('<img src="{}" style="height:80px; border-radius:8px; object-fit:cover;" />', url)
+        return "No Image"
+    image_preview.short_description = "Preview"
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('order_id', 'full_name', 'phone', 'total_amount', 'payment_method', 'status', 'created_at')
+    list_filter = ('status', 'payment_method', 'created_at')
+    search_fields = ('order_id', 'full_name', 'phone')
+    readonly_fields = ('created_at',)
+    list_editable = ('status',)
+
+@admin.register(SupportScheme)
+class SupportSchemeAdmin(admin.ModelAdmin):
+    list_display = ('title', 'provider', 'amount', 'category')
+    list_filter = ('category',)
+    search_fields = ('title', 'provider')
+
+@admin.register(MarketListing)
+class MarketListingAdmin(admin.ModelAdmin):
+    list_display = ('crop_name', 'quantity', 'price', 'seller_name', 'location', 'quality', 'is_verified')
+    list_filter = ('is_verified', 'quality')
+    search_fields = ('crop_name', 'seller_name', 'location')
+    list_editable = ('is_verified',)
+
+@admin.register(SchemeApplication)
+class SchemeApplicationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'scheme_name', 'status', 'applied_at')
+    list_filter = ('status', 'applied_at')
+    search_fields = ('user__username', 'scheme_name')
+    list_editable = ('status',)
+
+admin.site.register(Profile)
+admin.site.register(Crop)
+admin.site.register(LearningProgress)
+admin.site.register(CourseCertificate)
+admin.site.register(CourseAssessment)
+admin.site.register(BankTransaction)
+
+# Customize admin site header
+admin.site.site_header = "AgroSense Admin Portal"
+admin.site.site_title = "AgroSense Admin"
+admin.site.index_title = "Welcome to the AgroSense Store Management Panel"

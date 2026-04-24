@@ -817,8 +817,8 @@ def api_create_razorpay_order(request):
     from django.conf import settings
 
     total_amount = float(request.POST.get('total_amount', 0))
-    if total_amount <= 0:
-        return JsonResponse({'status': 'error', 'message': 'Invalid amount.'}, status=400)
+    if total_amount < 1.0:
+        return JsonResponse({'status': 'error', 'message': 'Minimum order amount is ₹1.00 (100 paise).'}, status=400)
 
     try:
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
@@ -1015,3 +1015,18 @@ def api_generate_bill(request):
     """
     return JsonResponse({'status': 'success', 'html': html})
 
+
+def terms_and_conditions(request):
+    return render(request, 'core/policies/terms.html')
+
+def privacy_policy(request):
+    return render(request, 'core/policies/privacy.html')
+
+def shipping_policy(request):
+    return render(request, 'core/policies/shipping.html')
+
+def contact_us(request):
+    return render(request, 'core/policies/contact.html')
+
+def refund_policy(request):
+    return render(request, 'core/policies/refunds.html')

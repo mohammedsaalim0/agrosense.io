@@ -74,7 +74,7 @@
                         {% if product.is_organic %}
                         <span class="product-label organic">Organic</span>
                         {% endif %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="product-image" loading="lazy">
+                        <img src="{{ product.get_image }}" alt="{{ product.name }}" class="product-image" loading="lazy" onerror="this.src='https://placehold.co/600x400/4E6E5D/ffffff?text={{ product.name|urlencode }}'">
                         <div class="card-hover-actions">
                             <button class="quick-view-btn">Quick View</button>
                         </div>
@@ -1578,7 +1578,7 @@
         
         let total;
         if(window.expressOrder) {
-            total = window.expressOrder.price + Math.round(window.expressOrder.price * 0.05) + 40;
+            total = window.expressOrder.price;
             console.log("Express Order Total:", total);
         } else {
             total = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
@@ -1688,7 +1688,7 @@
     function expressBuy(id, name, price) {
         window.expressOrder = { id, name, price };
         document.getElementById('checkout-modal').style.display = 'flex';
-        const total = price + Math.round(price * 0.05) + 40;
+        const total = price;
         document.getElementById('checkout-final-total').textContent = `₹${total.toFixed(2)}`;
     }
 

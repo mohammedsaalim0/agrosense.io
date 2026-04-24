@@ -20,6 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-^2ull9h=yx&ydf1hlo6#l6wfhf!$@!^41_0wou_bgl5=w^7&=$')
@@ -126,6 +130,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Media files (uploaded by admin)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
@@ -145,5 +153,5 @@ else:
     SESSION_COOKIE_SAMESITE = 'Lax'
 # Razorpay Payment Gateway
 # Get your keys from: https://dashboard.razorpay.com/app/keys
-RAZORPAY_KEY_ID = 'rzp_test_REPLACE_WITH_YOUR_KEY_ID'
-RAZORPAY_KEY_SECRET = 'REPLACE_WITH_YOUR_KEY_SECRET'
+RAZORPAY_KEY_ID = 'rzp_live_ShF4EYmo2bJ0Gf'
+RAZORPAY_KEY_SECRET = 'MGoV5yq67wDfjfZENfQxh3hR'

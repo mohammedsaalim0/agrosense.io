@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from core.views import custom_login
 
 urlpatterns = [
@@ -23,4 +25,4 @@ urlpatterns = [
     path('accounts/login/', custom_login, name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('core.urls')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,132 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="policy-container glass-morphism animate-fade-in">
+    <div class="policy-header">
+        <h1>Contact Us</h1>
+        <p>We're Here to Help You Grow</p>
+    </div>
+    
+    <div class="contact-grid">
+        <div class="contact-info">
+            <section>
+                <h2>Our Headquarters</h2>
+                <p>AgroSense Technologies Pvt Ltd.<br>
+                Plot No. 42, Agri-Tech Park,<br>
+                Pune, Maharashtra - 411001, India</p>
+            </section>
+
+            <section>
+                <h2>Customer Support</h2>
+                <p><strong>Email:</strong> support@agrosense.io</p>
+                <p><strong>Toll-Free:</strong> 1800-123-4567</p>
+                <p><strong>WhatsApp:</strong> +91 98765 43210</p>
+            </section>
+
+            <section>
+                <h2>Operating Hours</h2>
+                <p>Monday - Saturday: 9:00 AM - 7:00 PM IST<br>
+                Sunday: Closed (Available for Emergency Crop Support via AI Bot)</p>
+            </section>
+        </div>
+
+        <div class="contact-form-wrap">
+            <form class="contact-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="Your email">
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <select>
+                        <option>General Inquiry</option>
+                        <option>Order Support</option>
+                        <option>Crop Advisor Feedback</option>
+                        <option>Partnership Proposal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea rows="5" placeholder="How can we help?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Send Message</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .policy-container {
+        max-width: 1100px;
+        margin: 40px auto;
+        padding: 60px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    }
+    .policy-header {
+        text-align: center;
+        margin-bottom: 50px;
+        border-bottom: 2px solid var(--harvest-gold);
+        padding-bottom: 20px;
+    }
+    .policy-header h1 {
+        font-size: 3rem;
+        color: var(--soil-brown);
+    }
+    .contact-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+    }
+    .contact-info section {
+        margin-bottom: 30px;
+    }
+    .contact-info h2 {
+        color: var(--primary-green, #2d5a27);
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+    .contact-info p {
+        color: #555;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    .contact-form-wrap {
+        background: #f8fafc;
+        padding: 40px;
+        border-radius: 15px;
+        border: 1px solid #e2e8f0;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 5px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-family: inherit;
+    }
+    @media (max-width: 768px) {
+        .contact-grid {
+            grid-template-columns: 1fr;
+        }
+        .policy-container {
+            padding: 30px;
+        }
+    }
+</style>
+{% endblock %}

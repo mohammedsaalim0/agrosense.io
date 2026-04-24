@@ -105,12 +105,20 @@ class Product(models.Model):
     ]
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
-    image_url = models.URLField(max_length=500, blank=True, null=True)
+    image_url = models.URLField(max_length=500, blank=True, null=True, help_text="Public URL for product image")
+    image_upload = models.ImageField(upload_to='products/', blank=True, null=True, help_text="Upload product image directly (overrides URL above)")
     mrp = models.DecimalField(max_digits=10, decimal_places=2)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity_weight = models.CharField(max_length=100) # e.g. 50kg, 1kg, 500ml
+    quantity_weight = models.CharField(max_length=100)
     rating = models.FloatField(default=4.5)
     is_organic = models.BooleanField(default=False)
+    description = models.TextField(blank=True, null=True, help_text="Product description shown in the store")
+    in_stock = models.BooleanField(default=True)
+
+    def get_image(self):
+        if self.image_upload:
+            return self.image_upload.url
+        return self.image_url or 'https://placehold.co/600x400/4E6E5D/ffffff?text=No+Image'
 
     def __str__(self):
         return self.name

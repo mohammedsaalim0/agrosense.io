@@ -26,4 +26,9 @@ urlpatterns = [
     path('api/predict-fair-price/', views.api_predict_fair_price, name='api_predict_fair_price'),
     path('api/create-razorpay-order/', views.api_create_razorpay_order, name='api_create_razorpay_order'),
     path('api/verify-razorpay-payment/', views.api_verify_razorpay_payment, name='api_verify_razorpay_payment'),
+    path('terms/', views.terms_and_conditions, name='terms'),
+    path('privacy/', views.privacy_policy, name='privacy'),
+    path('shipping/', views.shipping_policy, name='shipping'),
+    path('contact/', views.contact_us, name='contact'),
+    path('refunds/', views.refund_policy, name='refunds'),
 ]
