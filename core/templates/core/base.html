@@ -1067,7 +1067,7 @@ function startAutomatedInstall() {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         // Cache-busting service worker registration
-        navigator.serviceWorker.register('/service-worker.js?v=3')
+        navigator.serviceWorker.register('/service-worker.js?v=4')
             .then(reg => console.log('Service Worker registered!'))
             .catch(err => console.log('Service Worker registration failed: ', err));
     });
@@ -1148,6 +1148,36 @@ function toggleTheme() {
                 }
             });
         });
+    </script>
+    <!-- Offline Banner -->
+    <div id="offline-banner" style="position: fixed; bottom: 0; left: 0; width: 100%; background: #b71c1c; color: white; text-align: center; padding: 10px; z-index: 100000; display: none; font-weight: bold;">
+        ⚠️ You are currently offline. Some features may be limited.
+    </div>
+
+    <script>
+        // Connectivity Monitor
+        window.addEventListener('online', () => {
+            document.getElementById('offline-banner').style.display = 'none';
+            showToast("Connection Restored! 🌾");
+        });
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-banner').style.display = 'block';
+        });
+
+        // Push Notification Request
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    console.log('Notification permission granted.');
+                }
+            }
+        }
+        
+        // Auto-show offline banner if loaded offline
+        if (!navigator.onLine) {
+            document.getElementById('offline-banner').style.display = 'block';
+        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>

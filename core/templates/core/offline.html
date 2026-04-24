@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline — AgroSense</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --soil-brown: #3E2723;
+            --moss-green: #4E6E5D;
+            --harvest-gold: #DAA520;
+            --off-white: #FAF9F6;
+        }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--off-white);
+            color: var(--soil-brown);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .offline-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        h1 { font-weight: 700; margin-bottom: 10px; }
+        p { color: #666; max-width: 400px; line-height: 1.6; }
+        .btn-retry {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: var(--moss-green);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .btn-retry:hover { background: var(--soil-brown); transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="offline-icon">🌾📴</div>
+    <h1>You're Offline</h1>
+    <p>It seems your connection to the farm has been interrupted. Please check your internet and try again to access real-time market data and crop intelligence.</p>
+    <button onclick="window.location.reload()" class="btn-retry">Retry Connection</button>
+</body>
+</html>

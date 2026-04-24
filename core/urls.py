@@ -46,4 +46,5 @@ urlpatterns = [
     path('refunds/', views.refund_policy, name='refunds'),
     path('admin/analytics/', views.admin_analytics, name='admin_analytics'),
     path('api/submit-grievance/', views.api_submit_grievance, name='api_submit_grievance'),
+    path('offline/', views.offline, name='offline'),
 ]

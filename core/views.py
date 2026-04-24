@@ -436,6 +436,9 @@ def api_get_schemes(request):
 def agro_suggestion(request):
     return render(request, 'core/agro_suggestion.html')
 
+def offline(request):
+    return render(request, 'core/offline.html')
+
 def api_weather_soil(request):
     location = request.GET.get('location', 'Current Location').lower()
     crop = request.GET.get('crop', 'Wheat').lower()
