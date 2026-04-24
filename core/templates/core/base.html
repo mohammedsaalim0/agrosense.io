@@ -1064,14 +1064,22 @@ function startAutomatedInstall() {
     }, 80);
 }
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // Cache-busting service worker registration
-        navigator.serviceWorker.register('/service-worker.js?v=4')
-            .then(reg => console.log('Service Worker registered!'))
-            .catch(err => console.log('Service Worker registration failed: ', err));
+    // FORCE RESET: Unregister all service workers to fix ERR_FAILED cache issues
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+            registration.unregister();
+            console.log('Service Worker nuked!');
+        }
     });
-}
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // Registering v5 (Clean Slate)
+            navigator.serviceWorker.register('/service-worker.js?v=5')
+                .then(reg => console.log('Service Worker registered!'))
+                .catch(err => console.log('Service Worker registration failed: ', err));
+        });
+    }
 
 // Theme Toggle Logic
 function toggleTheme() {
