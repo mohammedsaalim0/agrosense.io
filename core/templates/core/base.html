@@ -983,17 +983,34 @@
             }, 1500);
         });
 
-// Automated PWA Installation Sequence
+// Automated PWA Installation Sequence - Aggressive Trigger
 let deferredPrompt;
 const installBtn = document.getElementById('pwa-install-btn');
 const pwaModal = document.getElementById('pwa-install-modal');
 
 window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent Chrome 67 and earlier from automatically showing the prompt
     e.preventDefault();
+    // Stash the event so it can be triggered later.
     deferredPrompt = e;
+    console.log("PWA: Installation prompt captured and ready.");
 });
 
-installBtn.addEventListener('click', () => {
+installBtn.addEventListener('click', async () => {
+    // Priority 1: Trigger REAL browser installation prompt immediately
+    if (deferredPrompt) {
+        console.log("PWA: Triggering native prompt...");
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            showToast("Installation started... 🚀");
+            installBtn.style.display = 'none';
+        }
+        deferredPrompt = null;
+        return;
+    }
+
+    // Priority 2: If already installed or prompt missing, show the Premium Hub for "presentation" effect
     pwaModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 });
@@ -1014,17 +1031,10 @@ function startAutomatedInstall() {
 
     actionBtn.style.display = 'none';
     progressWrap.style.display = 'block';
-    
-    // Step 1: Real browser prompt (if available) triggered silently behind UI
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt = null;
-    }
 
-    // Step 2: High-fidelity progress simulation
     let progress = 0;
     const interval = setInterval(() => {
-        progress += Math.random() * 5;
+        progress += Math.random() * 8;
         if (progress > 100) progress = 100;
         
         progressFill.style.width = progress + '%';
@@ -1035,10 +1045,10 @@ function startAutomatedInstall() {
         } else if (progress < 60) {
             statusText.innerText = "Optimizing for Mobile...";
             subStatus.innerText = "Configuring offline database...";
-        } else if (progress < 90) {
+        } else if (progress < 100) {
             statusText.innerText = "Finalizing Installation...";
             subStatus.innerText = "Creating secure app shortcuts...";
-        } else if (progress >= 100) {
+        } else {
             clearInterval(interval);
             statusText.innerText = "Installation Complete!";
             subStatus.innerText = "Starting AgroSense Standalone Mode...";
@@ -1046,11 +1056,10 @@ function startAutomatedInstall() {
             setTimeout(() => {
                 initState.style.display = 'none';
                 successState.style.display = 'block';
-                // Trigger final success toast
                 showToast("AgroSense successfully installed! 🚀");
             }, 1000);
         }
-    }, 100);
+    }, 80);
 }
 
 if ('serviceWorker' in navigator) {

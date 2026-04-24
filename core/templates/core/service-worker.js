@@ -1,7 +1,6 @@
-const CACHE_NAME = 'agrosense-v1';
+const CACHE_NAME = 'agrosense-v2';
 const urlsToCache = [
   '/',
-  '/static/core/css/style.css',
   'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
 ];
