@@ -271,8 +271,8 @@ def call_ollama(prompt):
         pass
     return None
 
-def send_agro_email(user_email, subject, text_content, html_content=None):
-    """Helper to send pretty HTML emails with terminal logging"""
+def send_agro_email(user_email, subject, text_content, html_content=None, attachment=None):
+    """Helper to send pretty HTML emails with optional attachments"""
     if not user_email:
         print(f"DEBUG: No email address provided for subject: {subject}")
         return
@@ -288,6 +288,10 @@ def send_agro_email(user_email, subject, text_content, html_content=None):
         )
         if html_content:
             msg.attach_alternative(html_content, "text/html")
+        
+        if attachment:
+            # attachment is expected to be a file-like object or UploadedFile
+            msg.attach(attachment.name, attachment.read(), attachment.content_type)
             
         msg.send(fail_silently=False)
         print(f"DEBUG: Premium Email sent successfully to {user_email}!")
@@ -1427,28 +1431,28 @@ def api_submit_grievance(request):
         image = request.FILES.get('image')
         report_id = f"AGS-GRV-{random.randint(1000, 9999)}"
 
-        # 1. Send Email to Submitter
-        user_subject = f"Grievance Received: {report_id}"
-        user_msg = f"Namaste {request.user.username}, we have received your report regarding '{title}'. Our team is reviewing it and will get back to you soon."
+        # 1. Send Thank You Email to Submitter
+        user_subject = f"Thank You for Reporting: {report_id}"
+        user_msg = f"Namaste {request.user.username}, thank you for reaching out. We have received your report regarding '{title}'. Our team is reviewing it and will get back to you soon."
         user_html = get_premium_email_html(
-            title="Grievance Registered",
+            title="Report Received",
             message=user_msg,
             items_html=f"<tr><td style='padding:12px;'>Report ID</td><td style='padding:12px;text-align:right;'>{report_id}</td></tr>"
                        f"<tr><td style='padding:12px;'>Category</td><td style='padding:12px;text-align:right;'>{category}</td></tr>",
-            button_text="View Status",
+            button_text="Track Status",
             button_url=f"{request.scheme}://{request.get_host()}"
         )
         send_agro_email(request.user.email, user_subject, user_msg, user_html)
 
-        # 2. Send Email to Admin (tumakurecity@gmail.com)
-        admin_subject = f"NEW FARM GRIEVANCE: {report_id} - {category}"
+        # 2. Send Detailed Email to Admin (tumakurecity@gmail.com) with attachment
+        admin_subject = f"URGENT: New Farm Grievance {report_id}"
         admin_msg = f"New issue reported by {request.user.username} ({request.user.email}).\n\nTitle: {title}\nCategory: {category}\nDetails: {details}"
         
-        # In a real setup, you'd attach the image. For now, we'll mention it.
+        # Reset image pointer for reading if it exists
         if image:
-            admin_msg += f"\n\n[Image Attached: {image.name}]"
+            image.seek(0)
 
-        send_agro_email("tumakurecity@gmail.com", admin_subject, admin_msg)
+        send_agro_email("tumakurecity@gmail.com", admin_subject, admin_msg, attachment=image)
 
         return JsonResponse({'status': 'success', 'report_id': report_id})
     
