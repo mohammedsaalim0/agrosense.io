@@ -987,16 +987,19 @@
         }
         initParticles();
 
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const bootScreen = document.getElementById('boot-screen');
-                if (bootScreen) {
-                    bootScreen.style.transition = 'opacity 0.6s ease, visibility 0.6s';
-                    bootScreen.classList.add('hidden');
-                    setTimeout(() => bootScreen.style.display = 'none', 600);
-                }
-            }, 800); // Reduced from 1500ms
-        });
+        // Robust Reveal: Hide boot screen as soon as DOM is ready or after safety timeout
+        function hideBootScreen() {
+            const bootScreen = document.getElementById('boot-screen');
+            if (bootScreen && !bootScreen.classList.contains('hidden')) {
+                bootScreen.style.transition = 'opacity 0.6s ease, visibility 0.6s';
+                bootScreen.classList.add('hidden');
+                setTimeout(() => bootScreen.style.display = 'none', 600);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', hideBootScreen);
+        window.addEventListener('load', hideBootScreen); // Backup
+        setTimeout(hideBootScreen, 2500); // Emergency Safety: Hide after 2.5s anyway
 
 // Automated PWA Installation Sequence - Aggressive Trigger
 let deferredPrompt;

@@ -2086,50 +2086,64 @@
         }
     }
 
-    // Initial Charts
-    window.onload = () => {
+    function hideWelcomeOverlay() {
+        const overlay = document.getElementById('welcome-overlay');
+        if(overlay && overlay.style.display !== 'none') {
+            overlay.style.transition = 'opacity 0.8s ease, visibility 0.8s';
+            overlay.style.opacity = '0';
+            overlay.style.visibility = 'hidden';
+            setTimeout(() => {
+                overlay.style.display = 'none'; 
+            }, 800);
+            showToast("Welcome back to AgroSense!");
+        }
+    }
+
+    // Multiple triggers for reliability
+    window.addEventListener('DOMContentLoaded', () => {
         initSand();
-        // Welcome animation - Speeded up for better UX
-        setTimeout(() => {
-            const overlay = document.getElementById('welcome-overlay');
-            if(overlay) {
-                overlay.style.transition = 'opacity 0.8s ease, visibility 0.8s';
-                overlay.style.opacity = '0';
-                overlay.style.visibility = 'hidden';
-                setTimeout(() => {
-                    overlay.style.display = 'none'; 
-                }, 800);
-                showToast("Welcome back to AgroSense!");
-            }
-        }, 800); // Reduced from 3000ms
-        
+        setTimeout(hideWelcomeOverlay, 1000); // Small delay for effect
+    });
+    window.addEventListener('load', hideWelcomeOverlay);
+    setTimeout(hideWelcomeOverlay, 4000); // Emergency safety timeout
+
+    // Data Fetching & Charts Initialization
+    window.addEventListener('load', () => {
         // Fetch Schemes
         fetch('/api/schemes/')
             .then(res => res.json())
             .then(data => {
                 const grid = document.getElementById('schemes-grid');
+                if (!grid) return;
                 grid.innerHTML = '';
-                data.schemes.forEach(scheme => {
-                    if(!scheme.active) return;
-                    const card = document.createElement('div');
-                    card.className = 'scheme-card glass-card';
-                    card.innerHTML = `
-                        <span class="scheme-type">${scheme.category}</span>
-                        <h3>${scheme.title}</h3>
-                        <p class="provider">By ${scheme.provider}</p>
-                        <p class="amount">${scheme.amount}</p>
-                        <p class="desc">${scheme.desc}</p>
-                        <div class="scheme-actions">
-                            <a href="${scheme.official_url}" target="_blank" class="btn btn-primary">Official Portal</a>
-                            <a href="${scheme.status_url}" target="_blank" class="btn status-track-btn">Track Real Status</a>
-                        </div>
-                        <div class="official-badge">Verified Official</div>
-                    `;
-                    grid.appendChild(card);
-                });
-            });
+                if (data.schemes) {
+                    data.schemes.forEach(scheme => {
+                        if(!scheme.active) return;
+                        const card = document.createElement('div');
+                        card.className = 'scheme-card glass-card';
+                        card.innerHTML = `
+                            <span class="scheme-type">${scheme.category}</span>
+                            <h3>${scheme.title}</h3>
+                            <p class="provider">By ${scheme.provider}</p>
+                            <p class="amount">${scheme.amount}</p>
+                            <p class="desc">${scheme.desc}</p>
+                            <div class="scheme-actions">
+                                <a href="${scheme.official_url}" target="_blank" class="btn btn-primary">Official Portal</a>
+                                <a href="${scheme.status_url}" target="_blank" class="btn status-track-btn">Track Real Status</a>
+                            </div>
+                            <div class="official-badge">Verified Official</div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                }
+            })
+            .catch(err => console.error("Schemes fetch failed:", err));
+        
+        if(document.getElementById('market-search') && document.getElementById('market-search').value) {
+            updateMarketData();
+        }
+    });
 
-    };
 
     // Grievance & Volunteer Logic (Globally Scoped)
     function suggestCategory() {
