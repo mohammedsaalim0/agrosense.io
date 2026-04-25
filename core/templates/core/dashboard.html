@@ -2220,10 +2220,10 @@
     }
 
     // Only update if search has value (prevents auto-show)
-        if(document.getElementById('market-search').value) {
-            updateMarketData();
-        }
-    };
+    const marketSearch = document.getElementById('market-search');
+    if(marketSearch && marketSearch.value) {
+        updateMarketData();
+    }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
