@@ -795,8 +795,6 @@
         }
     </style>
 
-    <div id="toast-container"></div>
-
     <!-- AgroBot UI -->
     <div id="agrobot-trigger" class="agrobot-trigger" onclick="toggleAgroBot()">
         <img src="{% static 'core/images/agrobot_avatar.png' %}" alt="AgroBot">
@@ -1124,7 +1122,7 @@ function startAutomatedInstall() {
         window.addEventListener('load', () => {
             // Registering v7
             navigator.serviceWorker.register('/service-worker.js?v=7')
-                .then(reg => console.log('Service Worker v6 registered!'))
+                .then(reg => console.log('Service Worker v7 registered!'))
                 .catch(err => console.log('Service Worker registration failed: ', err));
         });
     }
@@ -1183,6 +1181,7 @@ function toggleTheme() {
 
         function toggleStatusDropdown() {
             const dropdown = document.getElementById('status-dropdown');
+            if(!dropdown) return;
             const isVisible = dropdown.style.display === 'block';
             dropdown.style.display = isVisible ? 'none' : 'block';
             
@@ -1190,6 +1189,48 @@ function toggleTheme() {
             if (window.innerWidth <= 480) {
                 document.body.style.overflow = isVisible ? 'auto' : 'hidden';
             }
+        }
+
+        function cancelApplication(schemeName, appId = null) {
+            if(!confirm(`Are you sure you want to cancel your application for ${schemeName}?`)) return;
+
+            const formData = new FormData();
+            formData.append('scheme_name', schemeName);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch('/api/cancel-application/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    showToast(`Application for ${schemeName} cancelled.`);
+                    
+                    // Remove from UI
+                    const item = appId ? document.getElementById(`app-${appId}`) : Array.from(document.querySelectorAll('.status-item')).find(el => el.textContent.includes(schemeName));
+                    if(item) {
+                        item.remove();
+                    }
+
+                    // Update badge
+                    const badge = document.querySelector('.status-btn .badge');
+                    if(badge) {
+                        const current = parseInt(badge.textContent || 0);
+                        badge.textContent = Math.max(0, current - 1);
+                    }
+
+                    // Check if empty
+                    const statusList = document.querySelector('.status-list');
+                    if(statusList && statusList.children.length === 0) {
+                        statusList.innerHTML = '<p id="no-apps-msg" style="font-size: 0.8rem; color: #666;">No active applications.</p>';
+                    }
+                }
+            })
+            .catch(err => {
+                showToast("Error cancelling application.");
+                console.error(err);
+            });
         }
 
         window.onclick = function(event) {
