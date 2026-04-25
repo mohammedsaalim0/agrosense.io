@@ -1,4 +1,4 @@
-const CACHE_NAME = 'agrosense-v6';
+const CACHE_NAME = 'agrosense-v7';
 const OFFLINE_URL = '/offline/';
 
 const urlsToCache = [
