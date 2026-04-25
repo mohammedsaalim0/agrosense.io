@@ -147,7 +147,7 @@ def api_cancel_application(request):
         return JsonResponse({'status': 'error', 'message': 'Application not found'}, status=404)
     return JsonResponse({'status': 'error'}, status=400)
 
-def get_premium_email_html(title, message, items_html="", total=None, logo_url=None, bg_url=None, button_text="Visit Dashboard", button_url="http://agrosense.io"):
+def get_premium_email_html(title, message, items_html="", total=None, logo_url=None, bg_url=None, button_text="Visit Dashboard", button_url="https://agrosense-io-1.onrender.com/accounts/login/?next=/"):
     """Generates a premium Glassmorphism-inspired HTML email template"""
     logo = logo_url if logo_url else "https://i.ibb.co/L8v8J1Z/agrosense-logo-white.png"
     # User's custom background from Behance
@@ -295,37 +295,47 @@ def call_ollama(prompt):
 
 def send_agro_email(user_email, subject, text_content, html_content=None, attachment=None):
     """Helper to send pretty HTML emails with optional attachments"""
-    if not user_email:
-        print(f"DEBUG: No email address provided for subject: {subject}")
+    if not user_email or "@" not in str(user_email):
+        print(f"DEBUG: Invalid or empty email address: '{user_email}' for subject: {subject}")
         return
+    
     try:
-        print(f"DEBUG: Attempting to send premium email to {user_email}...")
         from django.core.mail import EmailMultiAlternatives
-        
+        from django.conf import settings
+        import threading
+
+        # Prepare the message content outside the thread to ensure all data is captured
         msg = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user_email],
+            to=[user_email.strip()],
         )
         if html_content:
             msg.attach_alternative(html_content, "text/html")
         
         if attachment:
-            # attachment is expected to be a file-like object or UploadedFile
-            msg.attach(attachment.name, attachment.read(), attachment.content_type)
+            # Important: Read content immediately while file handle is valid
+            attachment_name = attachment.name
+            attachment_content = attachment.read()
+            attachment_type = attachment.content_type
+            msg.attach(attachment_name, attachment_content, attachment_type)
         
-        # Use threading to send the email in the background to prevent blocking the main request
-        def _send():
+        def _send_async(email_msg, target_addr):
             try:
-                msg.send(fail_silently=False)
-                print(f"DEBUG: Premium Email sent successfully to {user_email}!")
+                email_msg.send(fail_silently=False)
+                print(f"DEBUG: Premium Email successfully sent to {target_addr}")
             except Exception as e:
-                print(f"DEBUG: Failed to send premium email. Error: {str(e)}")
+                print(f"DEBUG: SMTP Error sending to {target_addr}: {str(e)}")
 
-        threading.Thread(target=_send).start()
+        # Use threading to send the email in the background
+        email_thread = threading.Thread(target=_send_async, args=(msg, user_email))
+        email_thread.daemon = True # Ensure thread doesn't block exit
+        email_thread.start()
+        print(f"DEBUG: Email thread started for {user_email}")
+        
     except Exception as e:
-        print(f"DEBUG: Thread initiation failed for email to {user_email}. Error: {str(e)}")
+        print(f"DEBUG: Failed to initiate email for {user_email}. Error: {str(e)}")
 
 def api_market_data(request):
     crop = request.GET.get('crop', 'Wheat').capitalize()
@@ -1152,7 +1162,8 @@ def api_verify_razorpay_payment(request):
     delivery_date = (timezone.now() + timezone.timedelta(days=3)).strftime('%d %b %Y')
     
     # Send Thank You Email
-    if request.user.email:
+    user_email = request.user.email or (User.objects.get(pk=request.user.pk).email if request.user.is_authenticated else None)
+    if user_email:
         subject = "AgroSense: Order Confirmed! (ID: " + order_id + ")"
         message = f"Thank you for your purchase! Your order {order_id} has been placed successfully."
         
@@ -1170,7 +1181,7 @@ def api_verify_razorpay_payment(request):
             button_text="Download Invoice",
             button_url=request.build_absolute_uri(reverse('download_invoice', args=[order_id]))
         )
-        send_agro_email(request.user.email, subject, message, html_content)
+        send_agro_email(user_email, subject, message, html_content)
 
     return JsonResponse({
         'status': 'success',
@@ -1223,14 +1234,15 @@ def api_place_order(request):
         
         delivery_date = (timezone.now() + timezone.timedelta(days=3)).strftime('%d %b %Y')
         
-        # Send Thank You Email (COD)
-        if request.user.email:
+        # Send Thank You Email (COD/UPI)
+        user_email = request.user.email or (User.objects.get(pk=request.user.pk).email if request.user.is_authenticated else None)
+        if user_email:
             subject = "AgroSense: Order Placed! (ID: " + order_id + ")"
             message = f"Your order {order_id} has been placed successfully via {payment_method}."
             
             items_html = f"""
                 <tr>
-                    <td style="padding: 12px; border-bottom: 1px solid #eee;">AgroStore Purchase (COD/UPI)</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #eee;">AgroStore Purchase ({payment_method})</td>
                     <td style="padding: 12px; text-align: right; border-bottom: 1px solid #eee;">₹{total_amount}</td>
                 </tr>
             """
@@ -1239,10 +1251,10 @@ def api_place_order(request):
                 f"Namaste {request.user.first_name or request.user.username},<br><br>Your order <strong>{order_id}</strong> has been received via {payment_method}. We will notify you once it's out for delivery! Please keep ₹{total_amount} ready if it's a Cash on Delivery order.",
                 items_html,
                 total_amount,
-                button_text="Download Invoice",
-                button_url=request.build_absolute_uri(reverse('download_invoice', args=[order_id]))
+                button_text="Track Order",
+                button_url="https://agrosense-io-1.onrender.com/accounts/login/?next=/"
             )
-            send_agro_email(request.user.email, subject, message, html_content)
+            send_agro_email(user_email, subject, message, html_content)
 
         return JsonResponse({
             'status': 'success',
@@ -1470,6 +1482,7 @@ def api_submit_grievance(request):
         report_id = f"AGS-GRV-{random.randint(1000, 9999)}"
 
         # 1. Send Thank You Email to Submitter
+        user_email = request.user.email or (User.objects.get(pk=request.user.pk).email if request.user.is_authenticated else None)
         user_subject = f"Thank You for Reporting: {report_id}"
         user_msg = f"Namaste {request.user.username}, thank you for reaching out. We have received your report regarding '{title}'. Our team is reviewing it and will get back to you soon."
         user_html = get_premium_email_html(
@@ -1478,19 +1491,19 @@ def api_submit_grievance(request):
             items_html=f"<tr><td style='padding:12px;'>Report ID</td><td style='padding:12px;text-align:right;'>{report_id}</td></tr>"
                        f"<tr><td style='padding:12px;'>Category</td><td style='padding:12px;text-align:right;'>{category}</td></tr>",
             button_text="Track Status",
-            button_url=f"{request.scheme}://{request.get_host()}"
+            button_url="https://agrosense-io-1.onrender.com/accounts/login/?next=/"
         )
-        send_agro_email(request.user.email, user_subject, user_msg, user_html)
+        send_agro_email(user_email, user_subject, user_msg, user_html)
 
-        # 2. Send Detailed Email to Admin (tumakurecity@gmail.com) with attachment
+        # 2. Send Detailed Email to Admin (tumakurucity@gmail.com) with attachment
         admin_subject = f"URGENT: New Farm Grievance {report_id}"
-        admin_msg = f"New issue reported by {request.user.username} ({request.user.email}).\n\nTitle: {title}\nCategory: {category}\nDetails: {details}"
+        admin_msg = f"New issue reported by {request.user.username} ({user_email}).\n\nTitle: {title}\nCategory: {category}\nDetails: {details}"
         
         # Reset image pointer for reading if it exists
         if image:
             image.seek(0)
 
-        send_agro_email("tumakurecity@gmail.com", admin_subject, admin_msg, attachment=image)
+        send_agro_email("tumakurucity@gmail.com", admin_subject, admin_msg, attachment=image)
 
         return JsonResponse({'status': 'success', 'report_id': report_id})
     
