@@ -2089,19 +2089,19 @@
     // Initial Charts
     window.onload = () => {
         initSand();
-        // Welcome animation
+        // Welcome animation - Speeded up for better UX
         setTimeout(() => {
             const overlay = document.getElementById('welcome-overlay');
             if(overlay) {
-                overlay.style.transition = 'opacity 1s ease, visibility 1s';
+                overlay.style.transition = 'opacity 0.8s ease, visibility 0.8s';
                 overlay.style.opacity = '0';
                 overlay.style.visibility = 'hidden';
                 setTimeout(() => {
-                    overlay.style.display = 'none'; // Completely remove after fade
-                }, 1000);
+                    overlay.style.display = 'none'; 
+                }, 800);
                 showToast("Welcome back to AgroSense!");
             }
-        }, 3000);
+        }, 800); // Reduced from 3000ms
         
         // Fetch Schemes
         fetch('/api/schemes/')
@@ -2129,7 +2129,9 @@
                 });
             });
 
-    // Grievance Logic
+    };
+
+    // Grievance & Volunteer Logic (Globally Scoped)
     function suggestCategory() {
         const title = document.getElementById('grievance-title').value.toLowerCase();
         const suggestionBox = document.getElementById('ai-suggestion');
@@ -2142,8 +2144,6 @@
         }
 
         let category = "General";
-        let color = "#1976d2";
-
         if (title.includes('pest') || title.includes('insect') || title.includes('bug') || title.includes('disease') || title.includes('attack')) {
             category = "Pest";
         } else if (title.includes('water') || title.includes('irrigation') || title.includes('dry') || title.includes('well') || title.includes('pump')) {
@@ -2203,7 +2203,6 @@
 
     function joinVolunteer(taskId, title) {
         showToast(`Signed up for: ${title}! Check your email for next steps. 🤝`);
-        // In a real app, this would hit an API to save Participation
     }
 
     // Only update if search has value (prevents auto-show)

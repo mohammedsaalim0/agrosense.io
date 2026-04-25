@@ -16,6 +16,13 @@
 
         <form method="post" class="login-form" id="login-form">
             {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" style="color: #b71c1c; background: #fee2e2; padding: 10px; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    {% for error in form.non_field_errors %}
+                        <p style="margin: 0;">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" name="username" id="username" placeholder="Enter your username" autocomplete="username" required>

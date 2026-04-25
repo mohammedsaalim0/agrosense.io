@@ -13,6 +13,8 @@ from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profi
 import random
 import io
 import base64
+import logging
+import threading
 from django.core.mail import send_mail
 from django.conf import settings
 from PIL import Image
@@ -312,11 +314,18 @@ def send_agro_email(user_email, subject, text_content, html_content=None, attach
         if attachment:
             # attachment is expected to be a file-like object or UploadedFile
             msg.attach(attachment.name, attachment.read(), attachment.content_type)
-            
-        msg.send(fail_silently=False)
-        print(f"DEBUG: Premium Email sent successfully to {user_email}!")
+        
+        # Use threading to send the email in the background to prevent blocking the main request
+        def _send():
+            try:
+                msg.send(fail_silently=False)
+                print(f"DEBUG: Premium Email sent successfully to {user_email}!")
+            except Exception as e:
+                print(f"DEBUG: Failed to send premium email. Error: {str(e)}")
+
+        threading.Thread(target=_send).start()
     except Exception as e:
-        print(f"DEBUG: Failed to send premium email. Error: {str(e)}")
+        print(f"DEBUG: Thread initiation failed for email to {user_email}. Error: {str(e)}")
 
 def api_market_data(request):
     crop = request.GET.get('crop', 'Wheat').capitalize()

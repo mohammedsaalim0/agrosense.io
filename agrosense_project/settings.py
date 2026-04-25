@@ -158,13 +158,15 @@ SESSION_SAVE_EVERY_REQUEST = True
 # Security Settings for Production (Render/HTTPS)
 # Production Security Settings
 if not DEBUG or os.environ.get('RENDER'):
+    SECURE_SSL_REDIRECT = True # Force HTTPS
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'None' # Changed from Lax to None for better cross-origin stability if needed
+    SESSION_COOKIE_SAMESITE = 'None'
     CSRF_COOKIE_SAMESITE = 'None'
-    # Required for Render/Load Balancers
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 31536000 # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 else:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
