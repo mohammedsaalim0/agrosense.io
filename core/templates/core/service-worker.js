@@ -31,20 +31,35 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
+  // 1. Network-First Strategy for Navigation (HTML pages)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(networkResponse => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        })
+        .catch(() => caches.match(event.request)) // Fallback to cache if offline
+    );
+    return;
+  }
+
+  // 2. Cache-First Strategy for Assets (JS, CSS, Images)
   event.respondWith(
     caches.match(event.request)
       .then(response => {
         if (response) return response;
 
         return fetch(event.request).then(networkResponse => {
-          // Dynamic caching for images and successful requests
           if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then(cache => {
@@ -52,12 +67,6 @@ self.addEventListener('fetch', event => {
             });
           }
           return networkResponse;
-        }).catch(err => {
-          // Offline fallback logic
-          if (event.request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL);
-          }
-          return null;
         });
       })
   );
