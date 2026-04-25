@@ -519,10 +519,10 @@
                             <div class="status-item" id="app-{{ app.id }}">
                                 <p style="font-size: 0.9rem; margin-bottom: 2px;"><strong>{{ app.scheme_name }}</strong></p>
                                 <span class="status-tag {{ app.status|lower }}">{{ app.get_status_display }}</span>
-                                <button class="cancel-app-btn" onclick="cancelApplication('{{ app.scheme_name|escapejs }}', {{ app.id }})">Cancel Application</button>
+                                <button class="cancel-app-btn" onclick="cancelApplication('{{ app.scheme_name|escapejs }}', {{ app.id|default:'null' }})">Cancel Application</button>
                             </div>
                             {% empty %}
-                            <p id="no-apps-msg" style="font-size: 0.8rem; color: #666;">No active applications.</p>
+                            <p id="no-apps-msg-empty" style="font-size: 0.8rem; color: #666;">No active applications.</p>
                             {% endfor %}
                         </div>
                     </div>

@@ -10,6 +10,17 @@
         <div class="welcome-loader"></div>
     </div>
 </div>
+<script>
+    // Immediate Safety: Hide overlay after 5s even if main script fails
+    setTimeout(function() {
+        var ov = document.getElementById('welcome-overlay');
+        if (ov && ov.style.display !== 'none') {
+            ov.style.opacity = '0';
+            ov.style.visibility = 'hidden';
+            setTimeout(function() { ov.style.display = 'none'; }, 800);
+        }
+    }, 5000);
+</script>
 
 <!-- Hero Section -->
 <section class="section hero" id="home">
@@ -300,9 +311,7 @@
         <div class="active-listings">
             <h3>Recent Marketplace Bids</h3>
             <div class="bid-list" id="bid-list">
-            <div class="bid-list" id="bid-list">
                 <!-- Farmer listings will appear here dynamically -->
-            </div>
             </div>
         </div>
     </div>
