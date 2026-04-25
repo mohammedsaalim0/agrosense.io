@@ -372,6 +372,34 @@
 
         .logout-btn, .login-btn { padding: 0.5rem 1.5rem; color: var(--soil-brown); background: var(--harvest-gold); cursor: pointer; }
 
+        /* Status Tracker & Dropdown */
+        .status-tracker-container { position: relative; display: flex; align-items: center; }
+        .status-btn { 
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); 
+            color: white; padding: 0.5rem 1rem; border-radius: 30px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-size: 1.1rem;
+        }
+        .badge { background: var(--harvest-gold); color: var(--soil-brown); padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; }
+        .status-dropdown { 
+            position: absolute; top: 60px; right: 0; width: 300px; 
+            background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 1.5rem; display: none; z-index: 1000; color: var(--soil-brown);
+        }
+        .close-status { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+        .status-list { margin-top: 1rem; max-height: 300px; overflow-y: auto; }
+        .status-item { padding: 12px; border-bottom: 1px solid #eee; transition: 0.2s; }
+        .status-item:hover { background: #f9f9f9; }
+        .status-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; font-weight: bold; }
+        .status-tag.pending { background: #fff3e0; color: #ef6c00; }
+        .status-tag.approved { background: #e8f5e9; color: #2e7d32; }
+        .status-tag.rejected { background: #ffebee; color: #c62828; }
+        .cancel-app-btn { 
+            display: block; width: 100%; margin-top: 8px; padding: 5px; 
+            background: #f44336; color: white; border: none; border-radius: 5px; 
+            font-size: 0.75rem; cursor: pointer; opacity: 0.8;
+        }
+        .cancel-app-btn:hover { opacity: 1; }
+
         /* AgroBot Styles */
         .agrobot-trigger {
             position: fixed; bottom: 30px; right: 30px; width: 70px; height: 70px;
@@ -454,6 +482,7 @@
 </head>
 <body>
     <div class="ambient-particles" id="ambient-particles"></div>
+    <div id="toast-container"></div>
     
     <div id="boot-screen">
         <div class="boot-logo-container">
@@ -1125,6 +1154,10 @@ function toggleTheme() {
 
         function showToast(message) {
             const container = document.getElementById('toast-container');
+            if (!container) {
+                console.warn("Toast container not found. Message:", message);
+                return;
+            }
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.textContent = message;
