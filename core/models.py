@@ -170,3 +170,32 @@ class VolunteerParticipation(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.task.title}"
 
+
+class RefundRequest(models.Model):
+    """Stores refund requests submitted by users for their orders."""
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+        ('PROCESSED', 'Processed'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refund_requests')
+    refund_id = models.CharField(max_length=20, unique=True)
+    reason_category = models.CharField(max_length=100)
+    reason_details = models.TextField()
+    evidence_image = models.ImageField(upload_to='refund_evidence/', blank=True, null=True)
+    # Payment details for refund
+    payment_preference = models.CharField(max_length=10, default='UPI')  # UPI or BANK
+    upi_id = models.CharField(max_length=100, blank=True, null=True)
+    bank_account_no = models.CharField(max_length=20, blank=True, null=True)
+    bank_ifsc = models.CharField(max_length=20, blank=True, null=True)
+    bank_account_name = models.CharField(max_length=100, blank=True, null=True)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Refund {self.refund_id} - Order {self.order.order_id} - {self.status}"
+

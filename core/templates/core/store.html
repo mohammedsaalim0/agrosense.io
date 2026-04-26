@@ -13,6 +13,9 @@
             </div>
             
             <div class="subnav-actions">
+                <a href="{% url 'refunds' %}" class="subnav-btn" style="text-decoration: none;">
+                    <span class="icon">📜</span> Refund Policy
+                </a>
                 <button onclick="openMyOrders()" class="subnav-btn">
                     <span class="icon">📦</span> My Orders
                 </button>
@@ -251,6 +254,116 @@
             </div>
         </div>
     </div>
+
+    <!-- REFUND REQUEST MODAL -->
+    <div id="refund-modal" class="modal-backdrop">
+        <div class="refund-card">
+            <button class="modal-close" onclick="closeRefundModal()">&#x2715;</button>
+            <div class="refund-header">
+                <div class="refund-icon-wrap">&#x1F4B0;</div>
+                <h2>Request a Refund</h2>
+                <p id="refund-order-label" style="color:#64748b;font-size:0.9rem;margin-top:4px;">Order #---</p>
+            </div>
+            <div class="refund-step active" id="refund-step-1">
+                <h3 class="step-title">Step 1 of 3 &mdash; Why do you want a refund?</h3>
+                <div class="refund-form-group">
+                    <label>Select Reason</label>
+                    <select id="refund-reason-cat" class="refund-select">
+                        <option value="">-- Choose a reason --</option>
+                        <option value="Product not received">Product not received</option>
+                        <option value="Wrong item delivered">Wrong item delivered</option>
+                        <option value="Damaged or Defective item">Damaged or Defective item</option>
+                        <option value="Quality not as described">Quality not as described</option>
+                        <option value="Changed my mind">Changed my mind</option>
+                        <option value="Duplicate order">Duplicate order placed</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="refund-form-group">
+                    <label>Additional Details <span style="color:#999;font-size:0.8rem;">(optional)</span></label>
+                    <textarea id="refund-reason-details" class="refund-textarea" placeholder="Describe your issue in more detail..."></textarea>
+                </div>
+                <div class="refund-form-group">
+                    <label>Upload Evidence Photo <span style="color:#999;font-size:0.8rem;">(optional)</span></label>
+                    <div class="refund-upload-zone" id="refund-upload-zone" onclick="document.getElementById('refund-img-input').click()">
+                        <input type="file" id="refund-img-input" accept="image/*" style="display:none" onchange="previewRefundImage(this)">
+                        <p id="refund-upload-text">&#x1F4C1; Click to upload photo of item</p>
+                    </div>
+                </div>
+                <button class="refund-next-btn" onclick="refundStep(2)">Continue &rarr;</button>
+            </div>
+            <div class="refund-step" id="refund-step-2">
+                <h3 class="step-title">Step 2 of 3 &mdash; Where should we send the money?</h3>
+                <div class="refund-amount-badge">Refund Amount: <strong id="refund-amount-display">&#x20B9;0</strong></div>
+                <div class="refund-form-group">
+                    <label>Refund Method</label>
+                    <div class="payment-toggle">
+                        <button class="pay-opt active" id="opt-upi" onclick="togglePayOpt('UPI')">UPI</button>
+                        <button class="pay-opt" id="opt-bank" onclick="togglePayOpt('BANK')">Bank Transfer</button>
+                    </div>
+                </div>
+                <div id="upi-fields">
+                    <div class="refund-form-group">
+                        <label>UPI ID</label>
+                        <input type="text" id="refund-upi-id" class="refund-input" placeholder="yourname@upi or 9876543210@paytm">
+                    </div>
+                </div>
+                <div id="bank-fields" style="display:none;">
+                    <div class="refund-form-group">
+                        <label>Account Holder Name</label>
+                        <input type="text" id="refund-bank-name" class="refund-input" placeholder="Name as on bank account">
+                    </div>
+                    <div class="refund-form-group">
+                        <label>Account Number</label>
+                        <input type="text" id="refund-bank-acc" class="refund-input" placeholder="Enter account number">
+                    </div>
+                    <div class="refund-form-group">
+                        <label>IFSC Code</label>
+                        <input type="text" id="refund-bank-ifsc" class="refund-input" placeholder="e.g. SBIN0001234">
+                    </div>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                    <button class="refund-back-btn" onclick="refundStep(1)">&larr; Back</button>
+                    <button class="refund-next-btn" onclick="refundStep(3)">Continue &rarr;</button>
+                </div>
+            </div>
+            <div class="refund-step" id="refund-step-3">
+                <h3 class="step-title">Step 3 of 3 &mdash; Review &amp; Confirm</h3>
+                <div class="refund-review-box" id="refund-review-content"></div>
+                <p class="refund-policy-note">&#x1F512; Your data is secure. Refund processed within <strong>24 hours</strong>.</p>
+                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                    <button class="refund-back-btn" onclick="refundStep(2)">&larr; Back</button>
+                    <button class="refund-submit-btn" id="refund-submit-btn" onclick="submitRefundRequest()">Submit Refund Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REFUND SUCCESS FULL-SCREEN OVERLAY -->
+    <div id="refund-success-overlay" class="refund-success-overlay">
+        <div class="refund-confetti-layer" id="refund-confetti"></div>
+        <div class="refund-success-card">
+            <div class="success-checkmark-ring">
+                <svg viewBox="0 0 80 80" width="100" height="100">
+                    <circle class="checkmark-circle-anim" cx="40" cy="40" r="36" fill="none" stroke="#4caf50" stroke-width="4"/>
+                    <path class="checkmark-tick-anim" d="M20 40 L34 54 L60 26" fill="none" stroke="#4caf50" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h1 class="refund-success-title">Refund Initiated!</h1>
+            <p class="refund-success-sub">Your request has been submitted successfully.</p>
+            <div class="refund-success-details" id="refund-success-details"></div>
+            <div class="patience-banner">
+                <div class="patience-clock">&#x23F0;</div>
+                <div>
+                    <strong>Please allow 24 hours</strong> for the refund to reflect in your account.<br>
+                    <span style="font-size:1.1rem;">Please have patience &#x2764;</span>
+                </div>
+            </div>
+            <p class="email-sent-note">&#x1F4E7; A confirmation email has been sent to your inbox.</p>
+            <button class="success-close-btn" onclick="closeRefundSuccess()">&larr; Back to Store</button>
+        </div>
+    </div>
+
 </div>
 
 <style>
@@ -556,6 +669,187 @@
     .bill-actions { margin-top: 2rem; display: flex; justify-content: center; }
 
     .btn-outline.full { width: 100%; border-color: var(--text-muted); color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════
+       REFUND MODAL STYLES
+    ══════════════════════════════════════════ */
+    .refund-card {
+        background: white;
+        border-radius: 24px;
+        width: 100%;
+        max-width: 560px;
+        position: relative;
+        max-height: 92vh;
+        overflow-y: auto;
+        padding: 2.5rem;
+        animation: modalFadeIn 0.35s ease-out;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    }
+
+    .refund-header { text-align: center; margin-bottom: 1.8rem; }
+    .refund-icon-wrap {
+        width: 70px; height: 70px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 2rem; margin: 0 auto 1rem;
+        box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+    }
+    .refund-header h2 { font-size: 1.6rem; color: #1a4d2e; margin-bottom: 0; }
+
+    .refund-step { display: none; }
+    .refund-step.active { display: block; animation: slideInStep 0.3s ease; }
+    @keyframes slideInStep { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+    .step-title { font-size: 1rem; color: var(--primary-green); font-weight: 700; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 2px solid #e8f5e9; }
+    .refund-form-group { margin-bottom: 1.2rem; }
+    .refund-form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .refund-select, .refund-input, .refund-textarea {
+        width: 100%; padding: 0.75rem 1rem; border: 1.5px solid #e2e8f0;
+        border-radius: 10px; font-family: inherit; font-size: 0.95rem;
+        transition: border-color 0.2s; background: #f8fafc; color: #2c3e50;
+    }
+    .refund-select:focus, .refund-input:focus, .refund-textarea:focus { outline: none; border-color: var(--accent-green); background: white; }
+    .refund-textarea { min-height: 90px; resize: vertical; }
+
+    .refund-upload-zone {
+        border: 2px dashed #cbd5e1; border-radius: 12px; padding: 1.5rem;
+        text-align: center; cursor: pointer; transition: all 0.25s;
+        background: #f8fafc; color: #64748b; font-size: 0.9rem;
+    }
+    .refund-upload-zone:hover { border-color: var(--accent-green); background: #f0fdf4; color: var(--primary-green); }
+    .refund-upload-zone.has-file { border-color: var(--accent-green); background: #f0fdf4; }
+
+    .refund-next-btn {
+        width: 100%; padding: 0.9rem; background: linear-gradient(135deg, #2d5a27, #4caf50);
+        color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700;
+        cursor: pointer; margin-top: 0.5rem; transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(45,90,39,0.3);
+    }
+    .refund-next-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(45,90,39,0.35); }
+
+    .refund-back-btn {
+        flex: 1; padding: 0.9rem; background: #f1f5f9; color: #64748b;
+        border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 0.95rem;
+        font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .refund-back-btn:hover { background: #e2e8f0; }
+
+    .refund-submit-btn {
+        flex: 2; padding: 0.9rem; background: linear-gradient(135deg, #1b5e20, #388e3c);
+        color: white; border: none; border-radius: 12px; font-size: 1rem;
+        font-weight: 700; cursor: pointer; transition: transform 0.2s;
+        box-shadow: 0 4px 12px rgba(27,94,32,0.3);
+    }
+    .refund-submit-btn:hover { transform: translateY(-2px); }
+    .refund-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .refund-amount-badge {
+        background: linear-gradient(135deg, #e8f5e9, #c8e6c9); color: #1a4d2e;
+        padding: 0.8rem 1.2rem; border-radius: 12px; font-size: 1rem;
+        font-weight: 600; margin-bottom: 1.2rem; text-align: center;
+        border: 1px solid #a5d6a7;
+    }
+    .refund-amount-badge strong { font-size: 1.3rem; color: #1a4d2e; }
+
+    .payment-toggle { display: flex; gap: 0.8rem; margin-top: 4px; }
+    .pay-opt {
+        flex: 1; padding: 0.7rem; border: 2px solid #e2e8f0; border-radius: 10px;
+        background: white; font-weight: 600; cursor: pointer; font-size: 0.9rem;
+        transition: all 0.2s; color: #64748b;
+    }
+    .pay-opt.active { border-color: var(--accent-green); background: #f0fdf4; color: var(--primary-green); }
+
+    .refund-review-box {
+        background: #f8fafc; border-radius: 12px; padding: 1.2rem;
+        border: 1.5px solid #e2e8f0; margin-bottom: 1rem;
+        font-size: 0.9rem; line-height: 1.8;
+    }
+    .refund-review-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
+    .refund-review-row:last-child { border-bottom: none; }
+    .refund-review-row span:first-child { color: #64748b; font-weight: 600; }
+    .refund-review-row span:last-child { color: #1a4d2e; font-weight: 700; }
+
+    .refund-policy-note { font-size: 0.8rem; color: #64748b; text-align: center; }
+
+    /* ══════════════════════════════════════════
+       REFUND SUCCESS FULL-SCREEN OVERLAY
+    ══════════════════════════════════════════ */
+    .refund-success-overlay {
+        position: fixed; inset: 0;
+        background: linear-gradient(135deg, #0d2b1a 0%, #1a4d2e 40%, #2d5a27 70%, #1b5e20 100%);
+        display: none; align-items: center; justify-content: center;
+        z-index: 999999; flex-direction: column; padding: 20px;
+        overflow: hidden;
+    }
+    .refund-success-overlay.active { display: flex; animation: overlayFadeIn 0.5s ease; }
+    @keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .refund-confetti-layer {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 0;
+    }
+    .confetti-piece {
+        position: absolute; width: 10px; height: 10px; border-radius: 2px;
+        animation: confettiFall linear infinite;
+    }
+    @keyframes confettiFall {
+        0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    .refund-success-card {
+        position: relative; z-index: 1; text-align: center;
+        background: rgba(255,255,255,0.08); backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.15); border-radius: 32px;
+        padding: 3rem 2.5rem; max-width: 480px; width: 100%;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        animation: cardPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both;
+    }
+    @keyframes cardPop { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .success-checkmark-ring { margin: 0 auto 1.5rem; }
+    .checkmark-circle-anim {
+        stroke-dasharray: 226; stroke-dashoffset: 226;
+        animation: drawCircle 0.8s ease 0.4s forwards;
+    }
+    .checkmark-tick-anim {
+        stroke-dasharray: 60; stroke-dashoffset: 60;
+        animation: drawTick 0.5s ease 1.1s forwards;
+    }
+    @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+    @keyframes drawTick { to { stroke-dashoffset: 0; } }
+
+    .refund-success-title {
+        font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 800;
+        color: white; margin-bottom: 0.5rem; letter-spacing: -0.5px;
+    }
+    .refund-success-sub { color: rgba(255,255,255,0.8); font-size: 1rem; margin-bottom: 1.5rem; }
+
+    .refund-success-details {
+        background: rgba(255,255,255,0.1); border-radius: 16px; padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem; text-align: left; border: 1px solid rgba(255,255,255,0.15);
+    }
+    .refund-success-row { display: flex; justify-content: space-between; padding: 5px 0; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
+    .refund-success-row strong { color: #a5d6a7; }
+
+    .patience-banner {
+        display: flex; align-items: center; gap: 1rem;
+        background: rgba(255,255,255,0.1); border-radius: 16px; padding: 1rem 1.5rem;
+        margin-bottom: 1rem; border: 1px solid rgba(255,255,255,0.2); text-align: left;
+        color: rgba(255,255,255,0.9);
+    }
+    .patience-clock { font-size: 2rem; }
+
+    .email-sent-note { color: rgba(255,255,255,0.65); font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+    .success-close-btn {
+        background: white; color: #1a4d2e; border: none; padding: 0.9rem 2.5rem;
+        border-radius: 50px; font-size: 1rem; font-weight: 700; cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .success-close-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.25); }
+
+
 
     .container {
         max-width: 1400px;
@@ -1524,6 +1818,7 @@
                             </div>
                             <div class="order-actions">
                                 <button class="btn-sm bill" onclick="viewBill('${order.order_id}')">Invoice</button>
+                                ${(order.status === 'PAID' || order.status === 'DELIVERED') ? `<button class="btn-sm" style="color:#e67e22;border-color:#fde8cc;background:#fffbf5;" onclick="openRefundModal('${order.order_id}', ${order.total_amount})">&#x1F4B0; Refund</button>` : ''}
                                 ${order.status !== 'CANCELLED' ? `<button class="btn-sm cancel" onclick="cancelOrder('${order.order_id}')">Cancel</button>` : ''}
                             </div>
                         </div>
@@ -1579,6 +1874,166 @@
 
     function closeBillModal() {
         document.getElementById('bill-modal').style.display = 'none';
+    }
+
+    // ═══════════════════════════════════════════════
+    // REFUND REQUEST SYSTEM
+    // ═══════════════════════════════════════════════
+    let _refundOrderId = null;
+    let _refundAmount = 0;
+    let _refundPayPreference = 'UPI';
+
+    function openRefundModal(orderId, amount) {
+        _refundOrderId = orderId;
+        _refundAmount = amount;
+        document.getElementById('refund-order-label').textContent = 'Order #' + orderId;
+        document.getElementById('refund-amount-display').textContent = '\u20B9' + parseFloat(amount).toFixed(2);
+        // Reset form
+        document.getElementById('refund-reason-cat').value = '';
+        document.getElementById('refund-reason-details').value = '';
+        document.getElementById('refund-upi-id').value = '';
+        document.getElementById('refund-img-input').value = '';
+        document.getElementById('refund-upload-text').textContent = '\uD83D\uDCC1 Click to upload photo of item';
+        document.getElementById('refund-upload-zone').classList.remove('has-file');
+        // Reset to step 1
+        document.querySelectorAll('.refund-step').forEach(s => s.classList.remove('active'));
+        document.getElementById('refund-step-1').classList.add('active');
+        togglePayOpt('UPI');
+        // Close orders modal and open refund modal
+        document.getElementById('orders-modal').style.display = 'none';
+        document.getElementById('refund-modal').style.display = 'flex';
+    }
+
+    function closeRefundModal() {
+        document.getElementById('refund-modal').style.display = 'none';
+    }
+
+    function refundStep(step) {
+        if (step === 2) {
+            const reason = document.getElementById('refund-reason-cat').value;
+            if (!reason) { alert('Please select a reason for your refund request.'); return; }
+        }
+        if (step === 3) {
+            if (_refundPayPreference === 'UPI') {
+                const upi = document.getElementById('refund-upi-id').value.trim();
+                if (!upi) { alert('Please enter your UPI ID.'); return; }
+            } else {
+                const acc = document.getElementById('refund-bank-acc').value.trim();
+                const ifsc = document.getElementById('refund-bank-ifsc').value.trim();
+                if (!acc || !ifsc) { alert('Please enter complete bank details.'); return; }
+            }
+            // Build review
+            const reason = document.getElementById('refund-reason-cat').value;
+            const details = document.getElementById('refund-reason-details').value.trim();
+            const payDisplay = _refundPayPreference === 'UPI'
+                ? document.getElementById('refund-upi-id').value.trim()
+                : `${document.getElementById('refund-bank-acc').value.trim()} (${document.getElementById('refund-bank-ifsc').value.trim()})`;
+            document.getElementById('refund-review-content').innerHTML = `
+                <div class="refund-review-row"><span>Order</span><span>#${_refundOrderId}</span></div>
+                <div class="refund-review-row"><span>Refund Amount</span><span>\u20B9${parseFloat(_refundAmount).toFixed(2)}</span></div>
+                <div class="refund-review-row"><span>Reason</span><span>${reason}</span></div>
+                ${details ? `<div class="refund-review-row"><span>Details</span><span>${details.substring(0,60)}${details.length>60?'...':''}</span></div>` : ''}
+                <div class="refund-review-row"><span>Refund Via</span><span>${_refundPayPreference}</span></div>
+                <div class="refund-review-row"><span>Payment To</span><span>${payDisplay}</span></div>
+            `;
+        }
+        document.querySelectorAll('.refund-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(`refund-step-${step}`).classList.add('active');
+    }
+
+    function togglePayOpt(type) {
+        _refundPayPreference = type;
+        document.getElementById('opt-upi').classList.toggle('active', type === 'UPI');
+        document.getElementById('opt-bank').classList.toggle('active', type === 'BANK');
+        document.getElementById('upi-fields').style.display = type === 'UPI' ? 'block' : 'none';
+        document.getElementById('bank-fields').style.display = type === 'BANK' ? 'block' : 'none';
+    }
+
+    function previewRefundImage(input) {
+        if (input.files && input.files[0]) {
+            const zone = document.getElementById('refund-upload-zone');
+            const txt = document.getElementById('refund-upload-text');
+            zone.classList.add('has-file');
+            txt.textContent = '\u2705 ' + input.files[0].name + ' uploaded!';
+        }
+    }
+
+    async function submitRefundRequest() {
+        const btn = document.getElementById('refund-submit-btn');
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+
+        const formData = new FormData();
+        formData.append('order_id', _refundOrderId);
+        formData.append('reason_category', document.getElementById('refund-reason-cat').value);
+        formData.append('reason_details', document.getElementById('refund-reason-details').value);
+        formData.append('payment_preference', _refundPayPreference);
+        formData.append('upi_id', document.getElementById('refund-upi-id').value.trim());
+        formData.append('bank_account_no', document.getElementById('refund-bank-acc') ? document.getElementById('refund-bank-acc').value.trim() : '');
+        formData.append('bank_ifsc', document.getElementById('refund-bank-ifsc') ? document.getElementById('refund-bank-ifsc').value.trim() : '');
+        formData.append('bank_account_name', document.getElementById('refund-bank-name') ? document.getElementById('refund-bank-name').value.trim() : '');
+        const imgInput = document.getElementById('refund-img-input');
+        if (imgInput.files[0]) formData.append('evidence_image', imgInput.files[0]);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        try {
+            const res = await fetch('/api/submit-refund/', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.status === 'success') {
+                closeRefundModal();
+                showRefundSuccess(data.refund_id, data.refund_amount);
+            } else {
+                alert(data.message || 'Failed to submit refund. Please try again.');
+                btn.disabled = false;
+                btn.textContent = 'Submit Refund Request';
+            }
+        } catch (err) {
+            alert('Network error. Please check your connection and try again.');
+            btn.disabled = false;
+            btn.textContent = 'Submit Refund Request';
+        }
+    }
+
+    function showRefundSuccess(refundId, amount) {
+        // Populate success details
+        const payDisplay = _refundPayPreference === 'UPI'
+            ? document.getElementById('refund-upi-id').value.trim()
+            : document.getElementById('refund-bank-acc') ? document.getElementById('refund-bank-acc').value.trim() : 'Bank Account';
+        document.getElementById('refund-success-details').innerHTML = `
+            <div class="refund-success-row"><span>Refund ID</span><strong>${refundId}</strong></div>
+            <div class="refund-success-row"><span>Order</span><strong>#${_refundOrderId}</strong></div>
+            <div class="refund-success-row"><span>Amount</span><strong>\u20B9${parseFloat(amount).toFixed(2)}</strong></div>
+            <div class="refund-success-row"><span>Credited To</span><strong>${_refundPayPreference}: ${payDisplay}</strong></div>
+        `;
+        const overlay = document.getElementById('refund-success-overlay');
+        overlay.classList.add('active');
+        launchConfetti();
+    }
+
+    function closeRefundSuccess() {
+        document.getElementById('refund-success-overlay').classList.remove('active');
+        document.getElementById('refund-confetti').innerHTML = '';
+    }
+
+    function launchConfetti() {
+        const container = document.getElementById('refund-confetti');
+        container.innerHTML = '';
+        const colors = ['#4caf50','#a5d6a7','#FFD700','#fff','#81c784','#c8e6c9','#ffcc02'];
+        for (let i = 0; i < 80; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.cssText = `
+                left: ${Math.random() * 100}vw;
+                width: ${4 + Math.random() * 10}px;
+                height: ${6 + Math.random() * 10}px;
+                background: ${colors[Math.floor(Math.random() * colors.length)]};
+                animation-duration: ${2 + Math.random() * 3}s;
+                animation-delay: ${Math.random() * 1.5}s;
+                border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+                opacity: ${0.7 + Math.random() * 0.3};
+            `;
+            container.appendChild(piece);
+        }
     }
 
     function handleStoreSearch() {

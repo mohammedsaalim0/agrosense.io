@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Profile, Crop, SupportScheme, MarketListing, SchemeApplication, LearningProgress, CourseCertificate, CourseAssessment, Product, Order, BankTransaction
+from .models import Profile, Crop, SupportScheme, MarketListing, SchemeApplication, LearningProgress, CourseCertificate, CourseAssessment, Product, Order, BankTransaction, RefundRequest
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
@@ -63,6 +63,19 @@ admin.site.register(LearningProgress)
 admin.site.register(CourseCertificate)
 admin.site.register(CourseAssessment)
 admin.site.register(BankTransaction)
+
+@admin.register(RefundRequest)
+class RefundRequestAdmin(admin.ModelAdmin):
+    list_display = ('refund_id', 'user', 'order', 'refund_amount', 'payment_preference', 'status', 'submitted_at')
+    list_filter = ('status', 'payment_preference', 'submitted_at')
+    search_fields = ('refund_id', 'user__username', 'order__order_id', 'upi_id')
+    readonly_fields = ('refund_id', 'submitted_at', 'updated_at', 'user', 'order', 'reason_category', 'reason_details', 'refund_amount', 'payment_preference', 'upi_id', 'bank_account_no', 'bank_ifsc', 'bank_account_name', 'evidence_image')
+    list_editable = ('status',)
+    fieldsets = (
+        ('Refund Info', {'fields': ('refund_id', 'user', 'order', 'refund_amount', 'status', 'submitted_at', 'updated_at')}),
+        ('Reason', {'fields': ('reason_category', 'reason_details', 'evidence_image')}),
+        ('Payment Details', {'fields': ('payment_preference', 'upi_id', 'bank_account_no', 'bank_ifsc', 'bank_account_name')}),
+    )
 
 # Customize admin site header
 admin.site.site_header = "AgroSense Admin Portal"

@@ -1665,9 +1665,12 @@
 
         results.innerHTML = '<div class="ai-scanning-dots">Analyzing Image Hardware...<span>.</span><span>.</span><span>.</span></div>';
         
+        const claimedQuality = document.getElementById('listing-quality').value;
+        
         const formData = new FormData();
         formData.append('crop', crop);
         formData.append('file', fileInput.files[0]);
+        formData.append('claimed_quality', claimedQuality);
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
         try {

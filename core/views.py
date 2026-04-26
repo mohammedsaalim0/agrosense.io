@@ -21,7 +21,7 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
-from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment, Product, Order
+from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment, Product, Order, RefundRequest
 import uuid
 
 
@@ -323,7 +323,11 @@ def send_agro_email(user_email, subject, text_content, html_content=None, attach
         
         def _send_async(email_msg, target_addr):
             try:
-                email_msg.send(fail_silently=False)
+                # Ensure each thread gets its own fresh connection to avoid "one-time" sending issues
+                from django.core.mail import get_connection
+                connection = get_connection(fail_silently=False)
+                email_msg.connection = connection
+                email_msg.send()
                 print(f"DEBUG: Premium Email successfully sent to {target_addr}")
             except Exception as e:
                 print(f"DEBUG: SMTP Error sending to {target_addr}: {str(e)}")
@@ -688,32 +692,44 @@ def api_predict_fair_price(request):
         r_var = sum((p[0] - r_avg)**2 for p in pixels) / len(pixels)
         g_var = sum((p[1] - g_avg)**2 for p in pixels) / len(pixels)
         
-        uniformity_bonus = max(0, 35 - int((r_var + g_var) ** 0.5 / 4))
+        # Penalize high variance (mixed sizes/colors indicate low grade)
+        variance_score = (r_var + g_var) ** 0.5
+        uniformity_bonus = max(0, 35 - int(variance_score / 3.5))
         quality_score += uniformity_bonus
-        if uniformity_bonus > 25:
+        
+        if variance_score > 80:
+            quality_score -= 15 # Heavy penalty for very mixed samples
+            report_points.append("High Grain Variance: Mixed sizes or discoloration detected. Suggests low-grade batch.")
+        elif uniformity_bonus > 25:
             report_points.append("Superior Uniformity: Minimal grain variance detected. High millability and premium sorting.")
         elif uniformity_bonus > 12:
             report_points.append("Consistent Sample: Majority of grains show uniform size and maturity.")
         else:
             report_points.append("Mixed Quality: High variance in sample. May require additional sorting before sale.")
 
-        # 4. Market Trend Analysis (Heuristic based on current "market season")
+        # 4. Claim Verification (NEW: Check if user claim matches reality)
+        claimed_quality = request.POST.get('claimed_quality', 'Standard')
+        if claimed_quality == 'Premium' and quality_score < 75:
+            quality_score -= 10 # Penalize if user claims premium but it looks poor
+            report_points.append("Quality Mismatch: Sample does not meet the visual criteria for 'Premium' grade.")
+
+        # 5. Market Trend Analysis (Heuristic based on current "market season")
         current_month = timezone.now().month
         # Assume peak harvest months (3,4, 10,11) have slightly higher supply pressure
         is_harvest_season = current_month in [3, 4, 10, 11]
         market_analysis = ""
         
-        if quality_score > 85:
+        if quality_score > 92: # Tightened from 88
             quality = 'Premium'
             multiplier = 1.18
             market_analysis = "Market Trend: High demand for export-quality produce. Current supply is tight for this grade."
             summary = "Premium Grade detected. This sample qualifies for the highest market bracket due to its superior lustre and uniformity."
-        elif quality_score > 65:
+        elif quality_score > 80: # Tightened from 70
             quality = 'A-Grade'
             multiplier = 1.10
             market_analysis = "Market Trend: Steady demand from institutional buyers and retail chains."
             summary = "A-Grade Quality. Above average results. Well-matured sample with good marketability."
-        elif quality_score > 40:
+        elif quality_score > 55: # Tightened from 45
             quality = 'Standard'
             multiplier = 1.00
             market_analysis = "Market Trend: Normal liquidity. Price aligns perfectly with current Government MSP."
@@ -1508,3 +1524,124 @@ def api_submit_grievance(request):
         return JsonResponse({'status': 'success', 'report_id': report_id})
     
     return JsonResponse({'status': 'error'}, status=400)
+
+
+def api_submit_refund(request):
+    """Handles refund request submission with email notification."""
+    if request.method != 'POST' or not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=401)
+
+    order_id = request.POST.get('order_id')
+    reason_category = request.POST.get('reason_category')
+    reason_details = request.POST.get('reason_details', '')
+    payment_preference = request.POST.get('payment_preference', 'UPI')
+    upi_id = request.POST.get('upi_id', '')
+    bank_account_no = request.POST.get('bank_account_no', '')
+    bank_ifsc = request.POST.get('bank_ifsc', '')
+    bank_account_name = request.POST.get('bank_account_name', '')
+    evidence_image = request.FILES.get('evidence_image')
+
+    if not order_id or not reason_category:
+        return JsonResponse({'status': 'error', 'message': 'Missing required fields.'}, status=400)
+
+    # Validate order belongs to user
+    order = Order.objects.filter(user=request.user, order_id=order_id).first()
+    if not order:
+        return JsonResponse({'status': 'error', 'message': 'Order not found.'}, status=404)
+
+    # Prevent duplicate refund requests
+    if RefundRequest.objects.filter(order=order, status__in=['PENDING', 'APPROVED', 'PROCESSED']).exists():
+        return JsonResponse({'status': 'error', 'message': 'A refund request for this order already exists.'}, status=400)
+
+    # Validate payment details
+    if payment_preference == 'UPI' and not upi_id:
+        return JsonResponse({'status': 'error', 'message': 'Please provide your UPI ID.'}, status=400)
+    if payment_preference == 'BANK' and (not bank_account_no or not bank_ifsc):
+        return JsonResponse({'status': 'error', 'message': 'Please provide complete bank details.'}, status=400)
+
+    # Generate refund ID
+    refund_id = f"RFD-{random.randint(10000, 99999)}"
+
+    # Save refund request
+    refund = RefundRequest.objects.create(
+        user=request.user,
+        order=order,
+        refund_id=refund_id,
+        reason_category=reason_category,
+        reason_details=reason_details,
+        payment_preference=payment_preference,
+        upi_id=upi_id if payment_preference == 'UPI' else None,
+        bank_account_no=bank_account_no if payment_preference == 'BANK' else None,
+        bank_ifsc=bank_ifsc if payment_preference == 'BANK' else None,
+        bank_account_name=bank_account_name if payment_preference == 'BANK' else None,
+        refund_amount=order.total_amount,
+    )
+
+    # Save evidence image if provided
+    if evidence_image:
+        refund.evidence_image = evidence_image
+        refund.save()
+
+    # Payment method display
+    payment_display = f"UPI: {upi_id}" if payment_preference == 'UPI' else f"Bank A/C: {bank_account_no} (IFSC: {bank_ifsc})"
+
+    # --- Send Confirmation Email to User ---
+    user_email = request.user.email
+    if user_email:
+        user_subject = f"AgroSense: Refund Request Received ({refund_id})"
+        user_msg = f"Namaste {request.user.first_name or request.user.username}, your refund request {refund_id} for Order {order_id} has been received. Refund of ₹{order.total_amount} will be processed to {payment_display} within 24 hours."
+        items_html = f"""
+            <tr>
+                <td style='padding:12px;border-bottom:1px solid #eee;'>Refund ID</td>
+                <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'><strong>{refund_id}</strong></td>
+            </tr>
+            <tr>
+                <td style='padding:12px;border-bottom:1px solid #eee;'>Order ID</td>
+                <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{order_id}</td>
+            </tr>
+            <tr>
+                <td style='padding:12px;border-bottom:1px solid #eee;'>Reason</td>
+                <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{reason_category}</td>
+            </tr>
+            <tr>
+                <td style='padding:12px;border-bottom:1px solid #eee;'>Refund To</td>
+                <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{payment_display}</td>
+            </tr>
+            <tr>
+                <td style='padding:12px;'>Refund Amount</td>
+                <td style='padding:12px;text-align:right;'><strong style="color:#2d5a27;">₹{order.total_amount}</strong></td>
+            </tr>
+        """
+        user_html = get_premium_email_html(
+            title="Refund Request Received 💚",
+            message=f"Namaste <strong>{request.user.first_name or request.user.username}</strong>,<br><br>We have received your refund request for Order <strong>{order_id}</strong>. Our team is reviewing your request and the refund of <strong>₹{order.total_amount}</strong> will be credited to your account within <strong>24 hours</strong>. Please have patience &lt;3",
+            items_html=items_html,
+            total=float(order.total_amount),
+            button_text="Visit AgroStore",
+            button_url="https://agrosense-io-1.onrender.com/store/"
+        )
+        send_agro_email(user_email, user_subject, user_msg, user_html)
+
+    # --- Send Alert to Admin ---
+    admin_subject = f"NEW REFUND REQUEST: {refund_id} - Order {order_id}"
+    admin_msg = (
+        f"User: {request.user.username} ({user_email})\n"
+        f"Order ID: {order_id}\nRefund ID: {refund_id}\n"
+        f"Amount: ₹{order.total_amount}\nReason: {reason_category}\n"
+        f"Details: {reason_details}\nPay To: {payment_display}"
+    )
+    if evidence_image:
+        evidence_image.seek(0)
+    send_agro_email(
+        "tumakurucity@gmail.com",
+        admin_subject,
+        admin_msg,
+        attachment=evidence_image if evidence_image else None
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'refund_id': refund_id,
+        'refund_amount': float(order.total_amount),
+        'message': f'Refund request {refund_id} submitted successfully!'
+    })
