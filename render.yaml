@@ -1,7 +1,7 @@
 services:
   # Django Web Service
   - type: web
-    name: agrosense-io
+    name: agrosense.io
     env: python
     plan: free
     buildCommand: bash ./build.sh
