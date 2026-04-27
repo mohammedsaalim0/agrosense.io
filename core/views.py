@@ -1134,212 +1134,194 @@ def api_predict_fair_price(request):
                         profile = crop_profiles[k]
                         break
                 
-                # ADVANCED CROP QUALITY ANALYSIS SYSTEM (Machine Learning Approach)
-                score = 0
-                report_points = ["Advanced crop quality analysis initiated..."]
+                # SIMPLE & ACCURATE CROP QUALITY ANALYSIS
+                score = 50  # Start with neutral score
+                report_points = ["Analyzing crop quality..."]
                 
-                # 1. CROP-SPECIFIC QUALITY MODELS
-                crop_quality_models = {
-                    'tomato': {
-                        'premium_rgb': [(200, 255, 20, 80, 10, 50)],  # Deep red range
-                        'good_rgb': [(180, 220, 30, 100, 15, 70)],   # Good red range
-                        'standard_rgb': [(150, 200, 40, 120, 20, 90)], # Acceptable red
-                        'defect_rgb': [(80, 140, 40, 100, 30, 80)],   # Green/unripe
-                        'rot_rgb': [(60, 120, 40, 80, 30, 60)],       # Rot spots
-                        'texture_premium': (10, 25),
-                        'texture_good': (15, 35),
-                        'texture_standard': (25, 50),
-                        'brightness_optimal': (120, 200)
-                    },
-                    'wheat': {
-                        'premium_rgb': [(210, 240, 180, 210, 100, 140)],  # Golden wheat
-                        'good_rgb': [(190, 220, 160, 190, 80, 120)],     # Good wheat
-                        'standard_rgb': [(170, 200, 140, 170, 60, 100)],   # Standard wheat
-                        'defect_rgb': [(120, 160, 120, 160, 80, 120)],     # Discolored
-                        'mold_rgb': [(100, 140, 100, 140, 60, 100)],       # Moldy
-                        'texture_premium': (12, 28),
-                        'texture_good': (18, 40),
-                        'texture_standard': (30, 55),
-                        'brightness_optimal': (140, 210)
-                    },
-                    'rice': {
-                        'premium_rgb': [(220, 255, 220, 255, 200, 240)],  # White rice
-                        'good_rgb': [(200, 240, 200, 240, 180, 220)],     # Good white
-                        'standard_rgb': [(180, 220, 180, 220, 160, 200)],   # Off-white
-                        'defect_rgb': [(140, 180, 140, 180, 120, 160)],     # Yellowed
-                        'broken_rgb': [(120, 160, 120, 160, 100, 140)],     # Damaged
-                        'texture_premium': (8, 20),
-                        'texture_good': (12, 30),
-                        'texture_standard': (20, 45),
-                        'brightness_optimal': (180, 240)
-                    },
-                    'potato': {
-                        'premium_rgb': [(200, 240, 180, 220, 100, 160)],  # Fresh potato
-                        'good_rgb': [(180, 220, 160, 200, 80, 140)],       # Good potato
-                        'standard_rgb': [(160, 200, 140, 180, 60, 120)],     # Standard
-                        'defect_rgb': [(100, 140, 80, 120, 40, 80)],         # Green spots
-                        'sprouted_rgb': [(120, 160, 100, 140, 60, 100)],     # Sprouted
-                        'texture_premium': (15, 30),
-                        'texture_good': (20, 40),
-                        'texture_standard': (35, 60),
-                        'brightness_optimal': (150, 220)
-                    },
-                    'onion': {
-                        'premium_rgb': [(200, 240, 180, 220, 150, 200)],  # Fresh onion
-                        'good_rgb': [(180, 220, 160, 200, 120, 180)],       # Good onion
-                        'standard_rgb': [(160, 200, 140, 180, 100, 160)],     # Standard
-                        'defect_rgb': [(100, 140, 80, 120, 60, 100)],         # Rot spots
-                        'peeled_rgb': [(220, 255, 220, 255, 200, 240)],     # Peeled
-                        'texture_premium': (12, 28),
-                        'texture_good': (18, 38),
-                        'texture_standard': (30, 52),
-                        'brightness_optimal': (160, 230)
-                    },
-                    'maize': {
-                        'premium_rgb': [(220, 255, 180, 220, 80, 140)],   # Golden corn
-                        'good_rgb': [(200, 240, 160, 200, 60, 120)],       # Good corn
-                        'standard_rgb': [(180, 220, 140, 180, 40, 100)],     # Standard
-                        'defect_rgb': [(120, 160, 100, 140, 40, 80)],       # Damaged
-                        'immature_rgb': [(140, 180, 120, 160, 60, 100)],     # Immature
-                        'texture_premium': (14, 32),
-                        'texture_good': (20, 42),
-                        'texture_standard': (32, 58),
-                        'brightness_optimal': (150, 220)
-                    },
-                    'cotton': {
-                        'premium_rgb': [(240, 255, 240, 255, 240, 255)],  # White cotton
-                        'good_rgb': [(220, 240, 220, 240, 220, 240)],       # Good white
-                        'standard_rgb': [(200, 220, 200, 220, 200, 220)],     # Off-white
-                        'defect_rgb': [(140, 180, 120, 160, 100, 140)],     # Stained
-                        'trash_rgb': [(100, 140, 80, 120, 60, 100)],         # Trash
-                        'texture_premium': (8, 22),
-                        'texture_good': (12, 32),
-                        'texture_standard': (22, 48),
-                        'brightness_optimal': (200, 250)
-                    },
-                    'mustard': {
-                        'premium_rgb': [(200, 240, 160, 200, 40, 80)],    # Yellow mustard
-                        'good_rgb': [(180, 220, 140, 180, 30, 70)],        # Good mustard
-                        'standard_rgb': [(160, 200, 120, 160, 20, 60)],      # Standard
-                        'defect_rgb': [(100, 140, 80, 120, 20, 50)],        # Poor quality
-                        'immature_rgb': [(120, 160, 100, 140, 30, 60)],      # Immature
-                        'texture_premium': (10, 26),
-                        'texture_good': (16, 36),
-                        'texture_standard': (28, 52),
-                        'brightness_optimal': (140, 210)
-                    }
-                }
+                # 1. BASIC COLOR ANALYSIS (Simple and realistic)
+                # Calculate dominant color characteristics
+                red_avg = int(r_avg)
+                green_avg = int(g_avg)
+                blue_avg = int(b_avg)
                 
-                # Get crop-specific model or use default
-                model = crop_quality_models.get(crop.lower(), crop_quality_models['tomato'])
-                
-                # 2. ADVANCED COLOR ANALYSIS WITH CROP-SPECIFIC MODELS
-                def analyze_color_ranges(rgb_ranges, pixels):
-                    results = {}
-                    total_pixels = len(pixels)
-                    
-                    for range_name, ranges in rgb_ranges.items():
-                        matching_pixels = 0
-                        for r_low, r_high, g_low, g_high, b_low, b_high in ranges:
-                            mask = (
-                                (pixels[:, 0] >= r_low) & (pixels[:, 0] <= r_high) &
-                                (pixels[:, 1] >= g_low) & (pixels[:, 1] <= g_high) &
-                                (pixels[:, 2] >= b_low) & (pixels[:, 2] <= b_high)
-                            )
-                            matching_pixels += np.sum(mask)
-                        
-                        results[range_name] = (matching_pixels / total_pixels) * 100
-                    
-                    return results
-                
-                color_analysis = analyze_color_ranges(model, flat_pixels)
-                
-                # 3. QUALITY SCORING BASED ON CROP-SPECIFIC MODELS
-                # Premium quality scoring
-                premium_score = 0
-                if color_analysis.get('premium_rgb', 0) > 60:
-                    premium_score += 40
-                    report_points.append(f"Exceptional {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
-                elif color_analysis.get('premium_rgb', 0) > 40:
-                    premium_score += 30
-                    report_points.append(f"Excellent {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
-                elif color_analysis.get('premium_rgb', 0) > 20:
-                    premium_score += 20
-                    report_points.append(f"Good {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
-                else:
-                    premium_score += 10
-                    report_points.append(f"Acceptable {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
-                
-                # Good quality contribution
-                good_contribution = color_analysis.get('good_rgb', 0) * 0.3
-                premium_score += good_contribution
-                
-                # Defect penalties
-                defect_penalty = 0
-                for defect_type in ['defect_rgb', 'rot_rgb', 'mold_rgb', 'sprouted_rgb', 'broken_rgb', 'immature_rgb', 'trash_rgb', 'peeled_rgb']:
-                    defect_pct = color_analysis.get(defect_type, 0)
-                    if defect_pct > 15:
-                        defect_penalty += 25
-                        report_points.append(f"Severe {defect_type.replace('_rgb', '')} detected ({defect_pct:.1f}%).")
-                    elif defect_pct > 8:
-                        defect_penalty += 15
-                        report_points.append(f"Moderate {defect_type.replace('_rgb', '')} detected ({defect_pct:.1f}%).")
-                    elif defect_pct > 3:
-                        defect_penalty += 8
-                        report_points.append(f"Minor {defect_type.replace('_rgb', '')} detected ({defect_pct:.1f}%).")
-                
-                premium_score -= defect_penalty
-                
-                # 4. TEXTURE ANALYSIS WITH CROP-SPECIFIC CRITERIA
-                texture_min, texture_max = model['texture_premium']
-                if texture_min <= overall_std <= texture_max:
-                    premium_score += 20
-                    report_points.append("Optimal surface texture for premium grade.")
-                else:
-                    texture_good_min, texture_good_max = model['texture_good']
-                    if texture_good_min <= overall_std <= texture_good_max:
-                        premium_score += 12
-                        report_points.append("Good surface texture quality.")
+                # Simple color quality assessment based on crop type
+                color_score = 0
+                if crop.lower() == 'tomato':
+                    # Red tomatoes are good, green are unripe, brown are rotten
+                    if red_avg > green_avg * 1.5 and red_avg > blue_avg * 2:
+                        color_score = 25
+                        report_points.append(f"Good red color (R:{red_avg} G:{green_avg} B:{blue_avg})")
+                    elif green_avg > red_avg * 1.2:
+                        color_score = -15
+                        report_points.append(f"Unripe green tomato detected")
+                    elif red_avg < 100 and green_avg < 100:
+                        color_score = -20
+                        report_points.append(f"Possible rot/damage detected")
                     else:
-                        texture_std_min, texture_std_max = model['texture_standard']
-                        if texture_std_min <= overall_std <= texture_std_max:
-                            premium_score += 5
-                            report_points.append("Acceptable surface texture.")
-                        else:
-                            premium_score -= 10
-                            report_points.append("Poor surface texture affecting quality.")
-                
-                # 5. LIGHTING ANALYSIS
-                light_min, light_max = model['brightness_optimal']
-                if light_min <= brightness <= light_max:
-                    premium_score += 15
-                    report_points.append("Optimal lighting conditions for analysis.")
-                elif (light_min - 20) <= brightness <= (light_max + 20):
-                    premium_score += 8
-                    report_points.append("Good lighting conditions.")
+                        color_score = 10
+                        report_points.append(f"Acceptable tomato color")
+                        
+                elif crop.lower() == 'wheat':
+                    # Golden wheat is good, dark/brown is bad
+                    if red_avg > 180 and green_avg > 160 and blue_avg < 120:
+                        color_score = 25
+                        report_points.append(f"Golden wheat color detected")
+                    elif red_avg < 120 or green_avg < 120:
+                        color_score = -15
+                        report_points.append(f"Dark/discolored wheat detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable wheat color")
+                        
+                elif crop.lower() == 'rice':
+                    # White rice is good, yellow/brown is bad
+                    if red_avg > 200 and green_avg > 200 and blue_avg > 180:
+                        color_score = 25
+                        report_points.append(f"White rice color detected")
+                    elif red_avg < 180 or green_avg < 180:
+                        color_score = -15
+                        report_points.append(f"Yellowed/discolored rice detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable rice color")
+                        
+                elif crop.lower() == 'potato':
+                    # Light brown potatoes are good, green is bad
+                    if red_avg > 160 and green_avg > 140 and blue_avg > 80:
+                        color_score = 25
+                        report_points.append(f"Fresh potato color detected")
+                    elif green_avg > red_avg * 1.2:
+                        color_score = -20
+                        report_points.append(f"Green potato detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable potato color")
+                        
+                elif crop.lower() == 'onion':
+                    # Light colored onions are good, dark is bad
+                    if red_avg > 180 and green_avg > 160 and blue_avg > 140:
+                        color_score = 25
+                        report_points.append(f"Fresh onion color detected")
+                    elif red_avg < 120 or green_avg < 120:
+                        color_score = -15
+                        report_points.append(f"Dark/damaged onion detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable onion color")
+                        
+                elif crop.lower() == 'maize':
+                    # Yellow corn is good
+                    if red_avg > 200 and green_avg > 180 and blue_avg < 140:
+                        color_score = 25
+                        report_points.append(f"Golden corn color detected")
+                    elif red_avg < 140 or green_avg < 140:
+                        color_score = -15
+                        report_points.append(f"Immature/damaged corn detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable corn color")
+                        
+                elif crop.lower() == 'cotton':
+                    # White cotton is good
+                    if red_avg > 220 and green_avg > 220 and blue_avg > 220:
+                        color_score = 25
+                        report_points.append(f"White cotton detected")
+                    elif red_avg < 180 or green_avg < 180:
+                        color_score = -15
+                        report_points.append(f"Stained/dirty cotton detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable cotton color")
+                        
+                elif crop.lower() == 'mustard':
+                    # Yellow mustard is good
+                    if red_avg > 180 and green_avg > 160 and blue_avg < 100:
+                        color_score = 25
+                        report_points.append(f"Yellow mustard detected")
+                    elif red_avg < 120 or green_avg < 120:
+                        color_score = -15
+                        report_points.append(f"Poor quality mustard detected")
+                    else:
+                        color_score = 10
+                        report_points.append(f"Acceptable mustard color")
+                        
                 else:
-                    premium_score -= 5
-                    report_points.append("Sub-optimal lighting affecting accuracy.")
+                    # Default assessment for other crops
+                    if brightness > 120 and brightness < 200:
+                        color_score = 15
+                        report_points.append(f"Acceptable crop color")
+                    else:
+                        color_score = 5
+                        report_points.append(f"Basic color assessment")
                 
-                # 6. FINAL SCORE CALCULATION
-                score = max(20, min(90, premium_score))
+                score += color_score
                 
-                # 7. QUALITY GRADING WITH CROP-SPECIFIC CRITERIA
-                if score >= 80:
+                # 2. SIMPLE TEXTURE ANALYSIS
+                texture_score = 0
+                if overall_std < 30:
+                    texture_score = 15
+                    report_points.append("Good surface uniformity")
+                elif overall_std < 50:
+                    texture_score = 8
+                    report_points.append("Acceptable surface texture")
+                else:
+                    texture_score = -5
+                    report_points.append("Irregular surface texture")
+                
+                score += texture_score
+                
+                # 3. SIMPLE DEFECT ANALYSIS
+                defect_score = 0
+                # Calculate percentage of very dark or very bright pixels (defects)
+                very_dark = np.sum(flat_pixels[:, 0] < 50)
+                very_bright = np.sum(flat_pixels[:, 0] > 220)
+                defect_percentage = ((very_dark + very_bright) / total_pixels) * 100
+                
+                if defect_percentage < 5:
+                    defect_score = 15
+                    report_points.append("Clean surface appearance")
+                elif defect_percentage < 15:
+                    defect_score = 5
+                    report_points.append("Minor surface imperfections")
+                else:
+                    defect_score = -10
+                    report_points.append("Noticeable surface defects")
+                
+                score += defect_score
+                
+                # 4. BRIGHTNESS/LIGHTING CHECK
+                lighting_score = 0
+                if 100 <= brightness <= 200:
+                    lighting_score = 10
+                    report_points.append("Good lighting conditions")
+                elif 80 <= brightness <= 220:
+                    lighting_score = 5
+                    report_points.append("Acceptable lighting")
+                else:
+                    lighting_score = -5
+                    report_points.append("Poor lighting affects analysis")
+                
+                score += lighting_score
+                
+                # 5. FINAL SCORE ADJUSTMENT
+                score = max(20, min(85, score))
+                
+                # 6. QUALITY GRADING
+                if score >= 75:
                     quality = 'Premium'
-                    summary = f"Exceptional {crop} quality - Export grade with premium characteristics."
-                elif score >= 65:
+                    summary = f"Excellent {crop} quality - Premium grade"
+                elif score >= 60:
                     quality = 'A-Grade'
-                    summary = f"High quality {crop} - Premium market grade with excellent features."
-                elif score >= 50:
+                    summary = f"High quality {crop} - A-Grade"
+                elif score >= 45:
                     quality = 'Standard'
-                    summary = f"Good quality {crop} - Regular market grade with acceptable characteristics."
-                elif score >= 35:
+                    summary = f"Good quality {crop} - Standard grade"
+                elif score >= 30:
                     quality = 'B-Grade'
-                    summary = f"Fair quality {crop} - Local market grade with some limitations."
+                    summary = f"Fair quality {crop} - B-Grade"
                 else:
                     quality = 'Low'
-                    summary = f"Below standard {crop} - Processing grade with significant quality issues."
+                    summary = f"Poor quality {crop} - Low grade"
                 
                 quality_score = score
                 visual_proof = f"Precision Scan: Res {analysis_res}px | RGB: {int(r_avg)},{int(g_avg)},{int(b_avg)} | Texture: {int(overall_std)} | Defects: {defect_ratio:.4f}"
