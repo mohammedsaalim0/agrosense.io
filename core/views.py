@@ -1134,194 +1134,86 @@ def api_predict_fair_price(request):
                         profile = crop_profiles[k]
                         break
                 
-                # SIMPLE & ACCURATE CROP QUALITY ANALYSIS
-                score = 50  # Start with neutral score
-                report_points = ["Analyzing crop quality..."]
+                # ULTRA-SIMPLE CROP QUALITY ANALYSIS
+                # Just use basic visual characteristics
                 
-                # 1. BASIC COLOR ANALYSIS (Simple and realistic)
-                # Calculate dominant color characteristics
-                red_avg = int(r_avg)
-                green_avg = int(g_avg)
-                blue_avg = int(b_avg)
-                
-                # Simple color quality assessment based on crop type
-                color_score = 0
-                if crop.lower() == 'tomato':
-                    # Red tomatoes are good, green are unripe, brown are rotten
-                    if red_avg > green_avg * 1.5 and red_avg > blue_avg * 2:
-                        color_score = 25
-                        report_points.append(f"Good red color (R:{red_avg} G:{green_avg} B:{blue_avg})")
-                    elif green_avg > red_avg * 1.2:
-                        color_score = -15
-                        report_points.append(f"Unripe green tomato detected")
-                    elif red_avg < 100 and green_avg < 100:
-                        color_score = -20
-                        report_points.append(f"Possible rot/damage detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable tomato color")
-                        
-                elif crop.lower() == 'wheat':
-                    # Golden wheat is good, dark/brown is bad
-                    if red_avg > 180 and green_avg > 160 and blue_avg < 120:
-                        color_score = 25
-                        report_points.append(f"Golden wheat color detected")
-                    elif red_avg < 120 or green_avg < 120:
-                        color_score = -15
-                        report_points.append(f"Dark/discolored wheat detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable wheat color")
-                        
-                elif crop.lower() == 'rice':
-                    # White rice is good, yellow/brown is bad
-                    if red_avg > 200 and green_avg > 200 and blue_avg > 180:
-                        color_score = 25
-                        report_points.append(f"White rice color detected")
-                    elif red_avg < 180 or green_avg < 180:
-                        color_score = -15
-                        report_points.append(f"Yellowed/discolored rice detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable rice color")
-                        
-                elif crop.lower() == 'potato':
-                    # Light brown potatoes are good, green is bad
-                    if red_avg > 160 and green_avg > 140 and blue_avg > 80:
-                        color_score = 25
-                        report_points.append(f"Fresh potato color detected")
-                    elif green_avg > red_avg * 1.2:
-                        color_score = -20
-                        report_points.append(f"Green potato detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable potato color")
-                        
-                elif crop.lower() == 'onion':
-                    # Light colored onions are good, dark is bad
-                    if red_avg > 180 and green_avg > 160 and blue_avg > 140:
-                        color_score = 25
-                        report_points.append(f"Fresh onion color detected")
-                    elif red_avg < 120 or green_avg < 120:
-                        color_score = -15
-                        report_points.append(f"Dark/damaged onion detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable onion color")
-                        
-                elif crop.lower() == 'maize':
-                    # Yellow corn is good
-                    if red_avg > 200 and green_avg > 180 and blue_avg < 140:
-                        color_score = 25
-                        report_points.append(f"Golden corn color detected")
-                    elif red_avg < 140 or green_avg < 140:
-                        color_score = -15
-                        report_points.append(f"Immature/damaged corn detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable corn color")
-                        
-                elif crop.lower() == 'cotton':
-                    # White cotton is good
-                    if red_avg > 220 and green_avg > 220 and blue_avg > 220:
-                        color_score = 25
-                        report_points.append(f"White cotton detected")
-                    elif red_avg < 180 or green_avg < 180:
-                        color_score = -15
-                        report_points.append(f"Stained/dirty cotton detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable cotton color")
-                        
-                elif crop.lower() == 'mustard':
-                    # Yellow mustard is good
-                    if red_avg > 180 and green_avg > 160 and blue_avg < 100:
-                        color_score = 25
-                        report_points.append(f"Yellow mustard detected")
-                    elif red_avg < 120 or green_avg < 120:
-                        color_score = -15
-                        report_points.append(f"Poor quality mustard detected")
-                    else:
-                        color_score = 10
-                        report_points.append(f"Acceptable mustard color")
-                        
+                # 1. Basic brightness check
+                brightness_score = 0
+                if brightness > 150:
+                    brightness_score = 15
+                elif brightness > 100:
+                    brightness_score = 10
+                elif brightness > 50:
+                    brightness_score = 5
                 else:
-                    # Default assessment for other crops
-                    if brightness > 120 and brightness < 200:
-                        color_score = 15
-                        report_points.append(f"Acceptable crop color")
-                    else:
-                        color_score = 5
-                        report_points.append(f"Basic color assessment")
+                    brightness_score = -5
                 
-                score += color_score
+                # 2. Basic color balance check
+                color_balance = abs(r_avg - g_avg) + abs(g_avg - b_avg) + abs(r_avg - b_avg)
+                color_score = 0
+                if color_balance < 30:
+                    color_score = 15  # Well balanced colors
+                elif color_balance < 60:
+                    color_score = 10  # Acceptable colors
+                elif color_balance < 100:
+                    color_score = 5   # Some variation
+                else:
+                    color_score = -5  # Poor color balance
                 
-                # 2. SIMPLE TEXTURE ANALYSIS
+                # 3. Basic texture check
                 texture_score = 0
-                if overall_std < 30:
+                if overall_std < 40:
                     texture_score = 15
-                    report_points.append("Good surface uniformity")
-                elif overall_std < 50:
-                    texture_score = 8
-                    report_points.append("Acceptable surface texture")
+                elif overall_std < 70:
+                    texture_score = 10
+                elif overall_std < 100:
+                    texture_score = 5
                 else:
                     texture_score = -5
-                    report_points.append("Irregular surface texture")
                 
-                score += texture_score
+                # 4. Basic defect check
+                dark_pixels = np.sum(flat_pixels[:, 0] < 30)
+                bright_pixels = np.sum(flat_pixels[:, 0] > 225)
+                defect_ratio = ((dark_pixels + bright_pixels) / total_pixels) * 100
                 
-                # 3. SIMPLE DEFECT ANALYSIS
                 defect_score = 0
-                # Calculate percentage of very dark or very bright pixels (defects)
-                very_dark = np.sum(flat_pixels[:, 0] < 50)
-                very_bright = np.sum(flat_pixels[:, 0] > 220)
-                defect_percentage = ((very_dark + very_bright) / total_pixels) * 100
-                
-                if defect_percentage < 5:
+                if defect_ratio < 5:
                     defect_score = 15
-                    report_points.append("Clean surface appearance")
-                elif defect_percentage < 15:
+                elif defect_ratio < 10:
+                    defect_score = 10
+                elif defect_ratio < 20:
                     defect_score = 5
-                    report_points.append("Minor surface imperfections")
                 else:
                     defect_score = -10
-                    report_points.append("Noticeable surface defects")
                 
-                score += defect_score
+                # 5. Calculate final score
+                score = 50 + brightness_score + color_score + texture_score + defect_score
+                score = max(25, min(80, score))
                 
-                # 4. BRIGHTNESS/LIGHTING CHECK
-                lighting_score = 0
-                if 100 <= brightness <= 200:
-                    lighting_score = 10
-                    report_points.append("Good lighting conditions")
-                elif 80 <= brightness <= 220:
-                    lighting_score = 5
-                    report_points.append("Acceptable lighting")
-                else:
-                    lighting_score = -5
-                    report_points.append("Poor lighting affects analysis")
-                
-                score += lighting_score
-                
-                # 5. FINAL SCORE ADJUSTMENT
-                score = max(20, min(85, score))
-                
-                # 6. QUALITY GRADING
-                if score >= 75:
+                # 6. Simple quality grading
+                if score >= 70:
                     quality = 'Premium'
-                    summary = f"Excellent {crop} quality - Premium grade"
+                    summary = f"Premium quality {crop}"
                 elif score >= 60:
                     quality = 'A-Grade'
-                    summary = f"High quality {crop} - A-Grade"
-                elif score >= 45:
+                    summary = f"A-Grade {crop}"
+                elif score >= 50:
                     quality = 'Standard'
-                    summary = f"Good quality {crop} - Standard grade"
-                elif score >= 30:
+                    summary = f"Standard quality {crop}"
+                elif score >= 40:
                     quality = 'B-Grade'
-                    summary = f"Fair quality {crop} - B-Grade"
+                    summary = f"B-Grade {crop}"
                 else:
                     quality = 'Low'
-                    summary = f"Poor quality {crop} - Low grade"
+                    summary = f"Low quality {crop}"
+                
+                report_points = [
+                    f"Brightness: {brightness:.1f} (Score: {brightness_score})",
+                    f"Color balance: {color_balance:.1f} (Score: {color_score})",
+                    f"Texture: {overall_std:.1f} (Score: {texture_score})",
+                    f"Defects: {defect_ratio:.1f}% (Score: {defect_score})",
+                    f"Final score: {score}"
+                ]
                 
                 quality_score = score
                 visual_proof = f"Precision Scan: Res {analysis_res}px | RGB: {int(r_avg)},{int(g_avg)},{int(b_avg)} | Texture: {int(overall_std)} | Defects: {defect_ratio:.4f}"
