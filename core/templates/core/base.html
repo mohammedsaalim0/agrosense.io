@@ -57,6 +57,11 @@
             overflow-x: hidden;
             min-height: 100vh;
             will-change: background-position; /* Optimization hint */
+            overscroll-behavior-y: contain; /* Prevents pull-to-refresh feel */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         @keyframes gradientBG {

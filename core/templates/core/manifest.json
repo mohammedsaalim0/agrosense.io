@@ -4,6 +4,7 @@
   "description": "Smart Farming Solutions & AI Crop Analysis",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
   "background_color": "#3E2723",
   "theme_color": "#3E2723",
   "orientation": "portrait-primary",
