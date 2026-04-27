@@ -1134,23 +1134,23 @@ def api_predict_fair_price(request):
                         profile = crop_profiles[k]
                         break
                 
-                # FIXED Quality Scoring Algorithm (Much More Forgiving)
-                score = 70  # Higher base score to avoid Low ratings
+                # BALANCED Quality Scoring Algorithm (Accurate Image Analysis)
+                score = 50  # Realistic base score
                 report_points = ["Analyzing crop quality..."]
                 
-                # 1. Color Conformity (Very lenient - most crops should pass)
+                # 1. Color Conformity (Balanced - based on actual image analysis)
                 r_in = profile['ideal_r'][0] <= r_avg <= profile['ideal_r'][1]
                 g_in = profile['ideal_g'][0] <= g_avg <= profile['ideal_g'][1]
                 b_in = profile['ideal_b'][0] <= b_avg <= profile['ideal_b'][1]
                 
                 if r_in and g_in and b_in:
-                    score += 15
-                    report_points.append("Good color match.")
+                    score += 20
+                    report_points.append("Excellent color match.")
                 elif (r_in and g_in) or (g_in and b_in) or (r_in and b_in):
-                    score += 10
-                    report_points.append("Acceptable color profile.")
+                    score += 12
+                    report_points.append("Good color profile.")
                 else:
-                    # Very forgiving - check if reasonably close
+                    # Check actual color deviation
                     r_center = (profile['ideal_r'][0] + profile['ideal_r'][1]) / 2
                     g_center = (profile['ideal_g'][0] + profile['ideal_g'][1]) / 2
                     b_center = (profile['ideal_b'][0] + profile['ideal_b'][1]) / 2
@@ -1160,88 +1160,91 @@ def api_predict_fair_price(request):
                     b_diff = abs(b_avg - b_center)
                     avg_diff = (r_diff + g_diff + b_diff) / 3
                     
-                    if avg_diff < 50:  # Very generous tolerance
+                    if avg_diff < 25:  # Reasonable tolerance
                         score += 5
-                        report_points.append("Color within acceptable range.")
+                        report_points.append("Minor color variation.")
                     else:
-                        score += 2  # Minimal penalty instead of negative
-                        report_points.append("Color variation noted.")
+                        score -= 8
+                        report_points.append("Significant color deviation.")
                 
-                # 2. Texture Analysis (Very forgiving)
-                if overall_std < 40:
-                    score += 10
+                # 2. Texture & Uniformity Analysis (Based on actual image quality)
+                if overall_std < 25:
+                    score += 15
+                    report_points.append("Excellent surface uniformity.")
+                elif overall_std < 40:
+                    score += 8
                     report_points.append("Good surface texture.")
                 elif overall_std < 60:
-                    score += 5
+                    score += 3
                     report_points.append("Acceptable texture.")
-                elif overall_std < 80:
-                    score += 2
-                    report_points.append("Minor texture variations.")
                 else:
-                    score += 0  # No penalty, just no bonus
-                    report_points.append("Texture variations present.")
+                    score -= 10
+                    report_points.append("Poor surface uniformity.")
                 
-                # 3. Defect Detection (Very lenient - avoid false negatives)
+                # 3. Defect Detection (Based on actual image analysis)
                 defect_ratio = (dark_spots + bright_spots) / total_pixels
-                if defect_ratio < 0.05:
-                    score += 10
-                    report_points.append("Clean appearance.")
-                elif defect_ratio < 0.10:
+                if defect_ratio < 0.02:
+                    score += 15
+                    report_points.append("No visible defects.")
+                elif defect_ratio < 0.05:
                     score += 5
                     report_points.append("Minor surface marks.")
-                elif defect_ratio < 0.20:
-                    score += 2
-                    report_points.append("Some surface characteristics.")
+                elif defect_ratio < 0.10:
+                    score -= 5
+                    report_points.append("Noticeable defects present.")
                 else:
-                    score += 0  # No penalty for high defect ratio
-                    report_points.append("Surface imperfections noted.")
+                    score -= 15
+                    report_points.append("Significant defects detected.")
                 
-                # 4. Crop-Specific Quality Markers (Very minimal impact)
+                # 4. Crop-Specific Quality Markers (Balanced analysis)
                 detected_defects = []
                 for defect_name, ranges in profile['indicators'].items():
                     r_low, r_high, g_low, g_high, b_low, b_high = ranges
-                    # Check if at least 10% of pixels match this defect profile (much higher threshold)
+                    # Check if at least 5% of pixels match this defect profile (balanced threshold)
                     mask = (
                         (flat_pixels[:, 0] >= r_low) & (flat_pixels[:, 0] <= r_high) &
                         (flat_pixels[:, 1] >= g_low) & (flat_pixels[:, 1] <= g_high) &
                         (flat_pixels[:, 2] >= b_low) & (flat_pixels[:, 2] <= b_high)
                     )
                     defect_pixel_count = np.sum(mask)
-                    if defect_pixel_count > (total_pixels * 0.10): # 10% threshold (very lenient)
+                    if defect_pixel_count > (total_pixels * 0.05): # 5% threshold (balanced)
                         detected_defects.append(defect_name)
                 
                 if detected_defects:
-                    # Minimal penalties - almost no impact
-                    penalty = 3 * len(detected_defects)  # Very reduced penalty
+                    # Balanced penalties based on actual defects
+                    penalty = 6 * len(detected_defects)  # Moderate penalty
                     score -= penalty
                     for d in detected_defects:
-                        report_points.append(f"Minor {d} characteristics noted.")
+                        report_points.append(f"{d} characteristics detected.")
                 else:
                     score += 5
-                    report_points.append("Quality characteristics normal.")
+                    report_points.append("No crop-specific issues detected.")
                 
-                # 5. Environment & Lighting (Very forgiving)
-                if 70 <= brightness <= 240:
+                # 5. Environment & Lighting (Balanced assessment)
+                if 90 <= brightness <= 210:
                     score += 5
-                    report_points.append("Good lighting.")
+                    report_points.append("Good lighting conditions.")
+                elif 70 <= brightness <= 230:
+                    score += 2
+                    report_points.append("Acceptable lighting.")
                 else:
-                    score += 2  # Minimal penalty
-                    report_points.append("Lighting acceptable.")
+                    score -= 3
+                    report_points.append("Poor lighting affects accuracy.")
                 
-                # FINAL NORMALIZATION - Ensure minimum acceptable score
-                score = max(45, min(95, score))  # Minimum score of 45 to avoid Low ratings
+                # FINAL NORMALIZATION - Realistic score range
+                score = max(20, min(90, score))  # Allow full range of scores
                 
-                # QUALITY GRADING (Very generous thresholds)
-                if score >= 80:
-                    quality, summary = 'Premium', "Excellent quality - Premium grade."
-                elif score >= 65:
-                    quality, summary = 'A-Grade', "High quality - Standard grade."
-                elif score >= 50:
-                    quality, summary = 'Standard', "Good quality - Regular grade."
+                # QUALITY GRADING (Realistic thresholds based on actual analysis)
+                if score >= 82:
+                    quality, summary = 'Premium', "Exceptional quality - Export grade."
+                elif score >= 68:
+                    quality, summary = 'A-Grade', "High quality - Premium market grade."
+                elif score >= 52:
+                    quality, summary = 'Standard', "Good quality - Regular market grade."
+                elif score >= 35:
+                    quality, summary = 'B-Grade', "Fair quality - Local market grade."
                 else:
-                    quality, summary = 'B-Grade', "Fair quality - Acceptable grade."
-                
-                # NEVER return Low quality anymore
+                    quality, summary = 'Low', "Below standard - Processing grade only."
                 
                 quality_score = score
                 visual_proof = f"Precision Scan: Res {analysis_res}px | RGB: {int(r_avg)},{int(g_avg)},{int(b_avg)} | Texture: {int(overall_std)} | Defects: {defect_ratio:.4f}"
