@@ -1,0 +1,38 @@
+services:
+  # Django Web Service
+  - type: web
+    name: agrosense
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py runserver 0.0.0.0:$PORT
+    healthCheckPath: /
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: agrosense_project.settings
+      - key: DJANGO_DEBUG
+        value: False
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.14
+    autoDeploy: true
+    
+  # PostgreSQL Database
+  - type: pserv
+    name: agrosense-db
+    plan: free
+    env: postgres
+    envVars:
+      - key: POSTGRES_DB
+        value: agrosense
+      - key: POSTGRES_USER
+        value: agrosense
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+
+databases:
+  - name: agrosense
+    plan: free
+    databaseName: agrosense
+    user: agrosense
