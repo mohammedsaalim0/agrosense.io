@@ -105,7 +105,7 @@ import os
 
 # Use PostgreSQL on Render, SQLite for local development
 if os.environ.get('RENDER') or os.environ.get('DATABASE_URL'):
-    # Render PostgreSQL configuration using DATABASE_URL
+    # Render PostgreSQL configuration
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
@@ -113,6 +113,12 @@ if os.environ.get('RENDER') or os.environ.get('DATABASE_URL'):
             conn_health_checks=True,
         )
     }
+    # Fallback for build time if DATABASE_URL is not yet available
+    if not DATABASES['default'].get('ENGINE'):
+        DATABASES['default'] = {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
 else:
     # Local SQLite database
     DATABASES = {
