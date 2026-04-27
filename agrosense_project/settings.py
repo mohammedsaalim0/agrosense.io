@@ -20,6 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 import os
+import dj_database_url
 from dotenv import load_dotenv
 
 # Load .env file
@@ -103,17 +104,14 @@ WSGI_APPLICATION = 'agrosense_project.wsgi.application'
 import os
 
 # Use PostgreSQL on Render, SQLite for local development
-if os.environ.get('RENDER'):
-    # Render PostgreSQL configuration
+if os.environ.get('RENDER') or os.environ.get('DATABASE_URL'):
+    # Render PostgreSQL configuration using DATABASE_URL
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('POSTGRES_DB', 'agrosense'),
-            'USER': os.environ.get('POSTGRES_USER', 'agrosense'),
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-        }
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
 else:
     # Local SQLite database
