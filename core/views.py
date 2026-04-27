@@ -959,180 +959,25 @@ def api_predict_fair_price(request):
                 print(f"DEBUG: JSON Parse Error (AI): {str(e)}")
                 print(f"DEBUG: Failed AI Response was: {ai_res}")
         
-        # 3. OPTIMIZED HEURISTIC FALLBACK (High-Precision Multi-Crop Analysis)
+        # 3. SIMPLE HEURISTIC FALLBACK (Basic Visual Analysis)
         if not ai_success:
             try:
                 import io
                 import numpy as np
                 img = Image.open(io.BytesIO(image_content)).convert('RGB')
-                # Increased resolution for higher precision analysis
+                # Basic resolution for analysis
                 analysis_res = 100
                 img = img.resize((analysis_res, analysis_res))
                 pixels = np.array(img)
                 
-                # Fast Image Analysis
+                # Basic Image Analysis
                 total_pixels = analysis_res * analysis_res
                 flat_pixels = pixels.reshape(-1, 3)
                 
-                # Optimized color distribution analysis
+                # Calculate basic visual characteristics
                 r_avg, g_avg, b_avg = np.mean(flat_pixels, axis=0)
                 brightness = (r_avg + g_avg + b_avg) / 3
-                
-                # Fast texture detection (Standard deviation of pixel colors)
                 overall_std = np.std(flat_pixels)
-                
-                # Optimized defect detection (based on color variance)
-                r_diff = np.abs(flat_pixels[:, 0] - r_avg)
-                dark_spots = np.sum(r_diff > 45)  # Potential rot, damage, or infestation
-                bright_spots = np.sum(r_diff > 65)  # Potential glare, mold, or structural damage
-                
-                # COMPREHENSIVE CROP DATABASE (Realistic RGB Ranges & Quality Indicators)
-                crop_profiles = {
-                    # VEGETABLES
-                    'tomato': {
-                        'ideal_r': (150, 255), 'ideal_g': (20, 100), 'ideal_b': (10, 80),
-                        'indicators': {'rot': (80, 120, 40, 80, 30, 60), 'unripe': (100, 150, 120, 200, 40, 100)}
-                    },
-                    'potato': {
-                        'ideal_r': (140, 230), 'ideal_g': (120, 190), 'ideal_b': (90, 160),
-                        'indicators': {'sprouted': (120, 160, 150, 200, 100, 150), 'damaged': (60, 100, 50, 90, 40, 80)}
-                    },
-                    'onion': {
-                        'ideal_r': (150, 240), 'ideal_g': (50, 160), 'ideal_b': (50, 160),
-                        'indicators': {'rotting': (100, 140, 100, 140, 80, 120), 'peeled': (200, 255, 200, 255, 180, 230)}
-                    },
-                    'chilli': {
-                        'ideal_r': (30, 130), 'ideal_g': (100, 200), 'ideal_b': (20, 100),
-                        'indicators': {'withered': (60, 100, 60, 100, 40, 80), 'diseased': (120, 180, 80, 130, 40, 90)}
-                    },
-                    'garlic': {
-                        'ideal_r': (210, 255), 'ideal_g': (210, 255), 'ideal_b': (200, 255),
-                        'indicators': {'yellowed': (180, 220, 170, 210, 120, 160), 'bruised': (140, 180, 140, 180, 120, 160)}
-                    },
-                    'ginger': {
-                        'ideal_r': (160, 220), 'ideal_g': (140, 190), 'ideal_b': (100, 150),
-                        'indicators': {'moldy': (100, 150, 110, 160, 100, 150), 'shriveled': (120, 160, 100, 140, 70, 110)}
-                    },
-                    
-                    # CEREALS & GRAINS
-                    'wheat': {
-                        'ideal_r': (160, 240), 'ideal_g': (140, 210), 'ideal_b': (60, 140),
-                        'indicators': {'mold': (120, 160, 140, 180, 100, 140), 'discolored': (100, 150, 100, 150, 60, 120)}
-                    },
-                    'rice': {
-                        'ideal_r': (190, 255), 'ideal_g': (190, 255), 'ideal_b': (170, 230),
-                        'indicators': {'yellowing': (180, 220, 170, 210, 100, 150), 'broken': (160, 200, 160, 200, 140, 180)}
-                    },
-                    'paddy': {
-                        'ideal_r': (160, 220), 'ideal_g': (140, 190), 'ideal_b': (80, 140),
-                        'indicators': {'immature': (120, 160, 150, 200, 100, 150), 'damaged': (80, 120, 80, 120, 60, 100)}
-                    },
-                    'maize': {
-                        'ideal_r': (190, 255), 'ideal_g': (170, 230), 'ideal_b': (20, 110),
-                        'indicators': {'fungus': (100, 150, 100, 150, 80, 130), 'pest_attack': (120, 170, 100, 140, 60, 110)}
-                    },
-                    'jowar': {
-                        'ideal_r': (200, 245), 'ideal_g': (190, 235), 'ideal_b': (150, 210),
-                        'indicators': {'stained': (150, 190, 140, 180, 100, 140), 'weathered': (130, 170, 120, 160, 90, 130)}
-                    },
-                    'bajra': {
-                        'ideal_r': (110, 180), 'ideal_g': (130, 200), 'ideal_b': (90, 160),
-                        'indicators': {'shriveled': (90, 130, 110, 150, 70, 120), 'infested': (70, 110, 90, 130, 60, 100)}
-                    },
-                    'ragi': {
-                        'ideal_r': (70, 150), 'ideal_g': (30, 100), 'ideal_b': (20, 80),
-                        'indicators': {'dirt_excess': (40, 80, 30, 70, 20, 60), 'moldy': (100, 140, 110, 150, 100, 140)}
-                    },
-                    
-                    # PULSES (Dals)
-                    'tur': {
-                        'ideal_r': (160, 210), 'ideal_g': (120, 170), 'ideal_b': (60, 110),
-                        'indicators': {'weevil_attack': (100, 140, 80, 120, 40, 80), 'discolored': (120, 160, 100, 140, 50, 90)}
-                    },
-                    'arhar': {
-                        'ideal_r': (160, 210), 'ideal_g': (120, 170), 'ideal_b': (60, 110),
-                        'indicators': {'damaged': (100, 140, 80, 120, 40, 80)}
-                    },
-                    'moong': {
-                        'ideal_r': (70, 140), 'ideal_g': (120, 190), 'ideal_b': (50, 120),
-                        'indicators': {'sprouted': (120, 170, 150, 210, 110, 160), 'washed_out': (150, 200, 170, 220, 140, 190)}
-                    },
-                    'urad': {
-                        'ideal_r': (20, 90), 'ideal_g': (20, 90), 'ideal_b': (20, 90),
-                        'indicators': {'moldy': (80, 130, 90, 140, 80, 130), 'admixture': (100, 150, 100, 150, 90, 140)}
-                    },
-                    'gram': {
-                        'ideal_r': (170, 220), 'ideal_g': (130, 180), 'ideal_b': (70, 120),
-                        'indicators': {'insect_damage': (120, 160, 100, 140, 50, 90), 'shrunken': (140, 180, 110, 150, 60, 100)}
-                    },
-                    
-                    # OILSEEDS
-                    'mustard': {
-                        'ideal_r': (170, 250), 'ideal_g': (130, 210), 'ideal_b': (10, 70),
-                        'indicators': {'unripe': (100, 150, 120, 180, 40, 100), 'over_dried': (140, 180, 110, 150, 10, 50)}
-                    },
-                    'groundnut': {
-                        'ideal_r': (170, 240), 'ideal_g': (140, 210), 'ideal_b': (90, 160),
-                        'indicators': {'shriveled': (140, 180, 120, 160, 70, 110), 'damaged': (100, 150, 80, 130, 50, 100)}
-                    },
-                    'sunflower': {
-                        'ideal_r': (10, 70), 'ideal_g': (10, 70), 'ideal_b': (10, 70),
-                        'indicators': {'dirty': (60, 110, 60, 110, 50, 100), 'wet': (0, 30, 0, 30, 0, 30)}
-                    },
-                    'soyabean': {
-                        'ideal_r': (180, 240), 'ideal_g': (160, 220), 'ideal_b': (110, 180),
-                        'indicators': {'mottled': (140, 180, 120, 160, 80, 120), 'cracked': (160, 200, 140, 180, 100, 140)}
-                    },
-                    'sesame': {
-                        'ideal_r': (210, 255), 'ideal_g': (210, 255), 'ideal_b': (190, 245),
-                        'indicators': {'black_seeds': (30, 80, 30, 80, 30, 80), 'dusty': (180, 220, 180, 220, 160, 200)}
-                    },
-                    'nigerseed': {
-                        'ideal_r': (10, 60), 'ideal_g': (10, 60), 'ideal_b': (10, 60),
-                        'indicators': {'contaminated': (70, 120, 70, 120, 60, 110)}
-                    },
-                    
-                    # CASH CROPS
-                    'cotton': {
-                        'ideal_r': (220, 255), 'ideal_g': (220, 255), 'ideal_b': (220, 255),
-                        'indicators': {'stained': (180, 220, 170, 210, 120, 160), 'trash_high': (100, 150, 100, 150, 80, 130)}
-                    },
-                    'sugarcane': {
-                        'ideal_r': (90, 170), 'ideal_g': (110, 190), 'ideal_b': (30, 110),
-                        'indicators': {'dry': (140, 190, 120, 170, 60, 110), 'diseased': (160, 210, 80, 130, 40, 90)}
-                    },
-                    
-                    # SPICES
-                    'turmeric': {
-                        'ideal_r': (190, 255), 'ideal_g': (130, 210), 'ideal_b': (0, 70),
-                        'indicators': {'dull': (140, 180, 100, 140, 0, 40), 'moldy': (120, 160, 130, 170, 110, 150)}
-                    },
-                    'coriander': {
-                        'ideal_r': (40, 140), 'ideal_g': (120, 210), 'ideal_b': (30, 120),
-                        'indicators': {'yellow': (160, 210, 170, 220, 80, 130), 'damaged': (100, 150, 100, 150, 70, 120)}
-                    },
-                    'cumin': {
-                        'ideal_r': (90, 160), 'ideal_g': (80, 150), 'ideal_b': (50, 120),
-                        'indicators': {'adulterated': (150, 200, 150, 200, 130, 180), 'stale': (70, 110, 60, 100, 40, 80)}
-                    },
-                    'pepper': {
-                        'ideal_r': (5, 65), 'ideal_g': (5, 65), 'ideal_b': (5, 65),
-                        'indicators': {'dusty': (80, 130, 80, 130, 70, 120), 'immature': (40, 90, 60, 110, 30, 80)}
-                    },
-                    
-                    'default': {
-                        'ideal_r': (120, 220), 'ideal_g': (120, 220), 'ideal_b': (100, 180),
-                        'indicators': {'low_qual': (80, 130, 80, 130, 60, 100)}
-                    }
-                }
-                
-                # Dynamic matching with fuzzy crop names
-                profile = crop_profiles['default']
-                crop_lower = crop.lower()
-                for k in crop_profiles:
-                    if k in crop_lower:
-                        profile = crop_profiles[k]
-                        break
                 
                 # ULTRA-SIMPLE CROP QUALITY ANALYSIS
                 # Just use basic visual characteristics
@@ -1216,7 +1061,8 @@ def api_predict_fair_price(request):
                 ]
                 
                 quality_score = score
-                visual_proof = f"Precision Scan: Res {analysis_res}px | RGB: {int(r_avg)},{int(g_avg)},{int(b_avg)} | Texture: {int(overall_std)} | Defects: {defect_ratio:.4f}"
+                visual_proof = f"Basic Scan: Res {analysis_res}px | RGB: {int(r_avg)},{int(g_avg)},{int(b_avg)} | Texture: {int(overall_std)} | Defects: {defect_ratio:.4f}"
+                market_analysis = "Basic visual analysis completed."
                 
             except Exception as e:
                 import traceback
