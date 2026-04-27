@@ -4,8 +4,8 @@ services:
     name: agrosense-io
     env: python
     plan: free
-    buildCommand: bash ./build.sh
-    # Run migrations at startup instead of build time
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --no-input"
+    # Run migrations at startup
     startCommand: "python manage.py migrate --no-input && python seed_data.py && gunicorn agrosense_project.wsgi:application"
     healthCheckPath: /
     envVars:
