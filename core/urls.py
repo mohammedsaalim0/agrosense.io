@@ -10,7 +10,11 @@ router.register(r'orders', api_views.OrderViewSet, basename='order')
 router.register(r'products', api_views.ProductViewSet)
 
 urlpatterns = [
-    path('api/mobile/', include(router.urls)),
+    # PWA Routes
+    path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
+    path('sw.js', views.service_worker, name='service_worker'),
+    
+    # Main Routes
     path('', views.dashboard, name='dashboard'),
     path('api/recommend/', views.api_recommend, name='api_recommend'),
     path('api/market/', views.api_market_data, name='api_market_data'),

@@ -1663,7 +1663,8 @@
             return;
         }
 
-        results.innerHTML = '<div class="ai-scanning-dots">Analyzing Image Hardware...<span>.</span><span>.</span><span>.</span></div>';
+        showToast("Initializing AgroSense AI Vision Engine...");
+        results.innerHTML = '<div class="ai-scanning-dots">🚀 Calibrating AI Quality Hardware...<span>.</span><span>.</span><span>.</span></div>';
         
         const claimedQuality = document.getElementById('listing-quality').value;
         
@@ -1693,6 +1694,11 @@
                         <span class="grade-badge grade-${data.quality.toLowerCase()}">${data.quality}</span>
                         <span class="quality-score">AI Score: ${data.score}/100</span>
                     </div>
+                    
+                    <div class="visual-proof-box" style="background: #f1f8e9; padding: 10px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #43a047;">
+                        <p style="font-size: 0.8rem; color: #2e7d32; margin: 0;"><strong>📸 Visual Analysis Proof:</strong> ${data.visual_proof}</p>
+                    </div>
+
                     <div class="report-list">
                         <p style="font-size: 0.75rem; color: #666; font-weight: 800; margin-bottom: 5px;">AI QUALITY SCAN:</p>
                         <ul>${reportHtml}</ul>

@@ -13,9 +13,6 @@
             </div>
             
             <div class="subnav-actions">
-                <a href="{% url 'refunds' %}" class="subnav-btn" style="text-decoration: none;">
-                    <span class="icon">📜</span> Refund Policy
-                </a>
                 <button onclick="openMyOrders()" class="subnav-btn">
                     <span class="icon">📦</span> My Orders
                 </button>
@@ -329,9 +326,7 @@
             </div>
             <div class="refund-step" id="refund-step-3">
                 <h3 class="step-title">Step 3 of 3 &mdash; Review &amp; Confirm</h3>
-                <div class="refund-review-box" id="refund-review-content"></div>
-                <p class="refund-policy-note">&#x1F512; Your data is secure. Refund processed within <strong>24 hours</strong>.</p>
-                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <div class="refund-review-box" id="refund-review-content"></div>                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
                     <button class="refund-back-btn" onclick="refundStep(2)">&larr; Back</button>
                     <button class="refund-submit-btn" id="refund-submit-btn" onclick="submitRefundRequest()">Submit Refund Request</button>
                 </div>
@@ -767,8 +762,6 @@
     .refund-review-row:last-child { border-bottom: none; }
     .refund-review-row span:first-child { color: #64748b; font-weight: 600; }
     .refund-review-row span:last-child { color: #1a4d2e; font-weight: 700; }
-
-    .refund-policy-note { font-size: 0.8rem; color: #64748b; text-align: center; }
 
     /* ══════════════════════════════════════════
        REFUND SUCCESS FULL-SCREEN OVERLAY

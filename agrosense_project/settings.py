@@ -143,6 +143,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# PWA Settings
+PWA_MANIFEST_PATH = 'static/manifest.json'
+PWA_SERVICE_WORKER_PATH = 'static/sw.js'
+
 # Media files (uploaded by admin)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

@@ -706,7 +706,6 @@
                         <li><a href="{% url 'terms' %}">Terms & Conditions</a></li>
                         <li><a href="{% url 'privacy' %}">Privacy Policy</a></li>
                         <li><a href="{% url 'shipping' %}">Shipping Policy</a></li>
-                        <li><a href="{% url 'refunds' %}">Refunds & Cancellation</a></li>
                     </ul>
                 </div>
                 <div class="footer-contact">
@@ -1065,7 +1064,93 @@ function closePwaHub() {
     document.body.style.overflow = 'auto';
 }
 
-function startAutomatedInstall() {
+// Real PWA Installation functionality
+let pwaDeferredPrompt = null;
+let pwaInstallButton = null;
+
+// Listen for the beforeinstallprompt event
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('PWA: Install prompt detected');
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later
+    pwaDeferredPrompt = e;
+    
+    // Show the install button if it's hidden
+    if (pwaInstallButton) {
+        pwaInstallButton.style.display = 'flex';
+        pwaInstallButton.classList.add('pwa-available');
+    }
+});
+
+// Listen for app installed event
+window.addEventListener('appinstalled', (evt) => {
+    console.log('PWA: App was installed');
+    // Hide the install button
+    if (pwaInstallButton) {
+        pwaInstallButton.style.display = 'none';
+    }
+    // Show success message
+    showToast("AgroSense successfully installed! 🚀");
+    // Update the modal to show success
+    showPwaSuccess();
+});
+
+// Initialize PWA install button
+document.addEventListener('DOMContentLoaded', () => {
+    pwaInstallButton = document.getElementById('pwa-install-btn');
+    
+    if (pwaInstallButton) {
+        pwaInstallButton.addEventListener('click', async () => {
+            if (pwaDeferredPrompt) {
+                // Show the PWA install modal
+                showPwaInstallModal();
+            } else {
+                // Fallback to manual installation instructions
+                showManualInstallInstructions();
+            }
+        });
+    }
+});
+
+function showPwaInstallModal() {
+    const modal = document.getElementById('pwa-install-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function showPwaSuccess() {
+    const modal = document.getElementById('pwa-install-modal');
+    if (modal) {
+        const initState = document.getElementById('install-init-state');
+        const successState = document.getElementById('pwa-success-state');
+        
+        if (initState && successState) {
+            initState.style.display = 'none';
+            successState.style.display = 'block';
+        }
+    }
+}
+
+function closePwaHub() {
+    const modal = document.getElementById('pwa-install-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+async function startRealPwaInstall() {
+    console.log('PWA: Starting real installation');
+    
+    if (!pwaDeferredPrompt) {
+        console.log('PWA: No deferred prompt available');
+        showManualInstallInstructions();
+        return;
+    }
+    
     const actionBtn = document.getElementById('hub-install-action');
     const progressWrap = document.getElementById('install-progress-wrap');
     const progressFill = document.getElementById('install-progress-fill');
@@ -1074,37 +1159,105 @@ function startAutomatedInstall() {
     const initState = document.getElementById('install-init-state');
     const successState = document.getElementById('pwa-success-state');
 
-    actionBtn.style.display = 'none';
-    progressWrap.style.display = 'block';
-
+    // Show progress
+    if (actionBtn) actionBtn.style.display = 'none';
+    if (progressWrap) progressWrap.style.display = 'block';
+    
+    // Simulate progress while waiting for user action
     let progress = 0;
-    const interval = setInterval(() => {
-        progress += Math.random() * 8;
-        if (progress > 100) progress = 100;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 5;
+        if (progress > 90) progress = 90; // Stop at 90% to wait for user action
         
-        progressFill.style.width = progress + '%';
+        if (progressFill) progressFill.style.width = progress + '%';
         
         if (progress < 30) {
-            statusText.innerText = "Downloading Core Assets...";
-            subStatus.innerText = "Connecting to secure CDN...";
+            if (statusText) statusText.innerText = "Preparing Installation...";
+            if (subStatus) subStatus.innerText = "Checking device compatibility...";
         } else if (progress < 60) {
-            statusText.innerText = "Optimizing for Mobile...";
-            subStatus.innerText = "Configuring offline database...";
-        } else if (progress < 100) {
-            statusText.innerText = "Finalizing Installation...";
-            subStatus.innerText = "Creating secure app shortcuts...";
-        } else {
-            clearInterval(interval);
-            statusText.innerText = "Installation Complete!";
-            subStatus.innerText = "Starting AgroSense Standalone Mode...";
+            if (statusText) statusText.innerText = "Ready to Install";
+            if (subStatus) subStatus.innerText = "Click your browser's install button when it appears";
+        } else if (progress < 90) {
+            if (statusText) statusText.innerText = "Waiting for Confirmation";
+            if (subStatus) subStatus.innerText = "Follow your browser's installation prompt...";
+        }
+    }, 200);
+    
+    try {
+        // Show the install prompt
+        pwaDeferredPrompt.prompt();
+        
+        // Wait for the user to respond to the prompt
+        const { outcome } = await pwaDeferredPrompt.userChoice;
+        console.log('PWA: User choice:', outcome);
+        
+        // Clear the deferred prompt
+        pwaDeferredPrompt = null;
+        
+        clearInterval(progressInterval);
+        
+        if (outcome === 'accepted') {
+            // Complete the progress
+            if (progressFill) progressFill.style.width = '100%';
+            if (statusText) statusText.innerText = "Installation Complete!";
+            if (subStatus) subStatus.innerText = "AgroSense is being added to your device...";
             
             setTimeout(() => {
-                initState.style.display = 'none';
-                successState.style.display = 'block';
+                if (initState) initState.style.display = 'none';
+                if (successState) successState.style.display = 'block';
                 showToast("AgroSense successfully installed! 🚀");
             }, 1000);
+        } else {
+            // User cancelled
+            if (statusText) statusText.innerText = "Installation Cancelled";
+            if (subStatus) subStatus.innerText = "You can install AgroSense anytime from the menu";
+            
+            setTimeout(() => {
+                closePwaHub();
+            }, 2000);
         }
-    }, 80);
+        
+    } catch (error) {
+        console.error('PWA: Installation error:', error);
+        clearInterval(progressInterval);
+        showManualInstallInstructions();
+    }
+}
+
+function showManualInstallInstructions() {
+    const statusText = document.getElementById('install-status');
+    const subStatus = document.getElementById('install-substatus');
+    const actionBtn = document.getElementById('hub-install-action');
+    
+    if (statusText) statusText.innerText = "Manual Installation Required";
+    if (subStatus) subStatus.innerText = "Look for 'Add to Home Screen' in your browser menu";
+    
+    if (actionBtn) {
+        actionBtn.innerText = "Close";
+        actionBtn.onclick = closePwaHub;
+    }
+    
+    // Show browser-specific instructions
+    const userAgent = navigator.userAgent.toLowerCase();
+    let instructions = "";
+    
+    if (userAgent.includes('chrome')) {
+        instructions = "Chrome: Click menu (⋮) → 'Add to Home Screen'";
+    } else if (userAgent.includes('safari')) {
+        instructions = "Safari: Click share (↗) → 'Add to Home Screen'";
+    } else if (userAgent.includes('firefox')) {
+        instructions = "Firefox: Check for PWA install option in menu";
+    } else {
+        instructions = "Look for 'Add to Home Screen' or 'Install App' in your browser";
+    }
+    
+    if (subStatus) subStatus.innerText = instructions;
+}
+
+// Fallback fake installation for browsers that don't support PWA
+function startAutomatedInstall() {
+    console.log('PWA: Using fallback installation');
+    startRealPwaInstall();
 }
 
     // Version-based Cache Reset: Clear storage if version mismatch, but DO NOT reload automatically
