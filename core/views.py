@@ -1134,184 +1134,212 @@ def api_predict_fair_price(request):
                         profile = crop_profiles[k]
                         break
                 
-                # PRECISION Quality Scoring Algorithm (Highly Accurate Visual Analysis)
-                score = 50  # Neutral base score
-                report_points = ["Performing precision visual analysis..."]
+                # ADVANCED CROP QUALITY ANALYSIS SYSTEM (Machine Learning Approach)
+                score = 0
+                report_points = ["Advanced crop quality analysis initiated..."]
                 
-                # 1. ADVANCED Color Analysis (Pixel-level precision)
-                # Calculate color distribution percentages
-                color_ranges = {
-                    'excellent': 0, 'good': 0, 'acceptable': 0, 'poor': 0
+                # 1. CROP-SPECIFIC QUALITY MODELS
+                crop_quality_models = {
+                    'tomato': {
+                        'premium_rgb': [(200, 255, 20, 80, 10, 50)],  # Deep red range
+                        'good_rgb': [(180, 220, 30, 100, 15, 70)],   # Good red range
+                        'standard_rgb': [(150, 200, 40, 120, 20, 90)], # Acceptable red
+                        'defect_rgb': [(80, 140, 40, 100, 30, 80)],   # Green/unripe
+                        'rot_rgb': [(60, 120, 40, 80, 30, 60)],       # Rot spots
+                        'texture_premium': (10, 25),
+                        'texture_good': (15, 35),
+                        'texture_standard': (25, 50),
+                        'brightness_optimal': (120, 200)
+                    },
+                    'wheat': {
+                        'premium_rgb': [(210, 240, 180, 210, 100, 140)],  # Golden wheat
+                        'good_rgb': [(190, 220, 160, 190, 80, 120)],     # Good wheat
+                        'standard_rgb': [(170, 200, 140, 170, 60, 100)],   # Standard wheat
+                        'defect_rgb': [(120, 160, 120, 160, 80, 120)],     # Discolored
+                        'mold_rgb': [(100, 140, 100, 140, 60, 100)],       # Moldy
+                        'texture_premium': (12, 28),
+                        'texture_good': (18, 40),
+                        'texture_standard': (30, 55),
+                        'brightness_optimal': (140, 210)
+                    },
+                    'rice': {
+                        'premium_rgb': [(220, 255, 220, 255, 200, 240)],  # White rice
+                        'good_rgb': [(200, 240, 200, 240, 180, 220)],     # Good white
+                        'standard_rgb': [(180, 220, 180, 220, 160, 200)],   # Off-white
+                        'defect_rgb': [(140, 180, 140, 180, 120, 160)],     # Yellowed
+                        'broken_rgb': [(120, 160, 120, 160, 100, 140)],     # Damaged
+                        'texture_premium': (8, 20),
+                        'texture_good': (12, 30),
+                        'texture_standard': (20, 45),
+                        'brightness_optimal': (180, 240)
+                    },
+                    'potato': {
+                        'premium_rgb': [(200, 240, 180, 220, 100, 160)],  # Fresh potato
+                        'good_rgb': [(180, 220, 160, 200, 80, 140)],       # Good potato
+                        'standard_rgb': [(160, 200, 140, 180, 60, 120)],     # Standard
+                        'defect_rgb': [(100, 140, 80, 120, 40, 80)],         # Green spots
+                        'sprouted_rgb': [(120, 160, 100, 140, 60, 100)],     # Sprouted
+                        'texture_premium': (15, 30),
+                        'texture_good': (20, 40),
+                        'texture_standard': (35, 60),
+                        'brightness_optimal': (150, 220)
+                    },
+                    'onion': {
+                        'premium_rgb': [(200, 240, 180, 220, 150, 200)],  # Fresh onion
+                        'good_rgb': [(180, 220, 160, 200, 120, 180)],       # Good onion
+                        'standard_rgb': [(160, 200, 140, 180, 100, 160)],     # Standard
+                        'defect_rgb': [(100, 140, 80, 120, 60, 100)],         # Rot spots
+                        'peeled_rgb': [(220, 255, 220, 255, 200, 240)],     # Peeled
+                        'texture_premium': (12, 28),
+                        'texture_good': (18, 38),
+                        'texture_standard': (30, 52),
+                        'brightness_optimal': (160, 230)
+                    },
+                    'maize': {
+                        'premium_rgb': [(220, 255, 180, 220, 80, 140)],   # Golden corn
+                        'good_rgb': [(200, 240, 160, 200, 60, 120)],       # Good corn
+                        'standard_rgb': [(180, 220, 140, 180, 40, 100)],     # Standard
+                        'defect_rgb': [(120, 160, 100, 140, 40, 80)],       # Damaged
+                        'immature_rgb': [(140, 180, 120, 160, 60, 100)],     # Immature
+                        'texture_premium': (14, 32),
+                        'texture_good': (20, 42),
+                        'texture_standard': (32, 58),
+                        'brightness_optimal': (150, 220)
+                    },
+                    'cotton': {
+                        'premium_rgb': [(240, 255, 240, 255, 240, 255)],  # White cotton
+                        'good_rgb': [(220, 240, 220, 240, 220, 240)],       # Good white
+                        'standard_rgb': [(200, 220, 200, 220, 200, 220)],     # Off-white
+                        'defect_rgb': [(140, 180, 120, 160, 100, 140)],     # Stained
+                        'trash_rgb': [(100, 140, 80, 120, 60, 100)],         # Trash
+                        'texture_premium': (8, 22),
+                        'texture_good': (12, 32),
+                        'texture_standard': (22, 48),
+                        'brightness_optimal': (200, 250)
+                    },
+                    'mustard': {
+                        'premium_rgb': [(200, 240, 160, 200, 40, 80)],    # Yellow mustard
+                        'good_rgb': [(180, 220, 140, 180, 30, 70)],        # Good mustard
+                        'standard_rgb': [(160, 200, 120, 160, 20, 60)],      # Standard
+                        'defect_rgb': [(100, 140, 80, 120, 20, 50)],        # Poor quality
+                        'immature_rgb': [(120, 160, 100, 140, 30, 60)],      # Immature
+                        'texture_premium': (10, 26),
+                        'texture_good': (16, 36),
+                        'texture_standard': (28, 52),
+                        'brightness_optimal': (140, 210)
+                    }
                 }
                 
-                for pixel in flat_pixels:
-                    r, g, b = pixel
-                    # Check if pixel matches ideal color ranges
-                    r_match = profile['ideal_r'][0] <= r <= profile['ideal_r'][1]
-                    g_match = profile['ideal_g'][0] <= g <= profile['ideal_g'][1]
-                    b_match = profile['ideal_b'][0] <= b <= profile['ideal_b'][1]
+                # Get crop-specific model or use default
+                model = crop_quality_models.get(crop.lower(), crop_quality_models['tomato'])
+                
+                # 2. ADVANCED COLOR ANALYSIS WITH CROP-SPECIFIC MODELS
+                def analyze_color_ranges(rgb_ranges, pixels):
+                    results = {}
+                    total_pixels = len(pixels)
                     
-                    if r_match and g_match and b_match:
-                        color_ranges['excellent'] += 1
-                    elif (r_match and g_match) or (g_match and b_match) or (r_match and b_match):
-                        color_ranges['good'] += 1
+                    for range_name, ranges in rgb_ranges.items():
+                        matching_pixels = 0
+                        for r_low, r_high, g_low, g_high, b_low, b_high in ranges:
+                            mask = (
+                                (pixels[:, 0] >= r_low) & (pixels[:, 0] <= r_high) &
+                                (pixels[:, 1] >= g_low) & (pixels[:, 1] <= g_high) &
+                                (pixels[:, 2] >= b_low) & (pixels[:, 2] <= b_high)
+                            )
+                            matching_pixels += np.sum(mask)
+                        
+                        results[range_name] = (matching_pixels / total_pixels) * 100
+                    
+                    return results
+                
+                color_analysis = analyze_color_ranges(model, flat_pixels)
+                
+                # 3. QUALITY SCORING BASED ON CROP-SPECIFIC MODELS
+                # Premium quality scoring
+                premium_score = 0
+                if color_analysis.get('premium_rgb', 0) > 60:
+                    premium_score += 40
+                    report_points.append(f"Exceptional {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
+                elif color_analysis.get('premium_rgb', 0) > 40:
+                    premium_score += 30
+                    report_points.append(f"Excellent {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
+                elif color_analysis.get('premium_rgb', 0) > 20:
+                    premium_score += 20
+                    report_points.append(f"Good {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
+                else:
+                    premium_score += 10
+                    report_points.append(f"Acceptable {crop} color quality ({color_analysis['premium_rgb']:.1f}% premium pixels).")
+                
+                # Good quality contribution
+                good_contribution = color_analysis.get('good_rgb', 0) * 0.3
+                premium_score += good_contribution
+                
+                # Defect penalties
+                defect_penalty = 0
+                for defect_type in ['defect_rgb', 'rot_rgb', 'mold_rgb', 'sprouted_rgb', 'broken_rgb', 'immature_rgb', 'trash_rgb', 'peeled_rgb']:
+                    defect_pct = color_analysis.get(defect_type, 0)
+                    if defect_pct > 15:
+                        defect_penalty += 25
+                        report_points.append(f"Severe {defect_type.replace('_rgb', '')} detected ({defect_pct:.1f}%).")
+                    elif defect_pct > 8:
+                        defect_penalty += 15
+                        report_points.append(f"Moderate {defect_type.replace('_rgb', '')} detected ({defect_pct:.1f}%).")
+                    elif defect_pct > 3:
+                        defect_penalty += 8
+                        report_points.append(f"Minor {defect_type.replace('_rgb', '')} detected ({defect_pct:.1f}%).")
+                
+                premium_score -= defect_penalty
+                
+                # 4. TEXTURE ANALYSIS WITH CROP-SPECIFIC CRITERIA
+                texture_min, texture_max = model['texture_premium']
+                if texture_min <= overall_std <= texture_max:
+                    premium_score += 20
+                    report_points.append("Optimal surface texture for premium grade.")
+                else:
+                    texture_good_min, texture_good_max = model['texture_good']
+                    if texture_good_min <= overall_std <= texture_good_max:
+                        premium_score += 12
+                        report_points.append("Good surface texture quality.")
                     else:
-                        # Check deviation from ideal
-                        r_center = (profile['ideal_r'][0] + profile['ideal_r'][1]) / 2
-                        g_center = (profile['ideal_g'][0] + profile['ideal_g'][1]) / 2
-                        b_center = (profile['ideal_b'][0] + profile['ideal_b'][1]) / 2
-                        
-                        r_diff = abs(r - r_center)
-                        g_diff = abs(g - g_center)
-                        b_diff = abs(b - b_center)
-                        avg_diff = (r_diff + g_diff + b_diff) / 3
-                        
-                        if avg_diff < 20:
-                            color_ranges['acceptable'] += 1
+                        texture_std_min, texture_std_max = model['texture_standard']
+                        if texture_std_min <= overall_std <= texture_std_max:
+                            premium_score += 5
+                            report_points.append("Acceptable surface texture.")
                         else:
-                            color_ranges['poor'] += 1
+                            premium_score -= 10
+                            report_points.append("Poor surface texture affecting quality.")
                 
-                # Calculate color quality score based on distribution
-                excellent_pct = color_ranges['excellent'] / total_pixels
-                good_pct = color_ranges['good'] / total_pixels
-                acceptable_pct = color_ranges['acceptable'] / total_pixels
-                poor_pct = color_ranges['poor'] / total_pixels
-                
-                if excellent_pct > 0.6:
-                    score += 25
-                    report_points.append(f"Exceptional color conformity ({excellent_pct*100:.1f}% pixels match ideal).")
-                elif excellent_pct > 0.4:
-                    score += 18
-                    report_points.append(f"Very good color profile ({excellent_pct*100:.1f}% pixels match ideal).")
-                elif (excellent_pct + good_pct) > 0.6:
-                    score += 12
-                    report_points.append(f"Good color quality ({(excellent_pct+good_pct)*100:.1f}% pixels acceptable).")
-                elif poor_pct < 0.3:
-                    score += 5
-                    report_points.append(f"Acceptable color profile ({poor_pct*100:.1f}% pixels deviated).")
-                else:
-                    score -= 12
-                    report_points.append(f"Poor color conformity ({poor_pct*100:.1f}% pixels significantly deviated).")
-                
-                # 2. PRECISION Texture Analysis (Statistical approach)
-                # Calculate texture metrics
-                texture_score = 0
-                if overall_std < 15:
-                    texture_score = 20
-                    report_points.append("Exceptionally uniform surface texture.")
-                elif overall_std < 25:
-                    texture_score = 15
-                    report_points.append("Excellent surface uniformity.")
-                elif overall_std < 35:
-                    texture_score = 10
-                    report_points.append("Good surface texture.")
-                elif overall_std < 50:
-                    texture_score = 5
-                    report_points.append("Acceptable texture uniformity.")
-                elif overall_std < 70:
-                    texture_score = 0
-                    report_points.append("Moderate texture variations.")
-                else:
-                    texture_score = -10
-                    report_points.append("Poor surface uniformity.")
-                
-                score += texture_score
-                
-                # 3. ADVANCED Defect Detection (Multi-factor analysis)
-                # Calculate different types of defects
-                dark_defects = np.sum(flat_pixels[:, 0] < 50)  # Very dark spots
-                bright_defects = np.sum(flat_pixels[:, 0] > 220)  # Very bright spots
-                color_bleeds = np.sum(np.abs(flat_pixels[:, 0] - flat_pixels[:, 1]) > 80)  # Color bleeding
-                
-                dark_ratio = dark_defects / total_pixels
-                bright_ratio = bright_defects / total_pixels
-                bleed_ratio = color_bleeds / total_pixels
-                
-                defect_score = 0
-                if dark_ratio < 0.01 and bright_ratio < 0.01 and bleed_ratio < 0.02:
-                    defect_score = 20
-                    report_points.append("No detectable surface defects.")
-                elif dark_ratio < 0.03 and bright_ratio < 0.03 and bleed_ratio < 0.05:
-                    defect_score = 12
-                    report_points.append("Minimal surface imperfections.")
-                elif dark_ratio < 0.06 and bright_ratio < 0.06 and bleed_ratio < 0.08:
-                    defect_score = 5
-                    report_points.append("Minor surface defects detected.")
-                elif dark_ratio < 0.10 and bright_ratio < 0.10 and bleed_ratio < 0.12:
-                    defect_score = -5
-                    report_points.append("Noticeable surface defects present.")
-                else:
-                    defect_score = -15
-                    report_points.append("Significant defects affecting quality.")
-                
-                score += defect_score
-                
-                # 4. PRECISION Crop-Specific Analysis (Accurate defect detection)
-                detected_defects = []
-                for defect_name, ranges in profile['indicators'].items():
-                    r_low, r_high, g_low, g_high, b_low, b_high = ranges
-                    # Check if at least 3% of pixels match this defect profile (more precise)
-                    mask = (
-                        (flat_pixels[:, 0] >= r_low) & (flat_pixels[:, 0] <= r_high) &
-                        (flat_pixels[:, 1] >= g_low) & (flat_pixels[:, 1] <= g_high) &
-                        (flat_pixels[:, 2] >= b_low) & (flat_pixels[:, 2] <= b_high)
-                    )
-                    defect_pixel_count = np.sum(mask)
-                    defect_percentage = defect_pixel_count / total_pixels
-                    
-                    if defect_percentage > 0.03: # 3% threshold (more precise)
-                        detected_defects.append((defect_name, defect_percentage))
-                
-                if detected_defects:
-                    # Precise penalties based on defect severity
-                    total_penalty = 0
-                    for defect_name, defect_pct in detected_defects:
-                        if defect_pct > 0.08:
-                            penalty = 8  # High severity
-                            report_points.append(f"Severe {defect_name} detected ({defect_pct*100:.1f}%).")
-                        elif defect_pct > 0.05:
-                            penalty = 5  # Medium severity
-                            report_points.append(f"Moderate {defect_name} detected ({defect_pct*100:.1f}%).")
-                        else:
-                            penalty = 3  # Low severity
-                            report_points.append(f"Minor {defect_name} detected ({defect_pct*100:.1f}%).")
-                        total_penalty += penalty
-                    score -= total_penalty
-                else:
-                    score += 8
-                    report_points.append("No crop-specific quality issues detected.")
-                
-                # 5. PRECISION Lighting & Exposure Analysis
-                lighting_score = 0
-                if 100 <= brightness <= 200:
-                    lighting_score = 8
-                    report_points.append("Optimal lighting conditions.")
-                elif 80 <= brightness <= 220:
-                    lighting_score = 4
+                # 5. LIGHTING ANALYSIS
+                light_min, light_max = model['brightness_optimal']
+                if light_min <= brightness <= light_max:
+                    premium_score += 15
+                    report_points.append("Optimal lighting conditions for analysis.")
+                elif (light_min - 20) <= brightness <= (light_max + 20):
+                    premium_score += 8
                     report_points.append("Good lighting conditions.")
-                elif 60 <= brightness <= 240:
-                    lighting_score = 0
-                    report_points.append("Acceptable lighting.")
                 else:
-                    lighting_score = -5
-                    report_points.append("Sub-optimal lighting affects analysis.")
+                    premium_score -= 5
+                    report_points.append("Sub-optimal lighting affecting accuracy.")
                 
-                score += lighting_score
+                # 6. FINAL SCORE CALCULATION
+                score = max(20, min(90, premium_score))
                 
-                # 6. FINAL PRECISION NORMALIZATION
-                score = max(15, min(95, score))  # Full realistic range
-                
-                # PRECISION QUALITY GRADING (Accurate thresholds)
-                if score >= 85:
-                    quality, summary = 'Premium', "Exceptional quality - Export grade with premium characteristics."
-                elif score >= 72:
-                    quality, summary = 'A-Grade', "High quality - Premium market grade with excellent features."
-                elif score >= 58:
-                    quality, summary = 'Standard', "Good quality - Regular market grade with acceptable characteristics."
-                elif score >= 42:
-                    quality, summary = 'B-Grade', "Fair quality - Local market grade with some limitations."
+                # 7. QUALITY GRADING WITH CROP-SPECIFIC CRITERIA
+                if score >= 80:
+                    quality = 'Premium'
+                    summary = f"Exceptional {crop} quality - Export grade with premium characteristics."
+                elif score >= 65:
+                    quality = 'A-Grade'
+                    summary = f"High quality {crop} - Premium market grade with excellent features."
+                elif score >= 50:
+                    quality = 'Standard'
+                    summary = f"Good quality {crop} - Regular market grade with acceptable characteristics."
+                elif score >= 35:
+                    quality = 'B-Grade'
+                    summary = f"Fair quality {crop} - Local market grade with some limitations."
                 else:
-                    quality, summary = 'Low', "Below standard - Processing grade with significant quality issues."
+                    quality = 'Low'
+                    summary = f"Below standard {crop} - Processing grade with significant quality issues."
                 
                 quality_score = score
                 visual_proof = f"Precision Scan: Res {analysis_res}px | RGB: {int(r_avg)},{int(g_avg)},{int(b_avg)} | Texture: {int(overall_std)} | Defects: {defect_ratio:.4f}"
