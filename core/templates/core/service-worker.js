@@ -48,7 +48,9 @@ self.addEventListener('fetch', event => {
             return networkResponse;
           });
         })
-        .catch(() => caches.match(event.request)) // Fallback to cache if offline
+        .catch(() => {
+          return caches.match(OFFLINE_URL);
+        })
     );
     return;
   }

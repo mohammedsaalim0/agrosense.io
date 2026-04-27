@@ -11,8 +11,9 @@ router.register(r'products', api_views.ProductViewSet)
 
 urlpatterns = [
     # PWA Routes
-    path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
-    path('sw.js', views.service_worker, name='service_worker'),
+    path('manifest.json', TemplateView.as_view(template_name='core/manifest.json', content_type='application/json')),
+    path('service-worker.js', TemplateView.as_view(template_name='core/service-worker.js', content_type='application/javascript')),
+    path('sw.js', TemplateView.as_view(template_name='core/service-worker.js', content_type='application/javascript')),
     
     # Main Routes
     path('', views.dashboard, name='dashboard'),
@@ -35,8 +36,7 @@ urlpatterns = [
     path('api/cancel-order/', views.api_cancel_order, name='api_cancel_order'),
     path('api/generate-bill/', views.api_generate_bill, name='api_generate_bill'),
     path('order/bill/<str:order_id>/', views.download_invoice, name='download_invoice'),
-    path('manifest.json', TemplateView.as_view(template_name='core/manifest.json', content_type='application/json')),
-    path('service-worker.js', TemplateView.as_view(template_name='core/service-worker.js', content_type='application/javascript')),
+    path('order/bill/<str:order_id>/', views.download_invoice, name='download_invoice'),
     path('api/search-market/', views.api_search_market, name='api_search_market'),
     path('api/schemes/', views.api_get_schemes, name='api_get_schemes'),
     path('api/predict-fair-price/', views.api_predict_fair_price, name='api_predict_fair_price'),

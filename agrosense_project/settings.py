@@ -167,6 +167,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 
+STATICFILES_DIRS = [
+    BASE_DIR / 'agrosense_project' / 'static',
+]
+
 # PWA Settings
 PWA_MANIFEST_PATH = 'static/manifest.json'
 PWA_SERVICE_WORKER_PATH = 'static/sw.js'
