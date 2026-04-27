@@ -70,11 +70,11 @@ def test_prediction_algorithm():
         
         if response.status_code == 200:
             result = response.json()
-            print(f"✅ Prediction: {result['quality']} (Score: {result['score']})")
-            print(f"📊 Fair Price: ₹{result['fair_price']} (MSP: ₹{result['msp']})")
-            print(f"📝 Report: {', '.join(result['report'][:2])}")
+            print(f"Prediction: {result['quality']} (Score: {result['score']})")
+            print(f"Fair Price: INR {result['fair_price']} (MSP: INR {result['msp']})")
+            print(f"Report: {', '.join(result['report'][:2])}")
         else:
-            print(f"❌ Error: {response.status_code} - {response.content.decode()}")
+            print(f"Error: {response.status_code} - {response.content.decode()}")
     
     print("\n" + "=" * 60)
     print("Test completed. The improved algorithm should now provide more accurate predictions.")
