@@ -257,12 +257,12 @@
         <div class="refund-card">
             <button class="modal-close" onclick="closeRefundModal()">&#x2715;</button>
             <div class="refund-header">
-                <div class="refund-icon-wrap">&#x1F4B0;</div>
-                <h2>Request a Refund</h2>
+                <div class="refund-icon-wrap" id="request-icon-wrap">&#x21BB;</div>
+                <h2 id="request-modal-title">Return / Exchange Item</h2>
                 <p id="refund-order-label" style="color:#64748b;font-size:0.9rem;margin-top:4px;">Order #---</p>
             </div>
             <div class="refund-step active" id="refund-step-1">
-                <h3 class="step-title">Step 1 of 3 &mdash; Why do you want a refund?</h3>
+                <h3 class="step-title">Step 1 of 4 &mdash; Reason for request</h3>
                 <div class="refund-form-group">
                     <label>Select Reason</label>
                     <select id="refund-reason-cat" class="refund-select">
@@ -282,15 +282,32 @@
                 </div>
                 <div class="refund-form-group">
                     <label>Upload Evidence Photo <span style="color:#999;font-size:0.8rem;">(optional)</span></label>
-                    <div class="refund-upload-zone" id="refund-upload-zone" onclick="document.getElementById('refund-img-input').click()">
-                        <input type="file" id="refund-img-input" accept="image/*" style="display:none" onchange="previewRefundImage(this)">
-                        <p id="refund-upload-text">&#x1F4C1; Click to upload photo of item</p>
+                    <div style="display:flex;gap:10px;">
+                        <div class="refund-upload-zone" id="refund-upload-zone" onclick="document.getElementById('refund-img-input').click()" style="flex:1; padding: 1rem;">
+                            <input type="file" id="refund-img-input" accept="image/*" style="display:none" onchange="previewRefundImage(this, 'refund-upload-zone', 'refund-upload-text')">
+                            <p id="refund-upload-text" style="margin:0;">&#x1F4C1; Upload Photo</p>
+                        </div>
+                        <div class="refund-upload-zone" id="refund-cam-zone" onclick="document.getElementById('refund-cam-input').click()" style="flex:1; padding: 1rem; background:#fffbf5; border-color:#fde8cc; color:#e67e22;">
+                            <input type="file" id="refund-cam-input" accept="image/*" capture="environment" style="display:none" onchange="previewRefundImage(this, 'refund-cam-zone', 'refund-cam-text')">
+                            <p id="refund-cam-text" style="margin:0;">&#x1F4F7; Take Photo</p>
+                        </div>
                     </div>
                 </div>
                 <button class="refund-next-btn" onclick="refundStep(2)">Continue &rarr;</button>
             </div>
             <div class="refund-step" id="refund-step-2">
-                <h3 class="step-title">Step 2 of 3 &mdash; Where should we send the money?</h3>
+                <h3 class="step-title">Step 2 of 4 &mdash; What would you like to do?</h3>
+                <div class="payment-toggle" style="margin-bottom:20px;">
+                    <button class="pay-opt active" id="opt-action-refund" onclick="toggleActionOpt('REFUND')">Refund</button>
+                    <button class="pay-opt" id="opt-action-exchange" onclick="toggleActionOpt('EXCHANGE')">Exchange</button>
+                </div>
+                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                    <button class="refund-back-btn" onclick="refundStep(1)">&larr; Back</button>
+                    <button class="refund-next-btn" onclick="refundStep(3)">Continue &rarr;</button>
+                </div>
+            </div>
+            <div class="refund-step" id="refund-step-3">
+                <h3 class="step-title">Step 3 of 4 &mdash; Where should we send the money?</h3>
                 <div class="refund-amount-badge">Refund Amount: <strong id="refund-amount-display">&#x20B9;0</strong></div>
                 <div class="refund-form-group">
                     <label>Refund Method</label>
@@ -320,15 +337,15 @@
                     </div>
                 </div>
                 <div style="display:flex;gap:1rem;margin-top:1.5rem;">
-                    <button class="refund-back-btn" onclick="refundStep(1)">&larr; Back</button>
-                    <button class="refund-next-btn" onclick="refundStep(3)">Continue &rarr;</button>
+                    <button class="refund-back-btn" onclick="refundStep(2)">&larr; Back</button>
+                    <button class="refund-next-btn" onclick="refundStep(4)">Continue &rarr;</button>
                 </div>
             </div>
-            <div class="refund-step" id="refund-step-3">
-                <h3 class="step-title">Step 3 of 3 &mdash; Review &amp; Confirm</h3>
+            <div class="refund-step" id="refund-step-4">
+                <h3 class="step-title">Step 4 of 4 &mdash; Review &amp; Confirm</h3>
                 <div class="refund-review-box" id="refund-review-content"></div>                <div style="display:flex;gap:1rem;margin-top:1.5rem;">
-                    <button class="refund-back-btn" onclick="refundStep(2)">&larr; Back</button>
-                    <button class="refund-submit-btn" id="refund-submit-btn" onclick="submitRefundRequest()">Submit Refund Request</button>
+                    <button class="refund-back-btn" id="btn-back-to-3" onclick="refundStep(3)">&larr; Back</button>
+                    <button class="refund-submit-btn" id="refund-submit-btn" onclick="submitRefundRequest()">Submit Request</button>
                 </div>
             </div>
         </div>
@@ -1295,7 +1312,7 @@
         width: 450px;
         height: 100vh;
         background: white;
-        z-index: 2000;
+        z-index: 15000;
         box-shadow: -10px 0 50px rgba(0,0,0,0.1);
         transition: right 0.5s cubic-bezier(0.77, 0, 0.175, 1);
         display: flex;
@@ -1782,9 +1799,8 @@
         document.getElementById('orders-modal').style.display = 'flex';
         const container = document.getElementById('orders-list-container');
         container.innerHTML = '<div class="loader">Loading your orders...</div>';
-        
         try {
-            const res = await fetch('/api/my-orders/');
+            const res = await fetch('/api/my-orders/?t=' + new Date().getTime());
             const data = await res.json();
             
             if (data.status === 'success') {
@@ -1811,7 +1827,10 @@
                             </div>
                             <div class="order-actions">
                                 <button class="btn-sm bill" onclick="viewBill('${order.order_id}')">Invoice</button>
-                                ${(order.status === 'PAID' || order.status === 'DELIVERED') ? `<button class="btn-sm" style="color:#e67e22;border-color:#fde8cc;background:#fffbf5;" onclick="openRefundModal('${order.order_id}', ${order.total_amount})">&#x1F4B0; Refund</button>` : ''}
+                                ${order.refund_status 
+                                    ? `<span style="font-weight:600; font-size:0.9rem; color:${order.refund_status.includes('Successful') ? '#22c55e' : '#e67e22'}; margin:0 8px;">&#x21BB; ${order.refund_status}</span>` 
+                                    : (order.status !== 'CANCELLED' ? `<button class="btn-sm" style="color:#e67e22;border-color:#fde8cc;background:#fffbf5;" onclick="openRefundModal('${order.order_id}', ${order.total_amount})">&#x21BB; Return / Exchange</button>` : '')
+                                }
                                 ${order.status !== 'CANCELLED' ? `<button class="btn-sm cancel" onclick="cancelOrder('${order.order_id}')">Cancel</button>` : ''}
                             </div>
                         </div>
@@ -1875,10 +1894,12 @@
     let _refundOrderId = null;
     let _refundAmount = 0;
     let _refundPayPreference = 'UPI';
+    let _requestType = 'REFUND';
 
     function openRefundModal(orderId, amount) {
         _refundOrderId = orderId;
         _refundAmount = amount;
+        _requestType = 'REFUND';
         document.getElementById('refund-order-label').textContent = 'Order #' + orderId;
         document.getElementById('refund-amount-display').textContent = '\u20B9' + parseFloat(amount).toFixed(2);
         // Reset form
@@ -1886,12 +1907,16 @@
         document.getElementById('refund-reason-details').value = '';
         document.getElementById('refund-upi-id').value = '';
         document.getElementById('refund-img-input').value = '';
-        document.getElementById('refund-upload-text').textContent = '\uD83D\uDCC1 Click to upload photo of item';
+        if (document.getElementById('refund-cam-input')) document.getElementById('refund-cam-input').value = '';
+        document.getElementById('refund-upload-text').innerHTML = '&#x1F4C1; Upload Photo';
+        if (document.getElementById('refund-cam-text')) document.getElementById('refund-cam-text').innerHTML = '&#x1F4F7; Take Photo';
         document.getElementById('refund-upload-zone').classList.remove('has-file');
+        if (document.getElementById('refund-cam-zone')) document.getElementById('refund-cam-zone').classList.remove('has-file');
         // Reset to step 1
         document.querySelectorAll('.refund-step').forEach(s => s.classList.remove('active'));
         document.getElementById('refund-step-1').classList.add('active');
         togglePayOpt('UPI');
+        toggleActionOpt('REFUND');
         // Close orders modal and open refund modal
         document.getElementById('orders-modal').style.display = 'none';
         document.getElementById('refund-modal').style.display = 'flex';
@@ -1904,31 +1929,49 @@
     function refundStep(step) {
         if (step === 2) {
             const reason = document.getElementById('refund-reason-cat').value;
-            if (!reason) { alert('Please select a reason for your refund request.'); return; }
+            if (!reason) { alert('Please select a reason for your request.'); return; }
         }
-        if (step === 3) {
-            if (_refundPayPreference === 'UPI') {
-                const upi = document.getElementById('refund-upi-id').value.trim();
-                if (!upi) { alert('Please enter your UPI ID.'); return; }
-            } else {
-                const acc = document.getElementById('refund-bank-acc').value.trim();
-                const ifsc = document.getElementById('refund-bank-ifsc').value.trim();
-                if (!acc || !ifsc) { alert('Please enter complete bank details.'); return; }
+        if (step === 3 && _requestType === 'EXCHANGE') {
+            // Skip payment details for exchange, go to step 4
+            step = 4;
+            document.getElementById('btn-back-to-3').setAttribute('onclick', 'refundStep(2)');
+        } else if (step === 4) {
+            document.getElementById('btn-back-to-3').setAttribute('onclick', 'refundStep(3)');
+        }
+        
+        if (step === 4) {
+            if (_requestType === 'REFUND') {
+                if (_refundPayPreference === 'UPI') {
+                    const upi = document.getElementById('refund-upi-id').value.trim();
+                    if (!upi) { alert('Please enter your UPI ID.'); return; }
+                } else {
+                    const acc = document.getElementById('refund-bank-acc').value.trim();
+                    const ifsc = document.getElementById('refund-bank-ifsc').value.trim();
+                    if (!acc || !ifsc) { alert('Please enter complete bank details.'); return; }
+                }
             }
+            
             // Build review
             const reason = document.getElementById('refund-reason-cat').value;
             const details = document.getElementById('refund-reason-details').value.trim();
             const payDisplay = _refundPayPreference === 'UPI'
                 ? document.getElementById('refund-upi-id').value.trim()
                 : `${document.getElementById('refund-bank-acc').value.trim()} (${document.getElementById('refund-bank-ifsc').value.trim()})`;
-            document.getElementById('refund-review-content').innerHTML = `
+            
+            let reviewHtml = `
                 <div class="refund-review-row"><span>Order</span><span>#${_refundOrderId}</span></div>
-                <div class="refund-review-row"><span>Refund Amount</span><span>\u20B9${parseFloat(_refundAmount).toFixed(2)}</span></div>
+                <div class="refund-review-row"><span>Request Type</span><span>${_requestType}</span></div>
                 <div class="refund-review-row"><span>Reason</span><span>${reason}</span></div>
                 ${details ? `<div class="refund-review-row"><span>Details</span><span>${details.substring(0,60)}${details.length>60?'...':''}</span></div>` : ''}
-                <div class="refund-review-row"><span>Refund Via</span><span>${_refundPayPreference}</span></div>
-                <div class="refund-review-row"><span>Payment To</span><span>${payDisplay}</span></div>
             `;
+            if (_requestType === 'REFUND') {
+                reviewHtml += `
+                    <div class="refund-review-row"><span>Refund Amount</span><span>\u20B9${parseFloat(_refundAmount).toFixed(2)}</span></div>
+                    <div class="refund-review-row"><span>Refund Via</span><span>${_refundPayPreference}</span></div>
+                    <div class="refund-review-row"><span>Payment To</span><span>${payDisplay}</span></div>
+                `;
+            }
+            document.getElementById('refund-review-content').innerHTML = reviewHtml;
         }
         document.querySelectorAll('.refund-step').forEach(s => s.classList.remove('active'));
         document.getElementById(`refund-step-${step}`).classList.add('active');
@@ -1942,12 +1985,29 @@
         document.getElementById('bank-fields').style.display = type === 'BANK' ? 'block' : 'none';
     }
 
-    function previewRefundImage(input) {
+    function toggleActionOpt(type) {
+        _requestType = type;
+        document.getElementById('opt-action-refund').classList.toggle('active', type === 'REFUND');
+        document.getElementById('opt-action-exchange').classList.toggle('active', type === 'EXCHANGE');
+    }
+
+    function previewRefundImage(input, zoneId, textId) {
         if (input.files && input.files[0]) {
-            const zone = document.getElementById('refund-upload-zone');
-            const txt = document.getElementById('refund-upload-text');
+            const zone = document.getElementById(zoneId);
+            const txt = document.getElementById(textId);
             zone.classList.add('has-file');
-            txt.textContent = '\u2705 ' + input.files[0].name + ' uploaded!';
+            txt.innerHTML = '\u2705 ' + input.files[0].name;
+            
+            // clear the other input so we only send one
+            if (input.id === 'refund-img-input') {
+                if (document.getElementById('refund-cam-input')) document.getElementById('refund-cam-input').value = '';
+                if (document.getElementById('refund-cam-zone')) document.getElementById('refund-cam-zone').classList.remove('has-file');
+                if (document.getElementById('refund-cam-text')) document.getElementById('refund-cam-text').innerHTML = '&#x1F4F7; Take Photo';
+            } else {
+                document.getElementById('refund-img-input').value = '';
+                document.getElementById('refund-upload-zone').classList.remove('has-file');
+                document.getElementById('refund-upload-text').innerHTML = '&#x1F4C1; Upload Photo';
+            }
         }
     }
 
@@ -1958,6 +2018,7 @@
 
         const formData = new FormData();
         formData.append('order_id', _refundOrderId);
+        formData.append('request_type', _requestType);
         formData.append('reason_category', document.getElementById('refund-reason-cat').value);
         formData.append('reason_details', document.getElementById('refund-reason-details').value);
         formData.append('payment_preference', _refundPayPreference);
@@ -1965,8 +2026,12 @@
         formData.append('bank_account_no', document.getElementById('refund-bank-acc') ? document.getElementById('refund-bank-acc').value.trim() : '');
         formData.append('bank_ifsc', document.getElementById('refund-bank-ifsc') ? document.getElementById('refund-bank-ifsc').value.trim() : '');
         formData.append('bank_account_name', document.getElementById('refund-bank-name') ? document.getElementById('refund-bank-name').value.trim() : '');
+        
         const imgInput = document.getElementById('refund-img-input');
-        if (imgInput.files[0]) formData.append('evidence_image', imgInput.files[0]);
+        const camInput = document.getElementById('refund-cam-input');
+        if (imgInput && imgInput.files[0]) formData.append('evidence_image', imgInput.files[0]);
+        else if (camInput && camInput.files[0]) formData.append('evidence_image', camInput.files[0]);
+        
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
         try {
@@ -1974,31 +2039,69 @@
             const data = await res.json();
             if (data.status === 'success') {
                 closeRefundModal();
-                showRefundSuccess(data.refund_id, data.refund_amount);
+                showRefundSuccess(data.refund_id, data.refund_amount, _requestType);
             } else {
-                alert(data.message || 'Failed to submit refund. Please try again.');
+                alert(data.message || 'Failed to submit request. Please try again.');
                 btn.disabled = false;
-                btn.textContent = 'Submit Refund Request';
+                btn.textContent = 'Submit Request';
             }
         } catch (err) {
             alert('Network error. Please check your connection and try again.');
             btn.disabled = false;
-            btn.textContent = 'Submit Refund Request';
+            btn.textContent = 'Submit Request';
         }
     }
 
-    function showRefundSuccess(refundId, amount) {
-        // Populate success details
-        const payDisplay = _refundPayPreference === 'UPI'
-            ? document.getElementById('refund-upi-id').value.trim()
-            : document.getElementById('refund-bank-acc') ? document.getElementById('refund-bank-acc').value.trim() : 'Bank Account';
-        document.getElementById('refund-success-details').innerHTML = `
-            <div class="refund-success-row"><span>Refund ID</span><strong>${refundId}</strong></div>
-            <div class="refund-success-row"><span>Order</span><strong>#${_refundOrderId}</strong></div>
-            <div class="refund-success-row"><span>Amount</span><strong>\u20B9${parseFloat(amount).toFixed(2)}</strong></div>
-            <div class="refund-success-row"><span>Credited To</span><strong>${_refundPayPreference}: ${payDisplay}</strong></div>
-        `;
+    function showRefundSuccess(refundId, amount, type) {
         const overlay = document.getElementById('refund-success-overlay');
+        const title = document.querySelector('.refund-success-title');
+        const sub = document.querySelector('.refund-success-sub');
+        const detailsContainer = document.getElementById('refund-success-details');
+        const patienceMsg = document.querySelector('.patience-banner');
+        
+        if (type === 'EXCHANGE') {
+            overlay.style.background = 'linear-gradient(135deg, #b45309 0%, #d97706 40%, #f59e0b 70%, #fbbf24 100%)';
+            title.textContent = 'Exchange Initiated!';
+            sub.textContent = 'Your exchange request has been submitted successfully.';
+            detailsContainer.innerHTML = `
+                <div class="refund-success-row"><span>Request ID</span><strong>${refundId}</strong></div>
+                <div class="refund-success-row"><span>Order</span><strong>#${_refundOrderId}</strong></div>
+                <div class="refund-success-row"><span>Type</span><strong>Exchange</strong></div>
+            `;
+            patienceMsg.innerHTML = `
+                <div class="patience-clock">&#x1F69A;</div>
+                <div>
+                    <strong>Exchange is successful</strong><br>
+                    <span style="font-size:0.95rem;">and will take up to 2-6 business days.</span><br>
+                    <span style="font-size:1.1rem; display:block; margin-top:8px;">Please have patience &#x2764;</span>
+                </div>
+            `;
+        } else {
+            overlay.style.background = 'linear-gradient(135deg, #0d2b1a 0%, #1a4d2e 40%, #2d5a27 70%, #1b5e20 100%)';
+            title.textContent = 'Refund Initiated!';
+            sub.textContent = 'Your request has been submitted successfully.';
+            
+            const payDisplay = _refundPayPreference === 'UPI'
+                ? document.getElementById('refund-upi-id').value.trim()
+                : document.getElementById('refund-bank-acc') ? document.getElementById('refund-bank-acc').value.trim() : 'Bank Account';
+                
+            detailsContainer.innerHTML = `
+                <div class="refund-success-row"><span>Refund ID</span><strong>${refundId}</strong></div>
+                <div class="refund-success-row"><span>Order</span><strong>#${_refundOrderId}</strong></div>
+                <div class="refund-success-row"><span>Amount</span><strong>\u20B9${parseFloat(amount).toFixed(2)}</strong></div>
+                <div class="refund-success-row"><span>Credited To</span><strong>${_refundPayPreference}: ${payDisplay}</strong></div>
+            `;
+            
+            patienceMsg.innerHTML = `
+                <div class="patience-clock">&#x23F0;</div>
+                <div>
+                    <strong>Order refunded successfully</strong><br>
+                    <span style="font-size:0.95rem;">and will be credited to your account once the delivery boy picks the order.</span><br>
+                    <span style="font-size:1.1rem; display:block; margin-top:8px;">Please have patience &#x2764;</span>
+                </div>
+            `;
+        }
+        
         overlay.classList.add('active');
         launchConfetti();
     }

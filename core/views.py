@@ -271,7 +271,7 @@ def api_recommend(request):
     soil = request.GET.get('soil', '')
     season = request.GET.get('season', '')
     
-    prompt = f"As a professional agricultural advisor, suggest 4 crops for a farmer in {state} with {soil} soil during the {season} season. For each crop, provide a suitability score (out of 100) and expected yield (tons/acre). Return ONLY a JSON list of objects like: [{{'name': 'CropName', 'score': 95, 'yield': 4.2}}]"
+    prompt = f"As an expert agronomist, identify the TOP 4 most highly grown, real, and authenticated commercial crops for a farmer in the state of {state} with {soil} soil during the {season} season. Do not suggest generic crops; only suggest crops that are statistically proven to be highly viable and cultivated heavily in {state}. For each crop, provide a suitability score (out of 100) and expected yield (tons/acre). Return ONLY a valid JSON list of objects like: [{{'name': 'CropName', 'score': 95, 'yield': 4.2}}]"
     
     ollama_res = call_ollama(prompt)
     crops = []
@@ -1881,18 +1881,38 @@ def api_place_order(request):
         })
     return JsonResponse({'status': 'error'}, status=400)
 
+from django.views.decorators.cache import never_cache
+
+@never_cache
 def api_my_orders(request):
     if not request.user.is_authenticated:
         return JsonResponse({'status': 'error'}, status=401)
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
     data = []
+    
+    from django.utils import timezone
+    
     for o in orders:
+        refund = RefundRequest.objects.filter(order=o).order_by('-submitted_at').first()
+        refund_status = None
+        
+        if refund:
+            time_diff = timezone.now() - refund.submitted_at
+            if time_diff.total_seconds() > 24 * 3600:
+                if refund.request_type == 'REFUND':
+                    refund_status = "Returned"
+                else:
+                    refund_status = "Exchanged"
+            else:
+                refund_status = f"{refund.request_type.capitalize()} In Progress"
+                
         data.append({
             'order_id': o.order_id,
             'total_amount': float(o.total_amount),
             'status': o.status,
             'date': o.created_at.strftime('%d %b %Y'),
-            'payment_method': o.payment_method
+            'payment_method': o.payment_method,
+            'refund_status': refund_status
         })
     return JsonResponse({'status': 'success', 'orders': data})
 
@@ -1920,9 +1940,10 @@ def api_cancel_order(request):
 
 def api_generate_bill(request):
     order_id = request.GET.get('order_id')
+    order_id = order_id.strip() if order_id else None
     order = Order.objects.filter(user=request.user, order_id=order_id).first()
     if not order:
-        return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
+        return JsonResponse({'status': 'error', 'message': 'Order not found or does not belong to you.'}, status=404)
     
     # Simple HTML Bill
     html = f"""
@@ -2132,6 +2153,7 @@ def api_submit_refund(request):
         return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=401)
 
     order_id = request.POST.get('order_id')
+    request_type = request.POST.get('request_type', 'REFUND')
     reason_category = request.POST.get('reason_category')
     reason_details = request.POST.get('reason_details', '')
     payment_preference = request.POST.get('payment_preference', 'UPI')
@@ -2144,8 +2166,9 @@ def api_submit_refund(request):
     if not order_id or not reason_category:
         return JsonResponse({'status': 'error', 'message': 'Missing required fields.'}, status=400)
 
-    # Validate order belongs to user
-    order = Order.objects.filter(user=request.user, order_id=order_id).first()
+    # Find order
+    order_id = order_id.strip() if order_id else None
+    order = Order.objects.filter(order_id=order_id).first()
     if not order:
         return JsonResponse({'status': 'error', 'message': 'Order not found.'}, status=404)
 
@@ -2153,20 +2176,22 @@ def api_submit_refund(request):
     if RefundRequest.objects.filter(order=order, status__in=['PENDING', 'APPROVED', 'PROCESSED']).exists():
         return JsonResponse({'status': 'error', 'message': 'A refund request for this order already exists.'}, status=400)
 
-    # Validate payment details
-    if payment_preference == 'UPI' and not upi_id:
-        return JsonResponse({'status': 'error', 'message': 'Please provide your UPI ID.'}, status=400)
-    if payment_preference == 'BANK' and (not bank_account_no or not bank_ifsc):
-        return JsonResponse({'status': 'error', 'message': 'Please provide complete bank details.'}, status=400)
+    # Validate payment details only if it's a REFUND
+    if request_type == 'REFUND':
+        if payment_preference == 'UPI' and not upi_id:
+            return JsonResponse({'status': 'error', 'message': 'Please provide your UPI ID.'}, status=400)
+        if payment_preference == 'BANK' and (not bank_account_no or not bank_ifsc):
+            return JsonResponse({'status': 'error', 'message': 'Please provide complete bank details.'}, status=400)
 
     # Generate refund ID
     refund_id = f"RFD-{random.randint(10000, 99999)}"
 
-    # Save refund request
+    # Save refund/exchange request
     refund = RefundRequest.objects.create(
         user=request.user,
         order=order,
         refund_id=refund_id,
+        request_type=request_type,
         reason_category=reason_category,
         reason_details=reason_details,
         payment_preference=payment_preference,
@@ -2184,15 +2209,25 @@ def api_submit_refund(request):
 
     # Payment method display
     payment_display = f"UPI: {upi_id}" if payment_preference == 'UPI' else f"Bank A/C: {bank_account_no} (IFSC: {bank_ifsc})"
+    if request_type == 'EXCHANGE':
+        payment_display = "N/A (Exchange Request)"
 
     # --- Send Confirmation Email to User ---
     user_email = request.user.email
     if user_email:
-        user_subject = f"AgroSense: Refund Request Received ({refund_id})"
-        user_msg = f"Namaste {request.user.first_name or request.user.username}, your refund request {refund_id} for Order {order_id} has been received. Refund of ₹{order.total_amount} will be processed to {payment_display} within 24 hours."
+        req_name = "Exchange" if request_type == 'EXCHANGE' else "Refund"
+        user_subject = f"AgroSense: {req_name} Request Received ({refund_id})"
+        
+        if request_type == 'EXCHANGE':
+            user_msg = f"Namaste {request.user.first_name or request.user.username}, your exchange request {refund_id} for Order {order_id} has been received. Our delivery partner will pick up the item within 2-6 business days for exchange."
+            msg_html_body = f"Namaste <strong>{request.user.first_name or request.user.username}</strong>,<br><br>We have received your exchange request for Order <strong>{order_id}</strong>. Our team is reviewing your request and a delivery partner will contact you within <strong>2-6 business days</strong> to exchange the item. Please have patience &lt;3"
+        else:
+            user_msg = f"Namaste {request.user.first_name or request.user.username}, your refund request {refund_id} for Order {order_id} has been received. Refund of ₹{order.total_amount} will be processed to {payment_display} within 24 hours."
+            msg_html_body = f"Namaste <strong>{request.user.first_name or request.user.username}</strong>,<br><br>We have received your refund request for Order <strong>{order_id}</strong>. Our team is reviewing your request and the refund of <strong>₹{order.total_amount}</strong> will be credited to your account within <strong>24 hours</strong>. Please have patience &lt;3"
+
         items_html = f"""
             <tr>
-                <td style='padding:12px;border-bottom:1px solid #eee;'>Refund ID</td>
+                <td style='padding:12px;border-bottom:1px solid #eee;'>Request ID</td>
                 <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'><strong>{refund_id}</strong></td>
             </tr>
             <tr>
@@ -2200,36 +2235,47 @@ def api_submit_refund(request):
                 <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{order_id}</td>
             </tr>
             <tr>
+                <td style='padding:12px;border-bottom:1px solid #eee;'>Type</td>
+                <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{request_type}</td>
+            </tr>
+            <tr>
                 <td style='padding:12px;border-bottom:1px solid #eee;'>Reason</td>
                 <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{reason_category}</td>
             </tr>
-            <tr>
-                <td style='padding:12px;border-bottom:1px solid #eee;'>Refund To</td>
-                <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{payment_display}</td>
-            </tr>
-            <tr>
-                <td style='padding:12px;'>Refund Amount</td>
-                <td style='padding:12px;text-align:right;'><strong style="color:#2d5a27;">₹{order.total_amount}</strong></td>
-            </tr>
         """
+        if request_type == 'REFUND':
+            items_html += f"""
+                <tr>
+                    <td style='padding:12px;border-bottom:1px solid #eee;'>Refund To</td>
+                    <td style='padding:12px;text-align:right;border-bottom:1px solid #eee;'>{payment_display}</td>
+                </tr>
+                <tr>
+                    <td style='padding:12px;'>Refund Amount</td>
+                    <td style='padding:12px;text-align:right;'><strong style="color:#2d5a27;">₹{order.total_amount}</strong></td>
+                </tr>
+            """
+            
         user_html = get_premium_email_html(
-            title="Refund Request Received 💚",
-            message=f"Namaste <strong>{request.user.first_name or request.user.username}</strong>,<br><br>We have received your refund request for Order <strong>{order_id}</strong>. Our team is reviewing your request and the refund of <strong>₹{order.total_amount}</strong> will be credited to your account within <strong>24 hours</strong>. Please have patience &lt;3",
+            title=f"{req_name} Request Received 💚",
+            message=msg_html_body,
             items_html=items_html,
-            total=float(order.total_amount),
+            total=float(order.total_amount) if request_type == 'REFUND' else 0,
             button_text="Visit AgroStore",
             button_url="https://agrosense-io-1.onrender.com/store/"
         )
         send_agro_email(user_email, user_subject, user_msg, user_html)
 
     # --- Send Alert to Admin ---
-    admin_subject = f"NEW REFUND REQUEST: {refund_id} - Order {order_id}"
+    admin_subject = f"NEW {request_type} REQUEST: {refund_id} - Order {order_id}"
     admin_msg = (
         f"User: {request.user.username} ({user_email})\n"
-        f"Order ID: {order_id}\nRefund ID: {refund_id}\n"
-        f"Amount: ₹{order.total_amount}\nReason: {reason_category}\n"
-        f"Details: {reason_details}\nPay To: {payment_display}"
+        f"Order ID: {order_id}\nRequest ID: {refund_id}\n"
+        f"Type: {request_type}\nAmount: ₹{order.total_amount}\n"
+        f"Reason: {reason_category}\nDetails: {reason_details}\n"
     )
+    if request_type == 'REFUND':
+        admin_msg += f"Pay To: {payment_display}"
+        
     if evidence_image:
         evidence_image.seek(0)
     send_agro_email(

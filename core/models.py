@@ -182,6 +182,11 @@ class RefundRequest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refund_requests')
     refund_id = models.CharField(max_length=20, unique=True)
+    request_type = models.CharField(
+        max_length=10, 
+        choices=[('REFUND', 'Refund'), ('EXCHANGE', 'Exchange')], 
+        default='REFUND'
+    )
     reason_category = models.CharField(max_length=100)
     reason_details = models.TextField()
     evidence_image = models.ImageField(upload_to='refund_evidence/', blank=True, null=True)
