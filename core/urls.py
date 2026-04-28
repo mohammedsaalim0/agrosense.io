@@ -60,4 +60,15 @@ urlpatterns = [
     path('api/irrigation/stop-watering/', views.irrigation_stop_watering_api, name='irrigation_stop_watering_api'),
     path('api/irrigation/settings/', views.irrigation_settings_api, name='irrigation_settings_api'),
     path('api/irrigation/moisture-history/', views.irrigation_moisture_history_api, name='irrigation_moisture_history_api'),
+    
+    # Smart IoT Chamber URLs
+    path('smart-chamber/', views.smart_chamber_dashboard, name='smart_chamber_dashboard'),
+    path('api/chamber/dashboard/', views.chamber_dashboard_api, name='chamber_dashboard_api'),
+    path('api/chamber/crop-environments/', views.crop_environments_api, name='crop_environments_api'),
+    path('api/chamber/select-crop/', views.select_crop_environment_api, name='select_crop_environment_api'),
+    path('api/chamber/manual-control/', views.manual_control_api, name='manual_control_api'),
+    path('api/chamber/sensor-history/', views.sensor_history_api, name='sensor_history_api'),
+    path('api/chamber/irrigation-schedule/', views.irrigation_schedule_api, name='irrigation_schedule_api'),
+    path('api/chamber/alerts/', views.system_alerts_api, name='system_alerts_api'),
+    path('api/chamber/control-logs/', views.chamber_control_logs_api, name='chamber_control_logs_api'),
 ]

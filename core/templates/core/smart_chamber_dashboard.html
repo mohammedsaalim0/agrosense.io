@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart IoT Chamber - AgroSense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --harvest-gold: #D4A574;
+            --soil-brown: #8B4513;
+            --leaf-green: #228B22;
+            --sky-blue: #87CEEB;
+            --off-white: #FAF9F6;
+            --glass: rgba(250, 249, 246, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --transition: all 0.3s ease;
+            --bg-gradient: linear-gradient(-45deg, #FAF9F6, #F5DEB3, #E8F5E9, #FAF9F6);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            color: var(--soil-brown);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .sensor-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--leaf-green);
+            font-family: 'Playfair Display', serif;
+        }
+
+        .control-button {
+            background: var(--harvest-gold);
+            color: var(--soil-brown);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1rem;
+        }
+
+        .control-button:hover {
+            background: var(--leaf-green);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .control-button.active {
+            background: var(--leaf-green);
+            color: white;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-online { background: #10B981; }
+        .status-offline { background: #EF4444; }
+        .status-warning { background: #F59E0B; }
+
+        .alert-card {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-left: 4px solid #EF4444;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .crop-selector {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem;
+            color: var(--soil-brown);
+        }
+
+        .actuator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .actuator-grid { grid-template-columns: 1fr; }
+            .sensor-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation (reuse from base template) -->
+    <nav class="glass-card fixed top-0 w-full z-50 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <a href="{% url 'dashboard' %}" class="text-2xl font-bold" style="color: var(--harvest-gold);">AGROSENSE</a>
+            <div class="flex gap-4">
+                <a href="{% url 'dashboard' %}" class="hover:text-yellow-600">Dashboard</a>
+                <a href="{% url 'smart_irrigation' %}" class="hover:text-yellow-600">Smart Irrigation</a>
+                <a href="#" class="font-bold" style="color: var(--harvest-gold);">IoT Chamber</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-20 px-6 pb-12">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-5xl font-bold mb-4" style="font-family: 'Playfair Display', serif; color: var(--soil-brown);">
+                    🌱 Smart IoT Growth Chamber
+                </h1>
+                <p class="text-xl" style="color: var(--soil-brown); opacity: 0.8;">
+                    Real-time environmental control and monitoring system
+                </p>
+            </div>
+
+            <!-- Device Selection -->
+            <div class="glass-card p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-4" style="color: var(--soil-brown);">Select Device</h2>
+                <select id="deviceSelector" class="crop-selector w-full p-3 rounded-lg">
+                    <option value="">Choose a device...</option>
+                    {% for device in devices %}
+                    <option value="{{ device.device_id }}">{{ device.name }} ({{ device.get_device_type_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Main Dashboard Grid -->
+            <div id="mainDashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" style="display: none;">
+                
+                <!-- Sensor Readings -->
+                <div class="lg:col-span-2">
+                    <div class="glass-card p-6">
+                        <h3 class="text-xl font-bold mb-6" style="color: var(--soil-brown);">🌡️ Environmental Sensors</h3>
+                        <div class="sensor-grid">
+                            <!-- Temperature -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="tempStatus"></span>
+                                    <h4 class="font-semibold">Temperature</h4>
+                                </div>
+                                <div class="sensor-value" id="tempValue">--°C</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="tempTarget">--°C</span></div>
+                            </div>
+
+                            <!-- Humidity -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="humidityStatus"></span>
+                                    <h4 class="font-semibold">Humidity</h4>
+                                </div>
+                                <div class="sensor-value" id="humidityValue">--%</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="humidityTarget">--%</span></div>
+                            </div>
+
+                            <!-- Soil Moisture -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="moistureStatus"></span>
+                                    <h4 class="font-semibold">Soil Moisture</h4>
+                                </div>
+                                <div class="sensor-value" id="moistureValue">--%</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="moistureTarget">--%</span></div>
+                            </div>
+
+                            <!-- Light -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="lightStatus"></span>
+                                    <h4 class="font-semibold">Light Intensity</h4>
+                                </div>
+                                <div class="sensor-value" id="lightValue">-- lux</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="lightTarget">-- lux</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div>
+                    <div class="glass-card p-6">
+                        <h3 class="text-xl font-bold mb-6" style="color: var(--soil-brown);">🎛️ Control Panel</h3>
+                        
+                        <!-- Crop Selection -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Select Crop Environment</label>
+                            <select id="cropSelector" class="crop-selector w-full p-3 rounded-lg">
+                                <option value="">Choose a crop...</option>
+                                {% for crop in crops %}
+                                <option value="{{ crop.id }}">{{ crop.name }} (T:{{ crop.optimal_temperature }}°C, H:{{ crop.optimal_humidity }}%)</option>
+                                {% endfor %}
+                            </select>
+                            <button onclick="applyCropEnvironment()" class="control-button w-full mt-3">
+                                🌱 Apply Environment
+                            </button>
+                        </div>
+
+                        <!-- Control Mode -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Control Mode</label>
+                            <div class="flex gap-2">
+                                <button id="autoMode" class="control-button flex-1" onclick="setControlMode('auto')">
+                                    🤖 Auto
+                                </button>
+                                <button id="manualMode" class="control-button flex-1" onclick="setControlMode('manual')">
+                                    ✋ Manual
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Stop -->
+                        <button onclick="emergencyStop()" class="w-full bg-red-600 text-white p-3 rounded-lg font-semibold hover:bg-red-700 transition">
+                            🚨 EMERGENCY STOP
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actuator Controls -->
+            <div id="actuatorControls" class="glass-card p-6 mb-8" style="display: none;">
+                <h3 class="text-2xl font-bold mb-6" style="color: var(--soil-brown);">⚡ Actuator Controls</h3>
+                <div class="actuator-grid">
+                    <!-- Water Pump -->
+                    <div class="glass-card p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold">💧 Water Pump</h4>
+                            <span class="status-indicator" id="pumpStatus"></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="pumpOn" class="control-button flex-1" onclick="controlActuator('water_pump', 'on')">
+                                ON
+                            </button>
+                            <button id="pumpOff" class="control-button flex-1" onclick="controlActuator('water_pump', 'off')">
+                                OFF
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <label class="text-sm">Power Level: <span id="pumpPower">0</span>%</label>
+                            <input type="range" id="pumpSlider" min="0" max="100" value="0" class="w-full" onchange="setPowerLevel('water_pump', this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Cooling Fan -->
+                    <div class="glass-card p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold">🌬️ Cooling Fan</h4>
+                            <span class="status-indicator" id="fanStatus"></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="fanOn" class="control-button flex-1" onclick="controlActuator('cooling_fan', 'on')">
+                                ON
+                            </button>
+                            <button id="fanOff" class="control-button flex-1" onclick="controlActuator('cooling_fan', 'off')">
+                                OFF
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <label class="text-sm">Power Level: <span id="fanPower">0</span>%</label>
+                            <input type="range" id="fanSlider" min="0" max="100" value="0" class="w-full" onchange="setPowerLevel('cooling_fan', this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Grow Light -->
+                    <div class="glass-card p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold">💡 Grow Light</h4>
+                            <span class="status-indicator" id="lightActuatorStatus"></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="lightOn" class="control-button flex-1" onclick="controlActuator('grow_light', 'on')">
+                                ON
+                            </button>
+                            <button id="lightOff" class="control-button flex-1" onclick="controlActuator('grow_light', 'off')">
+                                OFF
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <label class="text-sm">Power Level: <span id="lightPower">0</span>%</label>
+                            <input type="range" id="lightSlider" min="0" max="100" value="0" class="w-full" onchange="setPowerLevel('grow_light', this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Humidifier -->
+                    <div class="glass-card p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold">🌫️ Humidifier</h4>
+                            <span class="status-indicator" id="humidifierStatus"></span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="humidifierOn" class="control-button flex-1" onclick="controlActuator('humidifier', 'on')">
+                                ON
+                            </button>
+                            <button id="humidifierOff" class="control-button flex-1" onclick="controlActuator('humidifier', 'off')">
+                                OFF
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <label class="text-sm">Power Level: <span id="humidifierPower">0</span>%</label>
+                            <input type="range" id="humidifierSlider" min="0" max="100" value="0" class="w-full" onchange="setPowerLevel('humidifier', this.value)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div id="chartsSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" style="display: none;">
+                <!-- Temperature Chart -->
+                <div class="glass-card p-6">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--soil-brown);">📊 Temperature History</h3>
+                    <div class="chart-container">
+                        <canvas id="tempChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Humidity Chart -->
+                <div class="glass-card p-6">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--soil-brown);">📊 Humidity History</h3>
+                    <div class="chart-container">
+                        <canvas id="humidityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Moisture Chart -->
+                <div class="glass-card p-6">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--soil-brown);">📊 Soil Moisture History</h3>
+                    <div class="chart-container">
+                        <canvas id="moistureChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Light Chart -->
+                <div class="glass-card p-6">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--soil-brown);">📊 Light Intensity History</h3>
+                    <div class="chart-container">
+                        <canvas id="lightChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div id="alertsSection" class="glass-card p-6" style="display: none;">
+                <h3 class="text-2xl font-bold mb-6" style="color: var(--soil-brown);">🚨 System Alerts</h3>
+                <div id="alertsList" class="space-y-4">
+                    <!-- Alerts will be populated here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-20 right-6 z-50 space-y-2"></div>
+
+    <script>
+        // Global variables
+        let currentDevice = null;
+        let currentControlMode = 'auto';
+        let updateInterval = null;
+        let charts = {};
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            loadCropEnvironments();
+        });
+
+        function initializeEventListeners() {
+            document.getElementById('deviceSelector').addEventListener('change', function() {
+                const deviceId = this.value;
+                if (deviceId) {
+                    loadDeviceData(deviceId);
+                    showMainDashboard();
+                } else {
+                    hideMainDashboard();
+                }
+            });
+
+            document.getElementById('cropSelector').addEventListener('change', function() {
+                const cropId = this.value;
+                if (cropId) {
+                    loadCropDetails(cropId);
+                }
+            });
+        }
+
+        async function loadDeviceData(deviceId) {
+            try {
+                const response = await fetch(`/api/chamber/dashboard/?device_id=${deviceId}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    currentDevice = data.data[0];
+                    updateSensorDisplay(currentDevice.sensors);
+                    updateActuatorDisplay(currentDevice.actuators);
+                    updateAlerts(currentDevice.alerts);
+                    startRealTimeUpdates();
+                }
+            } catch (error) {
+                showToast('Error loading device data', 'error');
+            }
+        }
+
+        function updateSensorDisplay(sensors) {
+            // Update temperature
+            if (sensors.temperature) {
+                document.getElementById('tempValue').textContent = `${sensors.temperature.value.toFixed(1)}°C`;
+                document.getElementById('tempStatus').className = 'status-indicator status-online';
+            }
+
+            // Update humidity
+            if (sensors.humidity) {
+                document.getElementById('humidityValue').textContent = `${sensors.humidity.value.toFixed(1)}%`;
+                document.getElementById('humidityStatus').className = 'status-indicator status-online';
+            }
+
+            // Update soil moisture
+            if (sensors.soil_moisture) {
+                document.getElementById('moistureValue').textContent = `${sensors.soil_moisture.value.toFixed(1)}%`;
+                document.getElementById('moistureStatus').className = 'status-indicator status-online';
+            }
+
+            // Update light
+            if (sensors.light) {
+                document.getElementById('lightValue').textContent = `${sensors.light.value.toFixed(0)} lux`;
+                document.getElementById('lightStatus').className = 'status-indicator status-online';
+            }
+        }
+
+        function updateActuatorDisplay(actuators) {
+            // Update water pump
+            if (actuators.water_pump) {
+                updateActuatorUI('pump', actuators.water_pump);
+            }
+
+            // Update cooling fan
+            if (actuators.cooling_fan) {
+                updateActuatorUI('fan', actuators.cooling_fan);
+            }
+
+            // Update grow light
+            if (actuators.grow_light) {
+                updateActuatorUI('light', actuators.grow_light);
+            }
+
+            // Update humidifier
+            if (actuators.humidifier) {
+                updateActuatorUI('humidifier', actuators.humidifier);
+            }
+        }
+
+        function updateActuatorUI(prefix, actuator) {
+            const isActive = actuator.is_active;
+            const powerLevel = actuator.power_level || 0;
+
+            // Update status indicator
+            document.getElementById(`${prefix}Status`).className = 
+                `status-indicator ${isActive ? 'status-online' : 'status-offline'}`;
+
+            // Update buttons
+            const onButton = document.getElementById(`${prefix}On`);
+            const offButton = document.getElementById(`${prefix}Off`);
+            
+            if (onButton) onButton.className = `control-button flex-1 ${isActive ? 'active' : ''}`;
+            if (offButton) offButton.className = `control-button flex-1 ${!isActive ? 'active' : ''}`;
+
+            // Update slider
+            const slider = document.getElementById(`${prefix}Slider`);
+            const powerDisplay = document.getElementById(`${prefix}Power`);
+            
+            if (slider) {
+                slider.value = powerLevel;
+                if (powerDisplay) powerDisplay.textContent = powerLevel;
+            }
+        }
+
+        function showMainDashboard() {
+            document.getElementById('mainDashboard').style.display = 'grid';
+            document.getElementById('actuatorControls').style.display = 'block';
+            document.getElementById('chartsSection').style.display = 'grid';
+            document.getElementById('alertsSection').style.display = 'block';
+        }
+
+        function hideMainDashboard() {
+            document.getElementById('mainDashboard').style.display = 'none';
+            document.getElementById('actuatorControls').style.display = 'none';
+            document.getElementById('chartsSection').style.display = 'none';
+            document.getElementById('alertsSection').style.display = 'none';
+        }
+
+        async function loadCropEnvironments() {
+            try {
+                const response = await fetch('/api/chamber/crop-environments/');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Crop selector is already populated in template
+                }
+            } catch (error) {
+                showToast('Error loading crop environments', 'error');
+            }
+        }
+
+        async function loadCropDetails(cropId) {
+            try {
+                const response = await fetch(`/api/chamber/crop-environments/`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const crop = data.data.find(c => c.id == cropId);
+                    if (crop) {
+                        document.getElementById('tempTarget').textContent = `${crop.optimal_temperature}°C`;
+                        document.getElementById('humidityTarget').textContent = `${crop.optimal_humidity}%`;
+                        document.getElementById('moistureTarget').textContent = `${crop.optimal_moisture}%`;
+                        document.getElementById('lightTarget').textContent = `${crop.light_intensity} lux`;
+                    }
+                }
+            } catch (error) {
+                showToast('Error loading crop details', 'error');
+            }
+        }
+
+        async function applyCropEnvironment() {
+            if (!currentDevice) {
+                showToast('Please select a device first', 'warning');
+                return;
+            }
+
+            const cropId = document.getElementById('cropSelector').value;
+            if (!cropId) {
+                showToast('Please select a crop environment', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/chamber/select-crop/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        device_id: currentDevice.device_id,
+                        crop_id: cropId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showToast(data.message, 'success');
+                    loadCropDetails(cropId);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error applying crop environment', 'error');
+            }
+        }
+
+        async function controlActuator(actuatorType, action) {
+            if (!currentDevice) {
+                showToast('Please select a device first', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/chamber/manual-control/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        device_id: currentDevice.device_id,
+                        actuator_type: actuatorType,
+                        action: action
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showToast(data.message, 'success');
+                    // Refresh device data after a short delay
+                    setTimeout(() => loadDeviceData(currentDevice.device_id), 1000);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error controlling actuator', 'error');
+            }
+        }
+
+        async function setPowerLevel(actuatorType, powerLevel) {
+            if (!currentDevice) {
+                showToast('Please select a device first', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/chamber/manual-control/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        device_id: currentDevice.device_id,
+                        actuator_type: actuatorType,
+                        action: 'on',
+                        power_level: parseInt(powerLevel)
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status !== 'success') {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error setting power level', 'error');
+            }
+        }
+
+        async function setControlMode(mode) {
+            currentControlMode = mode;
+            
+            // Update UI
+            document.getElementById('autoMode').className = 
+                `control-button flex-1 ${mode === 'auto' ? 'active' : ''}`;
+            document.getElementById('manualMode').className = 
+                `control-button flex-1 ${mode === 'manual' ? 'active' : ''}`;
+
+            showToast(`Control mode set to ${mode}`, 'success');
+        }
+
+        async function emergencyStop() {
+            if (!currentDevice) {
+                showToast('Please select a device first', 'warning');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to emergency stop all actuators?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/chamber/emergency-stop/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        device_id: currentDevice.device_id
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showToast('Emergency stop activated', 'success');
+                    loadDeviceData(currentDevice.device_id);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Error during emergency stop', 'error');
+            }
+        }
+
+        function updateAlerts(alerts) {
+            const alertsList = document.getElementById('alertsList');
+            alertsList.innerHTML = '';
+
+            if (alerts.length === 0) {
+                alertsList.innerHTML = '<p class="text-gray-600">No active alerts</p>';
+                return;
+            }
+
+            alerts.forEach(alert => {
+                const alertCard = document.createElement('div');
+                alertCard.className = `glass-card p-4 alert-card`;
+                
+                const severityColor = {
+                    'info': 'bg-blue-100 border-blue-300',
+                    'warning': 'bg-yellow-100 border-yellow-300',
+                    'error': 'bg-red-100 border-red-300',
+                    'critical': 'bg-red-200 border-red-400'
+                }[alert.severity] || 'bg-gray-100 border-gray-300';
+
+                alertCard.className += ` ${severityColor}`;
+                
+                alertCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold mb-2">${alert.title}</h4>
+                            <p class="text-sm">${alert.message}</p>
+                            <p class="text-xs text-gray-600 mt-2">${new Date(alert.created_at).toLocaleString()}</p>
+                        </div>
+                        <span class="status-indicator status-${alert.severity === 'critical' ? 'offline' : 'warning'}"></span>
+                    </div>
+                `;
+                
+                alertsList.appendChild(alertCard);
+            });
+        }
+
+        function startRealTimeUpdates() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+
+            updateInterval = setInterval(() => {
+                if (currentDevice) {
+                    loadDeviceData(currentDevice.device_id);
+                    updateCharts();
+                }
+            }, 5000); // Update every 5 seconds
+        }
+
+        function initializeCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                hour: 'HH:mm'
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: false
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            };
+
+            // Temperature chart
+            charts.temp = new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: '#EF4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Humidity chart
+            charts.humidity = new Chart(document.getElementById('humidityChart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Humidity',
+                        data: [],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Moisture chart
+            charts.moisture = new Chart(document.getElementById('moistureChart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Soil Moisture',
+                        data: [],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Light chart
+            charts.light = new Chart(document.getElementById('lightChart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Light Intensity',
+                        data: [],
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+
+        async function updateCharts() {
+            if (!currentDevice) return;
+
+            try {
+                // Load historical data for each sensor
+                const sensorTypes = ['temperature', 'humidity', 'soil_moisture', 'light'];
+                
+                for (const sensorType of sensorTypes) {
+                    const response = await fetch(`/api/chamber/sensor-history/?device_id=${currentDevice.device_id}&sensor_type=${sensorType}&hours=24`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'success' && charts[sensorType]) {
+                        const chartData = data.data.map(item => ({
+                            x: item.timestamp,
+                            y: item.value
+                        }));
+                        
+                        charts[sensorType].data.datasets[0].data = chartData;
+                        charts[sensorType].update('none');
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating charts:', error);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgColor = {
+                'success': 'bg-green-600',
+                'error': 'bg-red-600',
+                'warning': 'bg-yellow-600',
+                'info': 'bg-blue-600'
+            }[type] || 'bg-gray-600';
+            
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Initialize charts when page loads
+        setTimeout(() => {
+            initializeCharts();
+        }, 1000);
+    </script>
+</body>
+</html>
