@@ -1496,6 +1496,62 @@
         .form-field.full { grid-column: span 1; }
         .main-nav { display: none; }
         .hero-btns { flex-direction: column; }
+        
+        /* Orders Modal Mobile Fixes */
+        .orders-card {
+            padding: 1.5rem;
+            margin: 1rem;
+            max-width: calc(100% - 2rem);
+        }
+        
+        .order-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .order-actions {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .btn-sm {
+            flex: 1;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        /* Refund Modal Mobile Fixes */
+        .refund-card {
+            margin: 1rem;
+            max-width: calc(100% - 2rem);
+            padding: 1.5rem;
+        }
+        
+        .refund-upload-zone {
+            padding: 0.75rem !important;
+            font-size: 0.9rem !important;
+        }
+        
+        .refund-form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .refund-textarea, .refund-input, .refund-select {
+            font-size: 0.9rem;
+        }
+        
+        .payment-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .pay-opt {
+            flex: 1;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
     }
     .store-subheader {
         position: sticky;
@@ -1995,20 +2051,143 @@
         if (input.files && input.files[0]) {
             const zone = document.getElementById(zoneId);
             const txt = document.getElementById(textId);
-            zone.classList.add('has-file');
-            txt.innerHTML = '\u2705 ' + input.files[0].name;
+            const file = input.files[0];
+            
+            // Create image preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                zone.classList.add('has-file');
+                zone.style.backgroundImage = `url(${e.target.result})`;
+                zone.style.backgroundSize = 'cover';
+                zone.style.backgroundPosition = 'center';
+                zone.style.position = 'relative';
+                
+                // Create overlay with file info
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: rgba(0,0,0,0.7);
+                    color: white;
+                    padding: 8px;
+                    font-size: 0.8rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                `;
+                
+                const fileName = document.createElement('span');
+                fileName.textContent = file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name;
+                fileName.style.overflow = 'hidden';
+                fileName.style.textOverflow = 'ellipsis';
+                fileName.style.whiteSpace = 'nowrap';
+                fileName.style.flex = '1';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '✕';
+                removeBtn.style.cssText = `
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    border-radius: 50%;
+                    width: 20px;
+                    height: 20px;
+                    cursor: pointer;
+                    font-size: 0.7rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+                
+                // Prevent click from propagating to file input
+                removeBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    clearRefundImage(input.id, zoneId, textId);
+                };
+                
+                overlay.appendChild(fileName);
+                overlay.appendChild(removeBtn);
+                
+                // Clear previous content and add overlay
+                zone.innerHTML = '';
+                zone.appendChild(overlay);
+                
+                // Add click handler to view full image
+                const imageSrc = e.target.result;
+                zone.onclick = function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    viewFullImage(imageSrc);
+                };
+            };
+            reader.readAsDataURL(file);
             
             // clear the other input so we only send one
             if (input.id === 'refund-img-input') {
                 if (document.getElementById('refund-cam-input')) document.getElementById('refund-cam-input').value = '';
-                if (document.getElementById('refund-cam-zone')) document.getElementById('refund-cam-zone').classList.remove('has-file');
-                if (document.getElementById('refund-cam-text')) document.getElementById('refund-cam-text').innerHTML = '&#x1F4F7; Take Photo';
+                if (document.getElementById('refund-cam-zone')) clearRefundImage('refund-cam-input', 'refund-cam-zone', 'refund-cam-text');
             } else {
                 document.getElementById('refund-img-input').value = '';
-                document.getElementById('refund-upload-zone').classList.remove('has-file');
-                document.getElementById('refund-upload-text').innerHTML = '&#x1F4C1; Upload Photo';
+                clearRefundImage('refund-img-input', 'refund-upload-zone', 'refund-upload-text');
             }
         }
+    }
+    
+    function clearRefundImage(inputId, zoneId, textId) {
+        const input = document.getElementById(inputId);
+        const zone = document.getElementById(zoneId);
+        const txt = document.getElementById(textId);
+        
+        if (input) input.value = '';
+        if (zone) {
+            zone.classList.remove('has-file');
+            zone.style.backgroundImage = '';
+            zone.style.position = '';
+            
+            // Restore original content
+            if (inputId === 'refund-img-input') {
+                zone.innerHTML = '<p id="refund-upload-text" style="margin:0;">&#x1F4C1; Upload Photo</p>';
+            } else {
+                zone.innerHTML = '<p id="refund-cam-text" style="margin:0;">&#x1F4F7; Take Photo</p>';
+            }
+        }
+    }
+    
+    function viewFullImage(imageSrc) {
+        // Create modal to view full image
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            cursor: pointer;
+        `;
+        
+        const img = document.createElement('img');
+        img.src = imageSrc;
+        img.style.cssText = `
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+        `;
+        
+        modal.appendChild(img);
+        modal.onclick = function() {
+            document.body.removeChild(modal);
+        };
+        
+        document.body.appendChild(modal);
     }
 
     async function submitRefundRequest() {
