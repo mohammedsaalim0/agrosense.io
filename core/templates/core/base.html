@@ -183,25 +183,32 @@
 
         .nav-links {
             display: flex;
-            gap: 1rem;
+            gap: 1.5rem;
             align-items: center;
             flex-wrap: nowrap;
             justify-content: flex-end;
+            max-width: calc(100% - 200px); /* Leave space for logo */
         }
 
         .nav-links a {
             color: var(--off-white);
             text-decoration: none;
             font-weight: 600;
-            font-size: 0.85rem; /* Slightly smaller for better fit */
+            font-size: 0.9rem;
             transition: var(--transition);
             opacity: 0.9;
             white-space: nowrap;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid transparent;
         }
 
         .nav-links a:hover {
             color: var(--harvest-gold);
             opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         [data-theme="dark"] .nav-links a {
@@ -351,13 +358,35 @@
         /* Responsive Overrides */
         @media (max-width: 992px) {
             .nav-links {
-                position: fixed; top: 70px; right: -100%; width: 100%; height: calc(100vh - 70px);
-                background: rgba(62, 39, 35, 0.98); backdrop-filter: blur(20px);
-                flex-direction: column; padding: 2rem; gap: 1.5rem; transition: var(--transition);
+                position: fixed; 
+                top: 70px; 
+                right: -100%; 
+                width: 100%; 
+                height: calc(100vh - 70px);
+                background: rgba(62, 39, 35, 0.98); 
+                backdrop-filter: blur(20px);
+                flex-direction: column; 
+                padding: 2rem; 
+                gap: 1.5rem; 
+                transition: var(--transition);
                 z-index: 999;
+                align-items: flex-start;
             }
             .nav-links.active { right: 0; }
-            .mobile-toggle { display: block !important; }
+            .nav-links a {
+                width: 100%;
+                padding: 1rem;
+                border-radius: 12px;
+                font-size: 1rem;
+            }
+            .mobile-toggle { 
+                display: block !important; 
+                background: var(--glass);
+                border: 1px solid var(--glass-border);
+                padding: 0.5rem;
+                border-radius: 8px;
+                color: var(--off-white);
+            }
             .hero h1 { font-size: 2.8rem; }
             .section { padding: 60px 5%; }
             nav { padding: 0.8rem 5%; height: 70px; }
@@ -505,34 +534,11 @@
         <div class="nav-links" id="nav-links">
             <a href="{% url 'dashboard' %}#advisor">Crop Advisor</a>
             <a href="{% url 'dashboard' %}#intelligence">Market Intel</a>
-            <a href="{% url 'dashboard' %}#schemes">Support Schemes</a>
             <a href="{% url 'smart_irrigation' %}">🌱 Smart Irrigation</a>
-            <a href="{% url 'dashboard' %}#edu">AgroSense Edu</a>
-            <a href="{% url 'dashboard' %}#sell">Sell Crop</a>
-            <a href="{% url 'agro_suggestion' %}">Agro-Suggestion</a>
             <a href="{% url 'agro_store' %}" style="color: var(--harvest-gold); font-weight: bold;">AgroStore</a>
+            <a href="{% url 'dashboard' %}#sell">Sell Crop</a>
             <a href="{% url 'dashboard' %}#scanner">Plant Scanner</a>
             {% if user.is_authenticated %}
-                <div class="status-tracker-container">
-                    <button class="status-btn" onclick="toggleStatusDropdown()">
-                        📋 <span class="badge">{{ applications.count|default:0 }}</span>
-                    </button>
-                    <div id="status-dropdown" class="status-dropdown">
-                        <button class="close-status" onclick="toggleStatusDropdown()">✕</button>
-                        <h4>Application Status</h4>
-                        <div class="status-list">
-                            {% for app in applications %}
-                            <div class="status-item" id="app-{{ app.id }}">
-                                <p style="font-size: 0.9rem; margin-bottom: 2px;"><strong>{{ app.scheme_name }}</strong></p>
-                                <span class="status-tag {{ app.status|lower }}">{{ app.get_status_display }}</span>
-                                <button class="cancel-app-btn" onclick="cancelApplication('{{ app.scheme_name|escapejs }}', {{ app.id|default:'null' }})">Cancel Application</button>
-                            </div>
-                            {% empty %}
-                            <p id="no-apps-msg-empty" style="font-size: 0.8rem; color: #666;">No active applications.</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
                 <form action="{% url 'logout' %}" method="post" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-primary logout-btn">Logout</button>
