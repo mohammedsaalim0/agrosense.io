@@ -52,4 +52,12 @@ urlpatterns = [
     path('api/submit-grievance/', views.api_submit_grievance, name='api_submit_grievance'),
     path('api/submit-refund/', views.api_submit_refund, name='api_submit_refund'),
     path('offline/', views.offline, name='offline'),
+    
+    # Smart Irrigation Routes
+    path('smart-irrigation/', views.smart_irrigation, name='smart_irrigation'),
+    path('api/irrigation/status/', views.irrigation_status_api, name='irrigation_status_api'),
+    path('api/irrigation/water-now/', views.irrigation_water_now_api, name='irrigation_water_now_api'),
+    path('api/irrigation/stop-watering/', views.irrigation_stop_watering_api, name='irrigation_stop_watering_api'),
+    path('api/irrigation/settings/', views.irrigation_settings_api, name='irrigation_settings_api'),
+    path('api/irrigation/moisture-history/', views.irrigation_moisture_history_api, name='irrigation_moisture_history_api'),
 ]

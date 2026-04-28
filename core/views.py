@@ -10,7 +10,8 @@ from django.http import JsonResponse, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
-from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment
+from django.core.cache import cache
+from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment, Product, Order, RefundRequest
 import random
 import io
 import base64
@@ -22,12 +23,12 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
-from .models import Crop, SupportScheme, MarketListing, SchemeApplication, Profile, LearningProgress, CourseCertificate, CourseAssessment, Product, Order, RefundRequest
 import uuid
 import google.generativeai as genai
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 import json
+import time
 
 def pwa_manifest(request):
     """Serve PWA manifest file"""
@@ -2291,3 +2292,239 @@ def api_submit_refund(request):
         'refund_amount': float(order.total_amount),
         'message': f'Refund request {refund_id} submitted successfully!'
     })
+
+# ============================================================================
+# SMART IRRIGATION VIEWS
+# ============================================================================
+
+@login_required
+def smart_irrigation(request):
+    """Smart Irrigation Dashboard Page"""
+    return render(request, 'core/smart_irrigation.html')
+
+@csrf_exempt
+def irrigation_status_api(request):
+    """API endpoint to get current irrigation status"""
+    if request.method == 'GET':
+        try:
+            # Simulate real sensor data with realistic values
+            current_time = timezone.now()
+            
+            # Get cached data or generate new
+            cache_key = 'irrigation_status'
+            cached_data = cache.get(cache_key)
+            
+            if cached_data:
+                # Add some randomness to simulate real sensor fluctuations
+                cached_data['moisture'] = max(15, min(95, cached_data['moisture'] + random.randint(-3, 3)))
+                cached_data['timestamp'] = current_time.isoformat()
+            else:
+                # Generate initial realistic moisture data
+                base_moisture = random.randint(35, 75)
+                cached_data = {
+                    'moisture': base_moisture,
+                    'pump_status': 'OFF',
+                    'timestamp': current_time.isoformat(),
+                    'watering_history': {
+                        'last_watered': (current_time - datetime.timedelta(hours=random.randint(1, 12))).isoformat(),
+                        'last_duration': f"{random.randint(3, 8)} min",
+                        'today_count': random.randint(0, 5),
+                        'weekly_count': random.randint(10, 25)
+                    }
+                }
+                cache.set(cache_key, cached_data, 300)  # Cache for 5 minutes
+            
+            return JsonResponse(cached_data)
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e),
+                'moisture': 50,
+                'pump_status': 'OFF',
+                'timestamp': timezone.now().isoformat(),
+                'watering_history': {
+                    'last_watered': None,
+                    'last_duration': '0 min',
+                    'today_count': 0,
+                    'weekly_count': 0
+                }
+            }, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def irrigation_water_now_api(request):
+    """API endpoint to trigger watering"""
+    if request.method == 'POST':
+        try:
+            current_time = timezone.now()
+            
+            # Get current status
+            cache_key = 'irrigation_status'
+            current_data = cache.get(cache_key, {})
+            
+            # Toggle pump status
+            if current_data.get('pump_status') == 'ON':
+                # Stop watering
+                current_data['pump_status'] = 'OFF'
+                current_data['moisture'] = min(95, current_data.get('moisture', 50) + random.randint(5, 15))
+                
+                # Update watering history
+                if 'watering_history' in current_data:
+                    current_data['watering_history']['today_count'] = current_data['watering_history'].get('today_count', 0) + 1
+                    current_data['watering_history']['weekly_count'] = current_data['watering_history'].get('weekly_count', 0) + 1
+                
+                message = 'Watering stopped successfully'
+                action = 'stopped'
+                
+            else:
+                # Start watering
+                current_data['pump_status'] = 'ON'
+                current_data['moisture'] = max(15, current_data.get('moisture', 50) - random.randint(3, 8))
+                
+                message = 'Watering started successfully'
+                action = 'started'
+            
+            current_data['timestamp'] = current_time.isoformat()
+            cache.set(cache_key, current_data, 300)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': message,
+                'action': action,
+                'pump_status': current_data['pump_status'],
+                'moisture': current_data['moisture']
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error controlling irrigation: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def irrigation_stop_watering_api(request):
+    """API endpoint to stop watering (separate endpoint for safety)"""
+    if request.method == 'POST':
+        try:
+            current_time = timezone.now()
+            
+            # Get current status
+            cache_key = 'irrigation_status'
+            current_data = cache.get(cache_key, {})
+            
+            # Force stop watering
+            current_data['pump_status'] = 'OFF'
+            current_data['moisture'] = min(95, current_data.get('moisture', 50) + random.randint(5, 15))
+            current_data['timestamp'] = current_time.isoformat()
+            
+            cache.set(cache_key, current_data, 300)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Watering stopped successfully',
+                'pump_status': 'OFF'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error stopping irrigation: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def irrigation_settings_api(request):
+    """API endpoint for irrigation settings"""
+    if request.method == 'GET':
+        try:
+            # Get cached settings or return defaults
+            cache_key = 'irrigation_settings'
+            settings_data = cache.get(cache_key, {
+                'threshold': 30,
+                'duration': 5,
+                'interval': 30
+            })
+            
+            return JsonResponse(settings_data)
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': str(e),
+                'threshold': 30,
+                'duration': 5,
+                'interval': 30
+            }, status=500)
+    
+    elif request.method == 'POST':
+        try:
+            import json
+            data = json.loads(request.body)
+            
+            # Validate settings
+            threshold = max(10, min(60, int(data.get('threshold', 30))))
+            duration = max(1, min(15, int(data.get('duration', 5))))
+            interval = max(10, min(120, int(data.get('interval', 30))))
+            
+            settings_data = {
+                'threshold': threshold,
+                'duration': duration,
+                'interval': interval
+            }
+            
+            # Cache settings
+            cache_key = 'irrigation_settings'
+            cache.set(cache_key, settings_data, 86400)  # Cache for 24 hours
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Settings saved successfully',
+                'settings': settings_data
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error saving settings: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+def irrigation_moisture_history_api(request):
+    """API endpoint to get moisture history for charts"""
+    if request.method == 'GET':
+        try:
+            # Generate realistic moisture history for the last 24 hours
+            history = []
+            current_time = timezone.now()
+            
+            for i in range(24):
+                timestamp = current_time - datetime.timedelta(hours=i)
+                # Simulate moisture fluctuations
+                base_moisture = 45 + random.randint(-10, 15)
+                
+                # Add watering events (moisture spikes)
+                if i in [6, 12, 18]:  # Watering at 6am, 12pm, 6pm
+                    base_moisture = min(85, base_moisture + random.randint(20, 30))
+                
+                history.append({
+                    'timestamp': timestamp.isoformat(),
+                    'moisture': max(15, min(95, base_moisture))
+                })
+            
+            return JsonResponse({
+                'status': 'success',
+                'history': list(reversed(history))
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e),
+                'history': []
+            }, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

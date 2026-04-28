@@ -1,0 +1,1102 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="irrigation-container">
+    <!-- Hero Section -->
+    <section class="irrigation-hero">
+        <div class="hero-overlay"></div>
+        <div class="container hero-content">
+            <div class="hero-text-wrap">
+                <span class="hero-subtitle">IoT Smart Farming</span>
+                <h1>Smart Irrigation System</h1>
+                <p>Monitor and control your farm's watering system remotely with real-time soil moisture data and automated irrigation.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dashboard -->
+    <section class="irrigation-dashboard">
+        <div class="container">
+            <!-- Status Cards Grid -->
+            <div class="status-grid">
+                <!-- Soil Moisture Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>Soil Moisture</h3>
+                        <div class="status-indicator" id="moisture-indicator">
+                            <span class="indicator-dot"></span>
+                            <span class="indicator-text">Good</span>
+                        </div>
+                    </div>
+                    <div class="moisture-gauge-container">
+                        <svg class="moisture-gauge" viewBox="0 0 200 200">
+                            <!-- Background circle -->
+                            <circle cx="100" cy="100" r="90" fill="none" stroke="#e5e7eb" stroke-width="20"/>
+                            
+                            <!-- Progress circle -->
+                            <circle id="moisture-progress" cx="100" cy="100" r="90" fill="none" 
+                                    stroke="url(#gradient)" stroke-width="20" stroke-linecap="round"
+                                    stroke-dasharray="565.48" stroke-dashoffset="565.48"
+                                    transform="rotate(-90 100 100)"/>
+                            
+                            <!-- Gradient definition -->
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#eab308;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            
+                            <!-- Center text -->
+                            <text x="100" y="85" text-anchor="middle" class="gauge-value" id="moisture-value">--</text>
+                            <text x="100" y="110" text-anchor="middle" class="gauge-label">Moisture %</text>
+                        </svg>
+                    </div>
+                    <div class="moisture-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value" id="moisture-status">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Updated:</span>
+                            <span class="detail-value" id="last-updated">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>Irrigation Control</h3>
+                        <div class="mode-toggle">
+                            <button class="mode-btn active" id="manual-mode" onclick="setMode('MANUAL')">Manual</button>
+                            <button class="mode-btn" id="auto-mode" onclick="setMode('AUTO')">Auto</button>
+                        </div>
+                    </div>
+                    <div class="control-panel">
+                        <button class="water-btn" id="water-btn" onclick="waterNow()">
+                            <div class="water-icon">💧</div>
+                            <div class="water-text">
+                                <span class="water-main">Water Now</span>
+                                <span class="water-sub">Start irrigation</span>
+                            </div>
+                        </button>
+                        <div class="control-status">
+                            <div class="status-item">
+                                <span class="status-label">Pump Status:</span>
+                                <span class="status-value" id="pump-status">OFF</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Mode:</span>
+                                <span class="status-value" id="current-mode">MANUAL</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Last Watered Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>Watering History</h3>
+                        <div class="history-icon">📊</div>
+                    </div>
+                    <div class="watering-history">
+                        <div class="history-item">
+                            <div class="history-time" id="last-watered-time">--</div>
+                            <div class="history-details">
+                                <span class="history-duration" id="last-watered-duration">--</span>
+                                <span class="history-label">Last watered</span>
+                            </div>
+                        </div>
+                        <div class="history-stats">
+                            <div class="stat-item">
+                                <span class="stat-value" id="today-waterings">0</span>
+                                <span class="stat-label">Today</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="weekly-waterings">0</span>
+                                <span class="stat-label">This Week</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Moisture Chart -->
+            <div class="chart-card glass-morphism">
+                <div class="card-header">
+                    <h3>24-Hour Moisture Trend</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" onclick="setChartRange('24h')">24H</button>
+                        <button class="chart-btn" onclick="setChartRange('7d')">7D</button>
+                        <button class="chart-btn" onclick="setChartRange('30d')">30D</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="moisture-chart" width="800" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="settings-card glass-morphism">
+                <div class="card-header">
+                    <h3>Auto Irrigation Settings</h3>
+                    <button class="settings-toggle" onclick="toggleSettings()">⚙️</button>
+                </div>
+                <div class="settings-content" id="settings-content">
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>Auto Water Threshold</span>
+                            <span class="setting-value" id="threshold-value">30%</span>
+                        </label>
+                        <input type="range" class="setting-slider" id="threshold-slider" 
+                               min="10" max="60" value="30" oninput="updateThreshold(this.value)">
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>Watering Duration</span>
+                            <span class="setting-value" id="duration-value">5 min</span>
+                        </label>
+                        <input type="range" class="setting-slider" id="duration-slider" 
+                               min="1" max="15" value="5" oninput="updateDuration(this.value)">
+                    </div>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <span>Check Interval</span>
+                            <span class="setting-value" id="interval-value">30 min</span>
+                        </label>
+                        <input type="range" class="setting-slider" id="interval-slider" 
+                               min="10" max="120" value="30" step="10" oninput="updateInterval(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-notification" id="toast">
+    <div class="toast-content">
+        <div class="toast-icon" id="toast-icon">ℹ️</div>
+        <div class="toast-message" id="toast-message">Notification message</div>
+        <button class="toast-close" onclick="hideToast()">✕</button>
+    </div>
+</div>
+
+<style>
+/* Irrigation Page Styles */
+.irrigation-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f5dc 0%, #e8f5e8 50%, #f0f8f0 100%);
+}
+
+/* Hero Section */
+.irrigation-hero {
+    position: relative;
+    height: 60vh;
+    background: linear-gradient(135deg, #2d5016 0%, #4a7c59 50%, #8fbc8f 100%);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(2px);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    color: white;
+}
+
+.hero-text-wrap h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.hero-text-wrap p {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    max-width: 600px;
+}
+
+/* Dashboard Section */
+.irrigation-dashboard {
+    padding: 4rem 0;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.status-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.card-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: #2d5016;
+    margin: 0;
+}
+
+/* Moisture Gauge */
+.moisture-gauge-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.moisture-gauge {
+    width: 200px;
+    height: 200px;
+}
+
+.gauge-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    fill: #2d5016;
+}
+
+.gauge-label {
+    font-size: 0.9rem;
+    fill: #666;
+}
+
+.moisture-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-label {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.detail-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d5016;
+}
+
+/* Status Indicator */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.indicator-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+/* Control Panel */
+.mode-toggle {
+    display: flex;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 25px;
+    padding: 0.25rem;
+}
+
+.mode-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    color: #666;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.mode-btn.active {
+    background: #4a7c59;
+    color: white;
+}
+
+.water-btn {
+    width: 100%;
+    padding: 2rem;
+    background: linear-gradient(135deg, #4a7c59 0%, #2d5016 100%);
+    border: none;
+    border-radius: 15px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.water-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(74, 124, 89, 0.3);
+}
+
+.water-btn.active {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    animation: waterPulse 2s infinite;
+}
+
+@keyframes waterPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.water-icon {
+    font-size: 2.5rem;
+}
+
+.water-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.water-main {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.water-sub {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.control-status {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.status-label {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.status-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d5016;
+}
+
+/* Watering History */
+.watering-history {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(74, 124, 89, 0.1);
+    border-radius: 10px;
+}
+
+.history-time {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2d5016;
+}
+
+.history-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.history-duration {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4a7c59;
+}
+
+.history-label {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.history-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4a7c59;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Chart Card */
+.chart-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.chart-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chart-btn.active {
+    background: #4a7c59;
+    color: white;
+    border-color: #4a7c59;
+}
+
+.chart-container {
+    margin-top: 2rem;
+    height: 300px;
+}
+
+/* Settings Card */
+.settings-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.settings-content {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.setting-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+    color: #2d5016;
+}
+
+.setting-value {
+    background: #4a7c59;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+}
+
+.setting-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4a7c59;
+    cursor: pointer;
+}
+
+.setting-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4a7c59;
+    cursor: pointer;
+    border: none;
+}
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    z-index: 10000;
+    max-width: 350px;
+}
+
+.toast-notification.show {
+    transform: translateX(0);
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.toast-icon {
+    font-size: 1.5rem;
+}
+
+.toast-message {
+    flex: 1;
+    font-weight: 500;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-text-wrap h1 {
+        font-size: 2.5rem;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .status-card {
+        padding: 1.5rem;
+    }
+    
+    .water-btn {
+        padding: 1.5rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+</style>
+
+<script>
+// Global variables
+let currentMode = 'MANUAL';
+let isWatering = false;
+let moistureData = [];
+let chart = null;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeChart();
+    startRealTimeUpdates();
+    loadSettings();
+});
+
+// Real-time updates
+function startRealTimeUpdates() {
+    updateIrrigationStatus();
+    setInterval(updateIrrigationStatus, 5000); // Update every 5 seconds
+}
+
+async function updateIrrigationStatus() {
+    try {
+        const response = await fetch('/api/irrigation/status/');
+        const data = await response.json();
+        
+        updateMoistureGauge(data.moisture);
+        updateStatusIndicator(data.moisture);
+        updateLastUpdated(data.timestamp);
+        updatePumpStatus(data.pump_status);
+        updateWateringHistory(data.watering_history);
+        
+        // Check for low moisture alert
+        if (data.moisture < 30 && currentMode === 'AUTO') {
+            showToast('Low moisture detected! Auto watering activated.', 'warning');
+        }
+        
+        // Add to chart data
+        addToChart(data.timestamp, data.moisture);
+        
+    } catch (error) {
+        console.error('Error updating irrigation status:', error);
+    }
+}
+
+// Moisture Gauge Update
+function updateMoistureGauge(moisture) {
+    const gauge = document.getElementById('moisture-progress');
+    const value = document.getElementById('moisture-value');
+    const status = document.getElementById('moisture-status');
+    
+    // Calculate stroke dash offset for gauge
+    const circumference = 2 * Math.PI * 90;
+    const offset = circumference - (moisture / 100) * circumference;
+    
+    gauge.style.strokeDashoffset = offset;
+    value.textContent = moisture + '%';
+    
+    // Update status text
+    if (moisture >= 60) {
+        status.textContent = 'Good';
+        gauge.style.stroke = '#22c55e';
+    } else if (moisture >= 30) {
+        status.textContent = 'Moderate';
+        gauge.style.stroke = '#eab308';
+    } else {
+        status.textContent = 'Critical';
+        gauge.style.stroke = '#ef4444';
+    }
+}
+
+// Status Indicator Update
+function updateStatusIndicator(moisture) {
+    const indicator = document.getElementById('moisture-indicator');
+    const dot = indicator.querySelector('.indicator-dot');
+    const text = indicator.querySelector('.indicator-text');
+    
+    if (moisture >= 60) {
+        dot.style.background = '#22c55e';
+        text.textContent = 'Good';
+        text.style.color = '#22c55e';
+        indicator.style.background = 'rgba(34, 197, 94, 0.1)';
+        indicator.style.borderColor = 'rgba(34, 197, 94, 0.2)';
+    } else if (moisture >= 30) {
+        dot.style.background = '#eab308';
+        text.textContent = 'Moderate';
+        text.style.color = '#eab308';
+        indicator.style.background = 'rgba(234, 179, 8, 0.1)';
+        indicator.style.borderColor = 'rgba(234, 179, 8, 0.2)';
+    } else {
+        dot.style.background = '#ef4444';
+        text.textContent = 'Critical';
+        text.style.color = '#ef4444';
+        indicator.style.background = 'rgba(239, 68, 68, 0.1)';
+        indicator.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+    }
+}
+
+// Update Last Updated Time
+function updateLastUpdated(timestamp) {
+    const element = document.getElementById('last-updated');
+    const time = new Date(timestamp);
+    element.textContent = time.toLocaleTimeString();
+}
+
+// Update Pump Status
+function updatePumpStatus(status) {
+    const element = document.getElementById('pump-status');
+    const waterBtn = document.getElementById('water-btn');
+    
+    element.textContent = status;
+    
+    if (status === 'ON') {
+        element.style.color = '#ef4444';
+        waterBtn.classList.add('active');
+        waterBtn.querySelector('.water-main').textContent = 'Stop Watering';
+        isWatering = true;
+    } else {
+        element.style.color = '#22c55e';
+        waterBtn.classList.remove('active');
+        waterBtn.querySelector('.water-main').textContent = 'Water Now';
+        isWatering = false;
+    }
+}
+
+// Water Now Function
+async function waterNow() {
+    if (isWatering) {
+        // Stop watering
+        try {
+            const response = await fetch('/api/irrigation/stop-watering/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            
+            if (response.ok) {
+                showToast('Watering stopped', 'info');
+            }
+        } catch (error) {
+            console.error('Error stopping watering:', error);
+            showToast('Error stopping watering', 'error');
+        }
+    } else {
+        // Start watering
+        try {
+            const response = await fetch('/api/irrigation/water-now/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+            
+            if (response.ok) {
+                showToast('Watering started', 'success');
+            }
+        } catch (error) {
+            console.error('Error starting watering:', error);
+            showToast('Error starting watering', 'error');
+        }
+    }
+}
+
+// Mode Toggle
+function setMode(mode) {
+    currentMode = mode;
+    
+    // Update button states
+    document.getElementById('manual-mode').classList.toggle('active', mode === 'MANUAL');
+    document.getElementById('auto-mode').classList.toggle('active', mode === 'AUTO');
+    
+    // Update current mode display
+    document.getElementById('current-mode').textContent = mode;
+    
+    showToast(`Switched to ${mode} mode`, 'info');
+}
+
+// Chart Functions
+function initializeChart() {
+    const canvas = document.getElementById('moisture-chart');
+    const ctx = canvas.getContext('2d');
+    
+    // Simple line chart implementation
+    chart = {
+        canvas: canvas,
+        ctx: ctx,
+        data: [],
+        maxPoints: 24
+    };
+}
+
+function addToChart(timestamp, moisture) {
+    if (!chart) return;
+    
+    chart.data.push({
+        time: new Date(timestamp),
+        moisture: moisture
+    });
+    
+    // Keep only last 24 points
+    if (chart.data.length > chart.maxPoints) {
+        chart.data.shift();
+    }
+    
+    drawChart();
+}
+
+function drawChart() {
+    if (!chart || chart.data.length < 2) return;
+    
+    const ctx = chart.ctx;
+    const canvas = chart.canvas;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Calculate dimensions
+    const padding = 40;
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+    
+    // Draw axes
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, padding);
+    ctx.lineTo(padding, height - padding);
+    ctx.lineTo(width - padding, height - padding);
+    ctx.stroke();
+    
+    // Draw data
+    ctx.strokeStyle = '#4a7c59';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    chart.data.forEach((point, index) => {
+        const x = padding + (index / (chart.maxPoints - 1)) * chartWidth;
+        const y = height - padding - (point.moisture / 100) * chartHeight;
+        
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    
+    ctx.stroke();
+    
+    // Draw points
+    ctx.fillStyle = '#4a7c59';
+    chart.data.forEach((point, index) => {
+        const x = padding + (index / (chart.maxPoints - 1)) * chartWidth;
+        const y = height - padding - (point.moisture / 100) * chartHeight;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+    });
+}
+
+// Settings Functions
+function updateThreshold(value) {
+    document.getElementById('threshold-value').textContent = value + '%';
+    // Save to backend
+    saveSettings();
+}
+
+function updateDuration(value) {
+    document.getElementById('duration-value').textContent = value + ' min';
+    // Save to backend
+    saveSettings();
+}
+
+function updateInterval(value) {
+    document.getElementById('interval-value').textContent = value + ' min';
+    // Save to backend
+    saveSettings();
+}
+
+async function saveSettings() {
+    const settings = {
+        threshold: document.getElementById('threshold-slider').value,
+        duration: document.getElementById('duration-slider').value,
+        interval: document.getElementById('interval-slider').value
+    };
+    
+    try {
+        await fetch('/api/irrigation/settings/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(settings)
+        });
+    } catch (error) {
+        console.error('Error saving settings:', error);
+    }
+}
+
+async function loadSettings() {
+    try {
+        const response = await fetch('/api/irrigation/settings/');
+        const settings = await response.json();
+        
+        if (settings.threshold) {
+            document.getElementById('threshold-slider').value = settings.threshold;
+            document.getElementById('threshold-value').textContent = settings.threshold + '%';
+        }
+        
+        if (settings.duration) {
+            document.getElementById('duration-slider').value = settings.duration;
+            document.getElementById('duration-value').textContent = settings.duration + ' min';
+        }
+        
+        if (settings.interval) {
+            document.getElementById('interval-slider').value = settings.interval;
+            document.getElementById('interval-value').textContent = settings.interval + ' min';
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+// Toast Notification
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    const messageEl = document.getElementById('toast-message');
+    
+    // Set icon based on type
+    const icons = {
+        success: '✅',
+        warning: '⚠️',
+        error: '❌',
+        info: 'ℹ️'
+    };
+    
+    icon.textContent = icons[type] || icons.info;
+    messageEl.textContent = message;
+    
+    // Show toast
+    toast.classList.add('show');
+    
+    // Auto hide after 5 seconds
+    setTimeout(() => {
+        hideToast();
+    }, 5000);
+}
+
+function hideToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.remove('show');
+}
+
+// Utility Functions
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Update Watering History
+function updateWateringHistory(history) {
+    if (history.last_watered) {
+        const lastWateredTime = document.getElementById('last-watered-time');
+        const lastWateredDuration = document.getElementById('last-watered-duration');
+        
+        const time = new Date(history.last_watered);
+        lastWateredTime.textContent = time.toLocaleString();
+        lastWateredDuration.textContent = history.last_duration || '5 min';
+    }
+    
+    document.getElementById('today-waterings').textContent = history.today_count || 0;
+    document.getElementById('weekly-waterings').textContent = history.weekly_count || 0;
+}
+
+// Chart Range Functions
+function setChartRange(range) {
+    // Update button states
+    document.querySelectorAll('.chart-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Update chart data range
+    switch(range) {
+        case '24h':
+            chart.maxPoints = 24;
+            break;
+        case '7d':
+            chart.maxPoints = 168; // 7 days * 24 hours
+            break;
+        case '30d':
+            chart.maxPoints = 720; // 30 days * 24 hours
+            break;
+    }
+    
+    drawChart();
+}
+
+// Toggle Settings
+function toggleSettings() {
+    const content = document.getElementById('settings-content');
+    content.style.display = content.style.display === 'none' ? 'grid' : 'none';
+}
+</script>
+{% endblock %}
