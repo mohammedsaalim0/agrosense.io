@@ -1,0 +1,916 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Smart IoT Chamber - AgroSense{% endblock %}
+{% block extra_css %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --harvest-gold: #D4A574;
+            --soil-brown: #8B4513;
+            --leaf-green: #228B22;
+            --sky-blue: #87CEEB;
+            --off-white: #FAF9F6;
+            --glass: rgba(250, 249, 246, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --transition: all 0.3s ease;
+            --bg-gradient: linear-gradient(-45deg, #FAF9F6, #F5DEB3, #E8F5E9, #FAF9F6);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-gradient);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            color: var(--soil-brown);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .sensor-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--soil-brown);
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: linear-gradient(45deg, #4CAF50, #8BC34A);
+        }
+
+        .status-offline {
+            background: linear-gradient(45deg, #F44336, #E91E63);
+        }
+
+        .status-warning {
+            background: linear-gradient(45deg, #FF9800, #FFC107);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, var(--harvest-gold), #C19660);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(212, 165, 116, 0.3);
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 165, 116, 0.4);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+        }
+
+        .control-button.active {
+            background: linear-gradient(135deg, var(--leaf-green), #4CAF50);
+            box-shadow: 0 4px 15px rgba(34, 139, 34, 0.3);
+        }
+
+        .crop-selector {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--soil-brown);
+            transition: var(--transition);
+        }
+
+        .crop-selector:focus {
+            outline: none;
+            border-color: var(--harvest-gold);
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.2);
+        }
+
+        .moisture-gauge {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .gauge-circle {
+            fill: none;
+            stroke-width: 15;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .gauge-background {
+            stroke: rgba(139, 69, 19, 0.2);
+        }
+
+        .gauge-fill {
+            stroke: url(#moistureGradient);
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+
+        .alert-badge {
+            background: linear-gradient(135deg, #F44336, #E91E63);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            animation: alertPulse 2s infinite;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(212, 165, 116, 0.3);
+            border-top: 3px solid var(--harvest-gold);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .emergency-stop {
+            background: linear-gradient(135deg, #F44336, #D32F2F);
+            animation: emergencyPulse 1s infinite;
+        }
+
+        @keyframes emergencyPulse {
+            0%, 100% { 
+                box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 6px 25px rgba(244, 67, 54, 0.6);
+                transform: scale(1.02);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sensor-grid { grid-template-columns: 1fr; }
+            .actuator-grid { grid-template-columns: 1fr; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <main class="pt-20 px-6 pb-12">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-5xl font-bold mb-4" style="font-family: 'Playfair Display', serif; color: var(--soil-brown);">
+                    🌱 Smart IoT Growth Chamber
+                </h1>
+                <p class="text-xl" style="color: var(--soil-brown); opacity: 0.8;">
+                    Real-time environmental control and monitoring system
+                </p>
+            </div>
+
+            <!-- Device Selection -->
+            <div class="glass-card p-6 mb-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold mb-2" style="color: var(--soil-brown);">Select Device</h2>
+                        <select id="deviceSelector" class="crop-selector w-full md:w-auto">
+                            <option value="">Choose a device...</option>
+                            {% for device in devices %}
+                            <option value="{{ device.device_id }}">{{ device.name }} ({{ device.get_device_type_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold mb-2" style="color: var(--soil-brown);">Crop Environment</h2>
+                        <select id="cropSelector" class="crop-selector w-full md:w-auto">
+                            <option value="">Select crop...</option>
+                            {% for crop in crop_environments %}
+                            <option value="{{ crop.id }}">{{ crop.name }} ({{ crop.optimal_temperature }}°C)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="applyCropEnvironment()" class="control-button">
+                            🌾 Apply Environment
+                        </button>
+                        <button onclick="refreshData()" class="control-button">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Grid -->
+            <div id="mainDashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8" style="display: none;">
+                
+                <!-- Sensor Readings -->
+                <div class="lg:col-span-2">
+                    <div class="glass-card p-6">
+                        <h2 class="text-2xl font-bold mb-6" style="color: var(--soil-brown);">Environmental Monitoring</h2>
+                        
+                        <!-- Sensor Grid -->
+                        <div class="sensor-grid grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <!-- Temperature -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="tempStatus"></span>
+                                    <h4 class="font-semibold">Temperature</h4>
+                                </div>
+                                <div class="sensor-value" id="tempValue">--°C</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="tempTarget">--°C</span></div>
+                            </div>
+
+                            <!-- Humidity -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="humidityStatus"></span>
+                                    <h4 class="font-semibold">Humidity</h4>
+                                </div>
+                                <div class="sensor-value" id="humidityValue">--%</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="humidityTarget">--%</span></div>
+                            </div>
+
+                            <!-- Soil Moisture -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="moistureStatus"></span>
+                                    <h4 class="font-semibold">Soil Moisture</h4>
+                                </div>
+                                <div class="sensor-value" id="moistureValue">--%</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="moistureTarget">--%</span></div>
+                            </div>
+
+                            <!-- Light -->
+                            <div class="glass-card p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="status-indicator status-online" id="lightStatus"></span>
+                                    <h4 class="font-semibold">Light</h4>
+                                </div>
+                                <div class="sensor-value" id="lightValue">-- lux</div>
+                                <div class="text-sm text-gray-600 mt-2">Target: <span id="lightTarget">-- lux</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Moisture Gauge -->
+                        <div class="glass-card p-6 mb-6">
+                            <h3 class="text-xl font-bold mb-4" style="color: var(--soil-brown);">Soil Moisture Level</h3>
+                            <div class="moisture-gauge">
+                                <svg width="200" height="200" viewBox="0 0 200 200">
+                                    <defs>
+                                        <linearGradient id="moistureGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#8BC34A;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="100" cy="100" r="85" class="gauge-circle gauge-background"></circle>
+                                    <circle cx="100" cy="100" r="85" class="gauge-circle gauge-fill" 
+                                            id="moistureGauge"
+                                            stroke-dasharray="534.07" 
+                                            stroke-dashoffset="534.07"></circle>
+                                    <text x="100" y="90" text-anchor="middle" class="text-3xl font-bold" 
+                                          style="fill: var(--soil-brown);" id="moistureGaugeValue">--%</text>
+                                    <text x="100" y="115" text-anchor="middle" class="text-sm" 
+                                          style="fill: var(--soil-brown); opacity: 0.7;">Moisture</text>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Historical Charts -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="glass-card p-4">
+                                <h3 class="text-lg font-bold mb-4" style="color: var(--soil-brown);">Temperature History</h3>
+                                <div class="chart-container">
+                                    <canvas id="tempChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="glass-card p-4">
+                                <h3 class="text-lg font-bold mb-4" style="color: var(--soil-brown);">Humidity History</h3>
+                                <div class="chart-container">
+                                    <canvas id="humidityChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Panel -->
+                <div class="lg:col-span-1">
+                    <div class="glass-card p-6 mb-6">
+                        <h2 class="text-2xl font-bold mb-6" style="color: var(--soil-brown);">Manual Controls</h2>
+                        
+                        <!-- Actuator Controls -->
+                        <div class="actuator-grid space-y-4">
+                            <!-- Water Pump -->
+                            <div class="glass-card p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-semibold">💧 Water Pump</h4>
+                                    <span class="status-indicator" id="pumpStatus"></span>
+                                </div>
+                                <div class="flex gap-2 mb-3">
+                                    <button onclick="controlActuator('water_pump', 'on')" 
+                                            class="control-button flex-1" id="pumpOn">
+                                        ON
+                                    </button>
+                                    <button onclick="controlActuator('water_pump', 'off')" 
+                                            class="control-button flex-1" id="pumpOff">
+                                        OFF
+                                    </button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="text-sm text-gray-600">Power Level</label>
+                                    <input type="range" id="pumpPower" min="0" max="100" value="100" 
+                                           class="w-full" onchange="updatePower('water_pump')">
+                                    <div class="text-center text-sm" id="pumpPowerValue">100%</div>
+                                </div>
+                                <button onclick="waterNow()" class="control-button w-full">
+                                    💧 Water Now (30s)
+                                </button>
+                            </div>
+
+                            <!-- Cooling Fan -->
+                            <div class="glass-card p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-semibold">🌬️ Cooling Fan</h4>
+                                    <span class="status-indicator" id="fanStatus"></span>
+                                </div>
+                                <div class="flex gap-2 mb-3">
+                                    <button onclick="controlActuator('cooling_fan', 'on')" 
+                                            class="control-button flex-1" id="fanOn">
+                                        ON
+                                    </button>
+                                    <button onclick="controlActuator('cooling_fan', 'off')" 
+                                            class="control-button flex-1" id="fanOff">
+                                        OFF
+                                    </button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="text-sm text-gray-600">Power Level</label>
+                                    <input type="range" id="fanPower" min="0" max="100" value="100" 
+                                           class="w-full" onchange="updatePower('cooling_fan')">
+                                    <div class="text-center text-sm" id="fanPowerValue">100%</div>
+                                </div>
+                            </div>
+
+                            <!-- Grow Light -->
+                            <div class="glass-card p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-semibold">💡 Grow Light</h4>
+                                    <span class="status-indicator" id="lightActuatorStatus"></span>
+                                </div>
+                                <div class="flex gap-2 mb-3">
+                                    <button onclick="controlActuator('grow_light', 'on')" 
+                                            class="control-button flex-1" id="lightOn">
+                                        ON
+                                    </button>
+                                    <button onclick="controlActuator('grow_light', 'off')" 
+                                            class="control-button flex-1" id="lightOff">
+                                        OFF
+                                    </button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="text-sm text-gray-600">Power Level</label>
+                                    <input type="range" id="lightPower" min="0" max="100" value="100" 
+                                           class="w-full" onchange="updatePower('grow_light')">
+                                    <div class="text-center text-sm" id="lightPowerValue">100%</div>
+                                </div>
+                            </div>
+
+                            <!-- Humidifier -->
+                            <div class="glass-card p-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="font-semibold">💨 Humidifier</h4>
+                                    <span class="status-indicator" id="humidifierStatus"></span>
+                                </div>
+                                <div class="flex gap-2 mb-3">
+                                    <button onclick="controlActuator('humidifier', 'on')" 
+                                            class="control-button flex-1" id="humidifierOn">
+                                        ON
+                                    </button>
+                                    <button onclick="controlActuator('humidifier', 'off')" 
+                                            class="control-button flex-1" id="humidifierOff">
+                                        OFF
+                                    </button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="text-sm text-gray-600">Power Level</label>
+                                    <input type="range" id="humidifierPower" min="0" max="100" value="100" 
+                                           class="w-full" onchange="updatePower('humidifier')">
+                                    <div class="text-center text-sm" id="humidifierPowerValue">100%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Emergency Stop -->
+                        <div class="mt-6">
+                            <button onclick="emergencyStop()" class="control-button emergency-stop w-full">
+                                🚨 EMERGENCY STOP
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- System Status -->
+                    <div class="glass-card p-6">
+                        <h2 class="text-2xl font-bold mb-4" style="color: var(--soil-brown);">System Status</h2>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span>Device Status:</span>
+                                <span id="deviceStatus" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Last Update:</span>
+                                <span id="lastUpdate" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>MQTT Service:</span>
+                                <span id="mqttStatus" class="font-semibold">--</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Active Alerts:</span>
+                                <span id="alertCount" class="font-semibold">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Recent Alerts -->
+                        <div class="mt-6">
+                            <h3 class="text-lg font-bold mb-3" style="color: var(--soil-brown);">Recent Alerts</h3>
+                            <div id="alertsContainer" class="space-y-2 max-h-48 overflow-y-auto">
+                                <!-- Alerts will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-12">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-lg" style="color: var(--soil-brown);">Loading Smart Chamber data...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let selectedDevice = null;
+        let charts = {};
+        let updateInterval = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+        });
+
+        function initializeDashboard() {
+            // Set up device selector
+            document.getElementById('deviceSelector').addEventListener('change', function() {
+                selectedDevice = this.value;
+                if (selectedDevice) {
+                    loadDeviceData();
+                    document.getElementById('mainDashboard').style.display = 'grid';
+                    document.getElementById('loadingState').style.display = 'none';
+                } else {
+                    document.getElementById('mainDashboard').style.display = 'none';
+                    document.getElementById('loadingState').style.display = 'block';
+                }
+            });
+
+            // Start auto-refresh
+            startAutoRefresh();
+            
+            // Initialize charts
+            initializeCharts();
+        }
+
+        function loadDeviceData() {
+            if (!selectedDevice) return;
+
+            fetch(`/api/chamber/dashboard/?device_id=${selectedDevice}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateDashboard(data.data[0]);
+                    } else {
+                        console.error('Error loading device data:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        function updateDashboard(deviceData) {
+            // Update sensor readings
+            updateSensorReadings(deviceData.sensor_readings);
+            
+            // Update actuator states
+            updateActuatorStates(deviceData.actuator_states);
+            
+            // Update system status
+            updateSystemStatus(deviceData);
+            
+            // Update alerts
+            updateAlerts(deviceData.recent_alerts);
+            
+            // Update crop environment
+            updateCropEnvironment(deviceData.active_crop);
+        }
+
+        function updateSensorReadings(readings) {
+            const sensors = ['temperature', 'humidity', 'soil_moisture', 'light'];
+            
+            sensors.forEach(sensor => {
+                const reading = readings[sensor];
+                if (reading) {
+                    // Update value
+                    const valueElement = document.getElementById(`${sensor === 'soil_moisture' ? 'moisture' : sensor}Value`);
+                    if (valueElement) {
+                        const unit = sensor === 'temperature' ? '°C' : sensor === 'light' ? ' lux' : '%';
+                        valueElement.textContent = reading.value + unit;
+                    }
+                    
+                    // Update moisture gauge
+                    if (sensor === 'soil_moisture') {
+                        updateMoistureGauge(reading.value);
+                    }
+                }
+            });
+        }
+
+        function updateMoistureGauge(value) {
+            const gauge = document.getElementById('moistureGauge');
+            const gaugeValue = document.getElementById('moistureGaugeValue');
+            
+            const circumference = 2 * Math.PI * 85;
+            const offset = circumference - (value / 100) * circumference;
+            
+            gauge.style.strokeDashoffset = offset;
+            gaugeValue.textContent = Math.round(value) + '%';
+        }
+
+        function updateActuatorStates(states) {
+            const actuators = ['water_pump', 'cooling_fan', 'grow_light', 'humidifier'];
+            
+            actuators.forEach(actuator => {
+                const state = states[actuator];
+                if (state) {
+                    // Update status indicator
+                    const statusElement = document.getElementById(`${actuator.replace('_', '')}Status`);
+                    if (statusElement) {
+                        statusElement.className = `status-indicator ${state.is_active ? 'status-online' : 'status-offline'}`;
+                    }
+                    
+                    // Update power slider
+                    const powerSlider = document.getElementById(`${actuator.replace('_', '')}Power`);
+                    const powerValue = document.getElementById(`${actuator.replace('_', '')}PowerValue`);
+                    if (powerSlider && powerValue) {
+                        powerSlider.value = state.power_level;
+                        powerValue.textContent = state.power_level + '%';
+                    }
+                }
+            });
+        }
+
+        function updateSystemStatus(deviceData) {
+            // Update device status
+            const deviceStatus = document.getElementById('deviceStatus');
+            deviceStatus.textContent = deviceData.is_online ? 'Online' : 'Offline';
+            deviceStatus.style.color = deviceData.is_online ? 'var(--leaf-green)' : 'var(--soil-brown)';
+            
+            // Update last update
+            const lastUpdate = document.getElementById('lastUpdate');
+            if (deviceData.last_seen) {
+                const date = new Date(deviceData.last_seen);
+                lastUpdate.textContent = date.toLocaleTimeString();
+            }
+            
+            // Update alert count
+            const alertCount = document.getElementById('alertCount');
+            alertCount.textContent = deviceData.recent_alerts.length;
+        }
+
+        function updateAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '';
+            
+            alerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'glass-card p-3';
+                alertDiv.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="font-semibold text-sm">${alert.title}</div>
+                            <div class="text-xs opacity-70">${alert.message}</div>
+                        </div>
+                        <span class="alert-badge">${alert.severity}</span>
+                    </div>
+                `;
+                container.appendChild(alertDiv);
+            });
+        }
+
+        function updateCropEnvironment(crop) {
+            if (crop) {
+                // Update target values
+                document.getElementById('tempTarget').textContent = crop.optimal_temperature + '°C';
+                document.getElementById('humidityTarget').textContent = crop.optimal_humidity + '%';
+                document.getElementById('moistureTarget').textContent = crop.optimal_soil_moisture + '%';
+                document.getElementById('lightTarget').textContent = crop.light_intensity + ' lux';
+                
+                // Update crop selector
+                document.getElementById('cropSelector').value = crop.id;
+            }
+        }
+
+        function controlActuator(actuatorType, action) {
+            if (!selectedDevice) return;
+
+            fetch('/api/chamber/manual-control/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    device_id: selectedDevice,
+                    actuator_type: actuatorType,
+                    action: action,
+                    power_level: document.getElementById(actuatorType.replace('_', '') + 'Power').value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Control command sent successfully');
+                    // Refresh data after a short delay
+                    setTimeout(loadDeviceData, 1000);
+                } else {
+                    console.error('Error:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function updatePower(actuatorType) {
+            const powerSlider = document.getElementById(actuatorType.replace('_', '') + 'Power');
+            const powerValue = document.getElementById(actuatorType.replace('_', '') + 'PowerValue');
+            powerValue.textContent = powerSlider.value + '%';
+        }
+
+        function waterNow() {
+            if (!selectedDevice) return;
+
+            fetch('/api/chamber/water-now/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    device_id: selectedDevice,
+                    duration: 30
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Water now command sent');
+                    setTimeout(loadDeviceData, 1000);
+                } else {
+                    console.error('Error:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function applyCropEnvironment() {
+            const cropId = document.getElementById('cropSelector').value;
+            if (!selectedDevice || !cropId) return;
+
+            fetch('/api/chamber/select-crop/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    device_id: selectedDevice,
+                    crop_id: cropId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Crop environment applied');
+                    setTimeout(loadDeviceData, 1000);
+                } else {
+                    console.error('Error:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function emergencyStop() {
+            if (!selectedDevice) return;
+            
+            if (confirm('Are you sure you want to activate emergency stop? This will turn off all actuators.')) {
+                fetch('/api/chamber/emergency-stop/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        device_id: selectedDevice
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('Emergency stop activated');
+                        setTimeout(loadDeviceData, 1000);
+                    } else {
+                        console.error('Error:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        }
+
+        function refreshData() {
+            loadDeviceData();
+        }
+
+        function startAutoRefresh() {
+            // Refresh data every 10 seconds
+            updateInterval = setInterval(() => {
+                if (selectedDevice) {
+                    loadDeviceData();
+                }
+            }, 10000);
+        }
+
+        function initializeCharts() {
+            // Temperature Chart
+            const tempCtx = document.getElementById('tempChart').getContext('2d');
+            charts.temperature = new Chart(tempCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+
+            // Humidity Chart
+            const humidityCtx = document.getElementById('humidityChart').getContext('2d');
+            charts.humidity = new Chart(humidityCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Humidity (%)',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            if (!selectedDevice) return;
+
+            // Load temperature history
+            fetch(`/api/chamber/sensor-history/?device_id=${selectedDevice}&sensor_type=temperature&hours=24`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const labels = data.data.map(point => new Date(point.timestamp).toLocaleTimeString());
+                        const values = data.data.map(point => point.value);
+                        
+                        charts.temperature.data.labels = labels;
+                        charts.temperature.data.datasets[0].data = values;
+                        charts.temperature.update();
+                    }
+                });
+
+            // Load humidity history
+            fetch(`/api/chamber/sensor-history/?device_id=${selectedDevice}&sensor_type=humidity&hours=24`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const labels = data.data.map(point => new Date(point.timestamp).toLocaleTimeString());
+                        const values = data.data.map(point => point.value);
+                        
+                        charts.humidity.data.labels = labels;
+                        charts.humidity.data.datasets[0].data = values;
+                        charts.humidity.update();
+                    }
+                });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Update charts periodically
+        setInterval(() => {
+            if (selectedDevice) {
+                updateCharts();
+            }
+        }, 30000); // Update charts every 30 seconds
+    </script>
+{% endblock %}
