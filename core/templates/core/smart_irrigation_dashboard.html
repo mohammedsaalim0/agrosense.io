@@ -1,0 +1,1276 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="irrigation-container">
+    <!-- Hero Section -->
+    <section class="irrigation-hero">
+        <div class="hero-overlay"></div>
+        <div class="container hero-content">
+            <div class="hero-text-wrap">
+                <span class="hero-subtitle">Smart IoT Farming</span>
+                <h1>Smart Irrigation System</h1>
+                <p>Monitor and control your farm's irrigation system with real-time sensor data and intelligent automation.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dashboard -->
+    <section class="irrigation-dashboard">
+        <div class="container">
+            <!-- Device Selection -->
+            <div class="device-selector">
+                <h3>Select Device</h3>
+                <select id="device-select" class="device-select" onchange="loadDeviceData()">
+                    <option value="">Choose Device...</option>
+                    {% for device in devices %}
+                    <option value="{{ device.device_id }}">{{ device.name }} ({{ device.location }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Control Mode Selection -->
+            <div class="mode-selector">
+                <h3>Control Mode</h3>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" id="manual-mode" onclick="setMode('MANUAL')">
+                        <span class="mode-icon">👆</span>
+                        <span class="mode-text">Manual Control</span>
+                    </button>
+                    <button class="mode-btn" id="auto-mode" onclick="setMode('AUTO')">
+                        <span class="mode-icon">🤖</span>
+                        <span class="mode-text">Automatic Mode</span>
+                    </button>
+                    <button class="mode-btn" id="plant-mode" onclick="setMode('PLANT')">
+                        <span class="mode-icon">🌱</span>
+                        <span class="mode-text">Plant-Based</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Cards Grid -->
+            <div class="status-grid">
+                <!-- Sensor Data Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>📊 Live Sensors</h3>
+                        <div class="connection-indicator" id="connection-status">
+                            <span class="indicator-dot"></span>
+                            <span class="indicator-text">Connected</span>
+                        </div>
+                    </div>
+                    <div class="sensor-grid">
+                        <div class="sensor-item">
+                            <div class="sensor-icon">💧</div>
+                            <div class="sensor-info">
+                                <div class="sensor-label">Soil Moisture</div>
+                                <div class="sensor-value" id="soil-moisture">--%</div>
+                            </div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">🌡️</div>
+                            <div class="sensor-info">
+                                <div class="sensor-label">Temperature</div>
+                                <div class="sensor-value" id="temperature">--°C</div>
+                            </div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">💨</div>
+                            <div class="sensor-info">
+                                <div class="sensor-label">Humidity</div>
+                                <div class="sensor-value" id="humidity">--%</div>
+                            </div>
+                        </div>
+                        <div class="sensor-item">
+                            <div class="sensor-icon">☀️</div>
+                            <div class="sensor-info">
+                                <div class="sensor-label">Light Intensity</div>
+                                <div class="sensor-value" id="light-intensity">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sensor-timestamp" id="last-update">Last updated: --</div>
+                </div>
+
+                <!-- Control Panel Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>🎛️ Device Controls</h3>
+                        <div class="mode-indicator" id="current-mode-display">
+                            <span class="mode-badge">MANUAL</span>
+                        </div>
+                    </div>
+                    <div class="control-panel">
+                        <div class="control-row">
+                            <div class="control-item">
+                                <div class="control-label">Water Pump</div>
+                                <button class="control-btn" id="pump-btn" onclick="toggleDevice('pump')">
+                                    <span class="btn-icon">💧</span>
+                                    <span class="btn-text">Pump OFF</span>
+                                </button>
+                            </div>
+                            <div class="control-item">
+                                <div class="control-label">Cooling Fan</div>
+                                <button class="control-btn" id="fan-btn" onclick="toggleDevice('fan')">
+                                    <span class="btn-icon">💨</span>
+                                    <span class="btn-text">Fan OFF</span>
+                                </button>
+                            </div>
+                            <div class="control-item">
+                                <div class="control-label">LED Light</div>
+                                <button class="control-btn" id="light-btn" onclick="toggleDevice('light')">
+                                    <span class="btn-icon">💡</span>
+                                    <span class="btn-text">Light OFF</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Emergency Stop -->
+                        <div class="emergency-section">
+                            <button class="emergency-btn" onclick="emergencyStop()">
+                                <span class="emergency-icon">🛑</span>
+                                <span class="emergency-text">EMERGENCY STOP</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plant Profile Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>🌱 Plant Profile</h3>
+                        <div class="profile-indicator" id="plant-indicator">
+                            <span class="profile-badge">Tomato</span>
+                        </div>
+                    </div>
+                    <div class="plant-selector">
+                        <select id="plant-select" class="plant-select" onchange="setPlantProfile(this.value)">
+                            <option value="">Select Plant...</option>
+                            {% for profile in plant_profiles %}
+                            <option value="{{ profile.name }}">{{ profile.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="plant-info" id="plant-info">
+                        <div class="info-item">
+                            <span class="info-label">Optimal Soil:</span>
+                            <span class="info-value" id="optimal-soil">--%</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Optimal Temp:</span>
+                            <span class="info-value" id="optimal-temp">--°C</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Optimal Humidity:</span>
+                            <span class="info-value" id="optimal-humidity">--%</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Light Hours:</span>
+                            <span class="info-value" id="optimal-light">-- hours</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status Card -->
+                <div class="status-card glass-morphism">
+                    <div class="card-header">
+                        <h3>📈 System Status</h3>
+                        <div class="status-indicator" id="system-status">
+                            <span class="status-dot online"></span>
+                            <span class="status-text">Online</span>
+                        </div>
+                    </div>
+                    <div class="status-info">
+                        <div class="status-item">
+                            <span class="status-label">Device Uptime:</span>
+                            <span class="status-value" id="uptime">-- hours</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">WiFi Signal:</span>
+                            <span class="status-value" id="wifi-signal">-- dBm</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Free Memory:</span>
+                            <span class="status-value" id="free-memory">-- KB</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Last Command:</span>
+                            <span class="status-value" id="last-command">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <h2>📊 Historical Data</h2>
+                <div class="chart-controls">
+                    <button class="chart-btn active" onclick="setChartRange('24h')">24 Hours</button>
+                    <button class="chart-btn" onclick="setChartRange('7d')">7 Days</button>
+                    <button class="chart-btn" onclick="setChartRange('30d')">30 Days</button>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card glass-morphism">
+                        <h4>Soil Moisture Trend</h4>
+                        <div class="chart-container">
+                            <canvas id="moisture-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card glass-morphism">
+                        <h4>Temperature Trend</h4>
+                        <div class="chart-container">
+                            <canvas id="temperature-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card glass-morphism">
+                        <h4>Humidity Trend</h4>
+                        <div class="chart-container">
+                            <canvas id="humidity-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card glass-morphism">
+                        <h4>Light Intensity Trend</h4>
+                        <div class="chart-container">
+                            <canvas id="light-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">
+        <div class="toast-content">
+            <span id="toast-icon">ℹ️</span>
+            <span id="toast-message">Notification message</span>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --primary-green: #2d5a27;
+    --accent-green: #4caf50;
+    --soil-brown: #5d4037;
+    --harvest-gold: #ff9800;
+    --sky-blue: #87ceeb;
+    --warm-white: #fdfdfb;
+    --text-main: #2c3e50;
+    --text-muted: #64748b;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 10px 25px rgba(0,0,0,0.08);
+    --shadow-lg: 0 20px 40px rgba(0,0,0,0.12);
+    --radius: 12px;
+}
+
+.irrigation-container {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8f5e8 100%);
+    color: var(--text-main);
+    overflow-x: hidden;
+    margin-top: 80px;
+    min-height: 100vh;
+}
+
+/* Hero Section */
+.irrigation-hero {
+    position: relative;
+    min-height: 400px;
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--soil-brown) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.irrigation-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+    animation: float 20s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: white;
+}
+
+.hero-text-wrap h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--harvest-gold);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+/* Dashboard */
+.irrigation-dashboard {
+    padding: 2rem 0;
+}
+
+.device-selector, .mode-selector {
+    margin-bottom: 2rem;
+}
+
+.device-selector h3, .mode-selector h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+.device-select, .plant-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 1rem;
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--text-main);
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.mode-btn {
+    flex: 1;
+    min-width: 200px;
+    padding: 1.5rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.mode-btn:hover {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--accent-green);
+    transform: translateY(-2px);
+}
+
+.mode-btn.active {
+    background: var(--accent-green);
+    color: white;
+    border-color: var(--accent-green);
+}
+
+.mode-icon {
+    font-size: 1.5rem;
+}
+
+.mode-text {
+    font-size: 0.9rem;
+}
+
+/* Status Grid */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.status-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.card-header h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.connection-indicator, .mode-indicator, .profile-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.indicator-dot, .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.indicator-dot.offline, .status-dot.offline {
+    background: #ef4444;
+    animation: none;
+}
+
+.indicator-text, .status-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.mode-badge, .profile-badge {
+    background: var(--harvest-gold);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Sensor Grid */
+.sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.sensor-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.sensor-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sensor-icon {
+    font-size: 2rem;
+    width: 60px;
+    text-align: center;
+}
+
+.sensor-info {
+    flex: 1;
+}
+
+.sensor-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sensor-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary-green);
+    margin-top: 0.2rem;
+}
+
+.sensor-timestamp {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 1rem;
+}
+
+/* Control Panel */
+.control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.control-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.control-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.control-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.control-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-main);
+    min-width: 140px;
+}
+
+.control-btn:hover {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--accent-green);
+    transform: scale(1.05);
+}
+
+.control-btn.active {
+    background: var(--accent-green);
+    color: white;
+    border-color: var(--accent-green);
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+}
+
+.btn-text {
+    font-size: 0.9rem;
+}
+
+.emergency-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.emergency-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    width: 100%;
+}
+
+.emergency-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+}
+
+.emergency-icon {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+}
+
+/* Plant Profile */
+.plant-selector {
+    margin-bottom: 1.5rem;
+}
+
+.plant-info {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.info-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.info-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary-green);
+}
+
+/* System Status */
+.status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.status-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.status-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* Charts Section */
+.charts-section {
+    margin-top: 3rem;
+}
+
+.charts-section h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+}
+
+.chart-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.chart-btn {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.chart-btn:hover {
+    background: rgba(76, 175, 80, 0.1);
+    border-color: var(--accent-green);
+}
+
+.chart-btn.active {
+    background: var(--accent-green);
+    color: white;
+    border-color: var(--accent-green);
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.chart-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+}
+
+.chart-card h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+.chart-container {
+    height: 300px;
+    position: relative;
+}
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.5rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    max-width: 350px;
+}
+
+.toast-notification.show {
+    transform: translateX(0);
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#toast-icon {
+    font-size: 1.5rem;
+}
+
+#toast-message {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+/* Glass Morphism Effect */
+.glass-morphism {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-text-wrap h1 {
+        font-size: 2.5rem;
+    }
+    
+    .irrigation-dashboard {
+        padding: 1rem;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .status-card {
+        padding: 1.5rem;
+    }
+    
+    .mode-buttons {
+        flex-direction: column;
+    }
+    
+    .mode-btn {
+        min-width: 100%;
+    }
+    
+    .control-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .sensor-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .plant-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-text-wrap h1 {
+        font-size: 2rem;
+    }
+    
+    .irrigation-dashboard {
+        padding: 0.5rem;
+    }
+    
+    .status-card {
+        padding: 1rem;
+    }
+    
+    .control-btn {
+        padding: 0.8rem 1rem;
+        min-width: 120px;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+    
+    .toast-notification {
+        right: 10px;
+        left: 10px;
+        max-width: calc(100% - 20px);
+    }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Global variables
+let currentDevice = '';
+let currentMode = 'MANUAL';
+let currentPlant = '';
+let charts = {};
+let updateInterval;
+
+// Plant profiles data
+const plantProfiles = {{ plant_profiles|safe }};
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    startRealTimeUpdates();
+    
+    // Auto-select first device if available
+    const deviceSelect = document.getElementById('device-select');
+    if (deviceSelect.options.length > 1) {
+        deviceSelect.selectedIndex = 1;
+        loadDeviceData();
+    }
+});
+
+// Device selection
+function loadDeviceData() {
+    const select = document.getElementById('device-select');
+    currentDevice = select.value;
+    
+    if (currentDevice) {
+        fetchDeviceStatus();
+        fetchSensorHistory();
+        showToast(`Device ${currentDevice} selected`, 'success');
+    }
+}
+
+// Mode selection
+function setMode(mode) {
+    currentMode = mode;
+    
+    // Update button states
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(mode.toLowerCase() + '-mode').classList.add('active');
+    
+    // Update display
+    const modeDisplay = document.getElementById('current-mode-display');
+    modeDisplay.innerHTML = `<span class="mode-badge">${mode}</span>`;
+    
+    // Send command to device
+    sendDeviceCommand({
+        mode: mode,
+        plant: currentPlant
+    });
+    
+    showToast(`Switched to ${mode} mode`, 'info');
+}
+
+// Plant profile selection
+function setPlantProfile(plantName) {
+    currentPlant = plantName;
+    
+    if (!plantName) {
+        document.getElementById('plant-info').innerHTML = '<p style="color: var(--text-muted);">Select a plant profile</p>';
+        return;
+    }
+    
+    const profile = plantProfiles[plantName];
+    if (profile) {
+        // Update plant indicator
+        document.getElementById('plant-indicator').innerHTML = `<span class="profile-badge">${profile.display_name}</span>`;
+        
+        // Update plant info
+        document.getElementById('optimal-soil').textContent = `${profile.soil_moisture_min}% - ${profile.soil_moisture_max}%`;
+        document.getElementById('optimal-temp').textContent = `${profile.temperature_min}°C - ${profile.temperature_max}°C`;
+        document.getElementById('optimal-humidity').textContent = `${profile.optimal_conditions.humidity}%`;
+        document.getElementById('optimal-light').textContent = `${profile.light_hours} hours`;
+        
+        // Send command to device
+        sendDeviceCommand({
+            mode: currentMode,
+            plant: plantName
+        });
+        
+        showToast(`Plant profile changed to ${profile.display_name}`, 'success');
+    }
+}
+
+// Device control
+function toggleDevice(device) {
+    const btn = document.getElementById(device + '-btn');
+    const isActive = btn.classList.contains('active');
+    
+    // Toggle button state
+    btn.classList.toggle('active');
+    btn.querySelector('.btn-text').textContent = isActive ? 
+        `${device.charAt(0).toUpperCase() + device.slice(1)} OFF` : 
+        `${device.charAt(0).toUpperCase() + device.slice(1)} ON`;
+    
+    // Send command
+    const command = {};
+    command[device] = !isActive;
+    
+    sendDeviceCommand({
+        mode: currentMode,
+        commands: command
+    });
+    
+    showToast(`${device.charAt(0).toUpperCase() + device.slice(1)} ${!isActive ? 'ON' : 'OFF'}`, 'info');
+}
+
+// Emergency stop
+function emergencyStop() {
+    // Stop all devices
+    ['pump', 'fan', 'light'].forEach(device => {
+        const btn = document.getElementById(device + '-btn');
+        if (btn) {
+            btn.classList.remove('active');
+            btn.querySelector('.btn-text').textContent = `${device.charAt(0).toUpperCase() + device.slice(1)} OFF`;
+        }
+    });
+    
+    // Send emergency stop command
+    sendDeviceCommand({
+        mode: 'EMERGENCY',
+        commands: {
+            stop_all: true
+        }
+    });
+    
+    showToast('Emergency stop activated!', 'warning');
+}
+
+// API calls
+async function fetchDeviceStatus() {
+    try {
+        const response = await fetch(`/api/device-status?device_id=${currentDevice}`);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            updateDeviceDisplay(data);
+        }
+    } catch (error) {
+        console.error('Error fetching device status:', error);
+        showToast('Error fetching device status', 'error');
+    }
+}
+
+async function sendDeviceCommand(command) {
+    try {
+        const response = await fetch('/api/device-control', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                device_id: currentDevice,
+                ...command
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status !== 'success') {
+            showToast('Error sending command', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending command:', error);
+        showToast('Error sending command', 'error');
+    }
+}
+
+async function fetchSensorHistory() {
+    try {
+        const response = await fetch(`/api/sensor-history?device_id=${currentDevice}&hours=24`);
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            updateCharts(data.sensor_data);
+        }
+    } catch (error) {
+        console.error('Error fetching sensor history:', error);
+    }
+}
+
+// Update functions
+function updateDeviceDisplay(data) {
+    // Update sensors
+    if (data.latest_readings) {
+        const readings = data.latest_readings;
+        updateSensorDisplay('soil-moisture', readings.soil_moisture ? readings.soil_moisture.value + '%' : '--%');
+        updateSensorDisplay('temperature', readings.temperature ? readings.temperature.value + '°C' : '--°C');
+        updateSensorDisplay('humidity', readings.humidity ? readings.humidity.value + '%' : '--%');
+        updateSensorDisplay('light-intensity', readings.light_intensity ? readings.light_intensity.value : '--');
+    }
+    
+    // Update system status
+    if (data.device) {
+        document.getElementById('uptime').textContent = data.device.uptime_hours ? `${Math.floor(data.device.uptime_hours)} hours` : '-- hours';
+        document.getElementById('wifi-signal').textContent = data.device.wifi_rssi ? `${data.device.wifi_rssi} dBm` : '-- dBm';
+        document.getElementById('free-memory').textContent = data.device.free_heap ? `${Math.floor(data.device.free_heap / 1024)} KB` : '-- KB';
+    }
+    
+    // Update connection status
+    updateConnectionStatus(true);
+}
+
+function updateSensorDisplay(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function updateConnectionStatus(connected) {
+    const statusElement = document.getElementById('connection-status');
+    const dot = statusElement.querySelector('.indicator-dot');
+    const text = statusElement.querySelector('.indicator-text');
+    
+    if (connected) {
+        dot.classList.remove('offline');
+        text.textContent = 'Connected';
+    } else {
+        dot.classList.add('offline');
+        text.textContent = 'Disconnected';
+    }
+}
+
+// Chart functions
+function initializeCharts() {
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                type: 'time',
+                time: {
+                    unit: 'hour'
+                }
+            },
+            y: {
+                beginAtZero: true
+            }
+        }
+    };
+    
+    charts.moisture = new Chart(document.getElementById('moisture-chart'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Soil Moisture (%)',
+                data: [],
+                borderColor: '#4caf50',
+                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: chartOptions
+    });
+    
+    charts.temperature = new Chart(document.getElementById('temperature-chart'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Temperature (°C)',
+                data: [],
+                borderColor: '#ff9800',
+                backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: chartOptions
+    });
+    
+    charts.humidity = new Chart(document.getElementById('humidity-chart'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Humidity (%)',
+                data: [],
+                borderColor: '#87ceeb',
+                backgroundColor: 'rgba(135, 206, 235, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: chartOptions
+    });
+    
+    charts.light = new Chart(document.getElementById('light-chart'), {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Light Intensity',
+                data: [],
+                borderColor: '#fbbf24',
+                backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: chartOptions
+    });
+}
+
+function updateCharts(sensorData) {
+    if (!sensorData) return;
+    
+    // Update each chart with corresponding data
+    Object.keys(charts).forEach(sensorType => {
+        const chart = charts[sensorType];
+        const dataKey = sensorType === 'moisture' ? 'soil_moisture' : 
+                        sensorType === 'temperature' ? 'temperature' :
+                        sensorType === 'humidity' ? 'humidity' : 'light_intensity';
+        
+        if (chart && sensorData[dataKey]) {
+            const data = sensorData[dataKey];
+            chart.data.labels = data.map(d => new Date(d.timestamp));
+            chart.data.datasets[0].data = data.map(d => d.value);
+            chart.update();
+        }
+    });
+}
+
+// Real-time updates
+function startRealTimeUpdates() {
+    // Clear existing interval
+    if (updateInterval) {
+        clearInterval(updateInterval);
+    }
+    
+    // Update every 5 seconds
+    updateInterval = setInterval(() => {
+        if (currentDevice) {
+            fetchDeviceStatus();
+        }
+    }, 5000);
+}
+
+// Utility functions
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    const messageEl = document.getElementById('toast-message');
+    
+    // Set icon based on type
+    const icons = {
+        success: '✅',
+        warning: '⚠️',
+        error: '❌',
+        info: 'ℹ️'
+    };
+    
+    icon.textContent = icons[type] || icons.info;
+    messageEl.textContent = message;
+    
+    // Show toast
+    toast.classList.add('show');
+    
+    // Auto hide after 5 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
